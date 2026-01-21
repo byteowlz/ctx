@@ -26,11 +26,11 @@ cargo fmt --check                # Check formatting
 
 ---
 
-## Issue Tracking with bd (beads)
+## Issue Tracking with trx
 
-**IMPORTANT**: This project uses **bd (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
+**IMPORTANT**: This project uses **trx** for ALL issue tracking.
 
-### Why bd?
+### Why trx?
 
 - Dependency-aware: Track blockers and relationships between issues
 - Git-friendly: Auto-syncs to JSONL for version control
@@ -42,27 +42,27 @@ cargo fmt --check                # Check formatting
 **Check for ready work:**
 
 ```bash
-bd ready --json
+trx ready --json
 ```
 
 **Create new issues:**
 
 ```bash
-bd create "Issue title" -t bug|feature|task -p 0-4 --json
-bd create "Issue title" -p 1 --deps discovered-from:bd-123 --json
+trx create "Issue title" -t bug|feature|task -p 0-4 --json
+trx create "Issue title" -p 1 --deps discovered-from:trx-123 --json
 ```
 
 **Claim and update:**
 
 ```bash
-bd update bd-42 --status in_progress --json
-bd update bd-42 --priority 1 --json
+trx update trx-42 --status in_progress --json
+trx update trx-42 --priority 1 --json
 ```
 
 **Complete work:**
 
 ```bash
-bd close bd-42 --reason "Completed" --json
+trx close trx-42 --reason "Completed" --json
 ```
 
 ### Issue Types
@@ -83,42 +83,17 @@ bd close bd-42 --reason "Completed" --json
 
 ### Workflow for AI Agents
 
-1. **Check ready work**: `bd ready` shows unblocked issues
-2. **Claim your task**: `bd update <id> --status in_progress`
+1. **Check ready work**: `trx ready` shows unblocked issues
+2. **Claim your task**: `trx update <id> --status in_progress`
 3. **Work on it**: Implement, test, document
 4. **Discover new work?** Create linked issue:
-   - `bd create "Found bug" -p 1 --deps discovered-from:<parent-id>`
-5. **Complete**: `bd close <id> --reason "Done"`
+   - `trx create "Found bug" -p 1 --deps discovered-from:<parent-id>`
+5. **Complete**: `trx close <id> --reason "Done"`
 6. **Commit together**: Always commit the `.beads/issues.jsonl` file together with the code changes so issue state stays in sync with code state
 
 ### Auto-Sync
 
-bd automatically syncs with git:
-
-- Exports to `.beads/issues.jsonl` after changes (5s debounce)
-- Imports from JSONL when newer (e.g., after `git pull`)
-- No manual export/import needed!
-
-### MCP Server (Recommended)
-
-If using Claude or MCP-compatible clients, install the beads MCP server:
-
-```bash
-pip install beads-mcp
-```
-
-Add to MCP config (e.g., `~/.config/claude/config.json`):
-
-```json
-{
-  "beads": {
-    "command": "beads-mcp",
-    "args": []
-  }
-}
-```
-
-Then use `mcp__beads__*` functions instead of CLI commands.
+trx automatically syncs with git
 
 ### Managing AI-Generated Planning Documents
 
@@ -154,10 +129,10 @@ history/
 
 ### Important Rules
 
-- Use bd for ALL task tracking
+- Use trx for ALL task tracking
 - Always use `--json` flag for programmatic use
 - Link discovered work with `discovered-from` dependencies
-- Check `bd ready` before asking "what should I work on?"
+- Check `trx ready` before asking "what should I work on?"
 - Store AI planning docs in `history/` directory
 - Do NOT create markdown TODO lists
 - Do NOT use external issue trackers
