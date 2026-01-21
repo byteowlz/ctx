@@ -1,0 +1,29 @@
+# Example ctx configuration
+# Paths expand ~ and environment variables like $XDG_CONFIG_HOME.
+
+[capture]
+# Capture clipboard contents (opt-in).
+include_clipboard = false
+# Capture screenshots by default.
+include_screenshots = true
+# Collect accessibility details when available.
+include_accessibility = true
+# Limit accessibility tree depth to control payload size.
+accessibility_depth = 3
+# JPEG quality for screenshots (0-100).
+image_quality = 85
+# Timeout for screenshot capture in milliseconds.
+screenshot_timeout_ms = 2000
+
+[providers]
+# default_provider = "openai"
+
+[providers.api_keys]
+# openai = "sk-..."
+# anthropic = "api-key"
+
+[output]
+# Where captures are stored.
+capture_dir = "~/.local/share/ctx/captures"
+# Where session state is written.
+state_file = "~/.local/state/ctx/sessions.json"
