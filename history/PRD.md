@@ -59,7 +59,7 @@ Milestones
 - M4 Wayland read-only: portal-based screenshot/clipboard; compositor metadata (Hyprland IPC); graceful degradation messaging.
 - M5 Windows read-only: foreground/window info, clipboard, screenshot via GDI; initial UIA element read.
 - M6 Actions where possible: UIA invoke/value (Windows); Wayland RemoteDesktop if available; fallback notices elsewhere.
-- M7 AI pipeline: provider abstraction, image/text upload, redaction/blur options; end-to-end CLI command (`peek context capture`).
+- M7 AI pipeline: provider abstraction, image/text upload, redaction/blur options; end-to-end CLI command (`ctx context capture`).
 - M8 Hardening: tests/mocks per platform module, benchmarks, docs and troubleshooting guides.
 
 Risks and mitigations

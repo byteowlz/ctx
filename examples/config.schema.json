@@ -1,0 +1,106 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/byteowlz/ctx/schemas/config.schema.json",
+  "title": "ctx configuration",
+  "description": "Configuration schema for ctx",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference for editor support"
+    },
+    "capture": {
+      "type": "object",
+      "properties": {
+        "include_clipboard": {
+          "type": "boolean",
+          "default": false
+        },
+        "include_screenshots": {
+          "type": "boolean",
+          "default": true
+        },
+        "include_accessibility": {
+          "type": "boolean",
+          "default": true
+        },
+        "include_actions": {
+          "type": "boolean",
+          "default": false
+        },
+        "accessibility_depth": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16,
+          "default": 3
+        },
+        "image_quality": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 85
+        },
+        "screenshot_timeout_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 2000
+        }
+      },
+      "additionalProperties": false
+    },
+    "providers": {
+      "type": "object",
+      "properties": {
+        "default_provider": {
+          "type": ["string", "null"]
+        },
+        "api_keys": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "output": {
+      "type": "object",
+      "properties": {
+        "capture_dir": {
+          "type": ["string", "null"]
+        },
+        "state_file": {
+          "type": ["string", "null"]
+        },
+        "bundle_dir": {
+          "type": ["string", "null"],
+          "description": "Central directory where ctx context bundles are stored."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ocr": {
+      "type": "object",
+      "description": "OCR backend configuration for bundle image OCR.",
+      "properties": {
+        "command": {
+          "type": "string",
+          "default": "ocrs",
+          "description": "Command used to run OCR on bundle images."
+        },
+        "args": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "auto_crops": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically OCR crops when they are created."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

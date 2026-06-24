@@ -1,0 +1,90 @@
+{
+  "$schema": "https://raw.githubusercontent.com/byteowlz/schemas/refs/heads/main/ctx/ctx.bundle.schema.json",
+  "schema_version": 1,
+  "id": "2026-06-24T10-41-03Z_7hf3k2_build-slides",
+  "created_at": "2026-06-24T10:41:03Z",
+  "updated_at": "2026-06-24T10:42:11Z",
+  "state": "sent",
+  "slug": "build-slides",
+  "producer": { "name": "omni", "version": "0.1.0" },
+  "items": [
+    {
+      "id": "txt_task",
+      "created_at": "2026-06-24T10:41:04Z",
+      "kind": "text",
+      "role": "task",
+      "storage": "inline",
+      "text": "Build a 5-slide deck explaining context bundles for the team meeting. Use the screenshot and the design notes file."
+    },
+    {
+      "id": "img_1",
+      "created_at": "2026-06-24T10:41:10Z",
+      "kind": "image",
+      "role": "screenshot",
+      "path": "images/keynote-screenshot.jpg",
+      "mime": "image/jpeg",
+      "dimensions": { "width": 1920, "height": 1080 },
+      "provenance": {
+        "app": "Keynote",
+        "window_title": "Slides.key - Edited",
+        "display": "0",
+        "mode": "frontmost",
+        "captured_at": "2026-06-24T10:41:09Z"
+      },
+      "ocr_refs": ["txt_ocr1"]
+    },
+    {
+      "id": "img_crop1",
+      "created_at": "2026-06-24T10:41:30Z",
+      "kind": "image",
+      "role": "crop",
+      "path": "images/title-crop.jpg",
+      "mime": "image/jpeg",
+      "dimensions": { "width": 800, "height": 120 },
+      "provenance": {
+        "rect": { "x": 120, "y": 64, "width": 800, "height": 120 },
+        "captured_at": "2026-06-24T10:41:30Z"
+      },
+      "cropped_from": "img_1"
+    },
+    {
+      "id": "txt_ocr1",
+      "created_at": "2026-06-24T10:41:31Z",
+      "kind": "text",
+      "role": "ocr",
+      "storage": "inline",
+      "text": "Context Bundles: A Durable Handoff Format"
+    },
+    {
+      "id": "file_1",
+      "created_at": "2026-06-24T10:41:45Z",
+      "kind": "file",
+      "policy": "copied",
+      "bundle_path": "files/design-notes.md",
+      "original_path": "/Users/me/notes/design-notes.md",
+      "size_bytes": 4096,
+      "mime": "text/markdown",
+      "hash": { "algorithm": "sha256", "value": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08" }
+    },
+    {
+      "id": "url_1",
+      "created_at": "2026-06-24T10:41:50Z",
+      "kind": "url",
+      "url": "https://example.com/spec",
+      "title": "Context Bundles Spec",
+      "source": { "app": "Safari" }
+    }
+  ],
+  "handoffs": [
+    {
+      "target_id": "pi-slides",
+      "transport": "local_process",
+      "bundle_id": "2026-06-24T10-41-03Z_7hf3k2_build-slides",
+      "status": "sent",
+      "timestamps": { "queued_at": "2026-06-24T10:42:00Z", "sent_at": "2026-06-24T10:42:11Z" },
+      "session_affinity_key": "slides",
+      "target_meta": { "command": "pi -p {task}" }
+    }
+  ],
+  "warnings": []
+}

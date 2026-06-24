@@ -86,9 +86,9 @@ docs:
 
 # === Schema ===
 
-# Copy config schema to shared schemas repo
+# Sync config + bundle schemas to shared schemas repo
 schema:
-    ./scripts/copy_config_schema.sh
+    ./scripts/sync_schemas.sh
 
 # === Release ===
 

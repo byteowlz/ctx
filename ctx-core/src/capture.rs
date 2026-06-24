@@ -8,10 +8,12 @@ use uuid::Uuid;
 pub struct CaptureResult {
     pub system: SystemInfo,
     pub displays: Vec<DisplayInfo>,
+    pub apps: Vec<AppInfo>,
     pub windows: Vec<WindowInfo>,
     pub clipboard: ClipboardResult,
     pub screenshots: ScreenshotResult,
     pub accessibility: AccessibilityResult,
+    pub actions: ActionSupport,
     pub notes: Vec<String>,
 }
 
@@ -55,6 +57,7 @@ mod tests {
                 hostname: None,
             },
             displays: Vec::new(),
+            apps: Vec::new(),
             windows: Vec::new(),
             clipboard: ClipboardResult {
                 enabled: false,
@@ -69,6 +72,13 @@ mod tests {
                 enabled: false,
                 captured: false,
                 depth: 0,
+                note: None,
+                focused: None,
+                path: Vec::new(),
+            },
+            actions: ActionSupport {
+                enabled: false,
+                supported: false,
                 note: None,
             },
             notes: Vec::new(),
@@ -102,10 +112,22 @@ pub struct DisplayInfo {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AppInfo {
+    pub name: Option<String>,
+    pub bundle_id: Option<String>,
+    pub pid: Option<u32>,
+    pub focused: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WindowInfo {
+    pub id: Option<u64>,
     pub app_name: Option<String>,
+    pub app_bundle_id: Option<String>,
+    pub pid: Option<u32>,
     pub title: Option<String>,
     pub focused: bool,
+    pub visible: bool,
     pub bounds: Option<Bounds>,
 }
 
@@ -148,5 +170,23 @@ pub struct AccessibilityResult {
     pub enabled: bool,
     pub captured: bool,
     pub depth: u8,
+    pub note: Option<String>,
+    pub focused: Option<AccessibilityNode>,
+    pub path: Vec<AccessibilityNode>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AccessibilityNode {
+    pub role: Option<String>,
+    pub label: Option<String>,
+    pub value: Option<String>,
+    pub enabled: Option<bool>,
+    pub frame: Option<Bounds>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ActionSupport {
+    pub enabled: bool,
+    pub supported: bool,
     pub note: Option<String>,
 }

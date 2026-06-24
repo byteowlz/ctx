@@ -1,3 +1,5 @@
+"$schema" = "https://raw.githubusercontent.com/byteowlz/schemas/refs/heads/main/ctx/ctx.config.schema.json"
+
 # Example ctx configuration
 # Paths expand ~ and environment variables like $XDG_CONFIG_HOME.
 
@@ -8,6 +10,8 @@ include_clipboard = false
 include_screenshots = true
 # Collect accessibility details when available.
 include_accessibility = true
+# Enable action layer (opt-in).
+include_actions = false
 # Limit accessibility tree depth to control payload size.
 accessibility_depth = 3
 # JPEG quality for screenshots (0-100).
@@ -27,3 +31,13 @@ screenshot_timeout_ms = 2000
 capture_dir = "~/.local/share/ctx/captures"
 # Where session state is written.
 state_file = "~/.local/state/ctx/sessions.json"
+# Central directory for ctx context bundles (Agent Handoff).
+bundle_dir = "~/.local/share/ctx/bundles"
+
+[ocr]
+# Command used to run OCR on bundle images (v1 shells out to the `ocrs` CLI).
+command = "ocrs"
+# Automatically OCR crops when they are created.
+auto_crops = true
+# Extra args inserted before the image path, e.g. []
+args = []
