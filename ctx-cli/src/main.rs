@@ -130,6 +130,9 @@ enum CurrentAction {
         /// Current project or repository name/path
         #[arg(long)]
         project: Option<String>,
+        /// Terminal nesting depth of the reporter (e.g. tmux=1, herdr inside tmux=2); deeper fresh reports win over shallower ones
+        #[arg(long)]
+        depth: Option<u32>,
         /// Emit current context as JSON after updating
         #[arg(long)]
         json: bool,
@@ -163,6 +166,9 @@ enum CurrentAction {
         /// Current project or repository name/path
         #[arg(long)]
         project: Option<String>,
+        /// Terminal nesting depth of the reporter (e.g. tmux=1, herdr inside tmux=2); deeper fresh reports win over shallower ones
+        #[arg(long)]
+        depth: Option<u32>,
         /// Emit current context as JSON after updating
         #[arg(long)]
         json: bool,
@@ -326,6 +332,7 @@ fn cmd_current(cli: &Cli, json: bool, action: Option<&CurrentAction>) -> anyhow:
             url,
             cwd,
             project,
+            depth,
             json: _,
         })
         | Some(CurrentAction::Set {
@@ -338,6 +345,7 @@ fn cmd_current(cli: &Cli, json: bool, action: Option<&CurrentAction>) -> anyhow:
             url,
             cwd,
             project,
+            depth,
             json: _,
         }) => current::report_current_context(
             &cfg.output.state_file,
@@ -351,6 +359,7 @@ fn cmd_current(cli: &Cli, json: bool, action: Option<&CurrentAction>) -> anyhow:
                 url: url.clone(),
                 cwd: cwd.clone(),
                 project: project.clone(),
+                depth: *depth,
             },
         )?,
         None => current::read_current_context(&cfg.output.state_file)?,
@@ -397,6 +406,13 @@ fn cmd_current(cli: &Cli, json: bool, action: Option<&CurrentAction>) -> anyhow:
         println!("URL: {}", active.url.as_deref().unwrap_or("<none>"));
         println!("CWD: {}", active.cwd.as_deref().unwrap_or("<none>"));
         println!("Project: {}", active.project.as_deref().unwrap_or("<none>"));
+        println!(
+            "Depth: {}",
+            active
+                .depth
+                .map(|depth| depth.to_string())
+                .unwrap_or_else(|| "<none>".to_string())
+        );
     }
 
     Ok(())

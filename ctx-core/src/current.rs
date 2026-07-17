@@ -3,10 +3,15 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use time::OffsetDateTime;
+use time::{Duration, OffsetDateTime};
 
 pub const CURRENT_CONTEXT_SCHEMA: &str =
     "https://byteowlz.github.io/schemas/ctx/current-context.v1.json";
+
+/// Window during which a shallower (outer) reporter cannot overwrite a deeper
+/// (inner) reporter. Nested multiplexers fire hooks for the same focus change
+/// nearly simultaneously; the innermost reporter holds the real context.
+pub const NESTED_REPORT_GRACE: Duration = Duration::seconds(2);
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CurrentContext {
@@ -50,6 +55,8 @@ pub struct ActiveContext {
     pub cwd: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub project: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub depth: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -73,11 +80,20 @@ pub struct CurrentContextReport {
     pub url: Option<String>,
     pub cwd: Option<String>,
     pub project: Option<String>,
+    pub depth: Option<u32>,
 }
 
 impl CurrentContext {
     #[must_use]
-    pub fn apply_report(mut self, report: CurrentContextReport) -> Self {
+    pub fn apply_report(self, report: CurrentContextReport) -> Self {
+        self.apply_report_at(report, OffsetDateTime::now_utc())
+    }
+
+    #[must_use]
+    pub fn apply_report_at(mut self, report: CurrentContextReport, now: OffsetDateTime) -> Self {
+        if self.suppresses_nested(&report, now) {
+            return self;
+        }
         self.active = ActiveContext {
             source: report.source,
             kind: report.kind,
@@ -88,10 +104,23 @@ impl CurrentContext {
             url: report.url,
             cwd: report.cwd,
             project: report.project,
+            depth: report.depth,
         };
-        self.updated_at = OffsetDateTime::now_utc();
+        self.updated_at = now;
         self.sequence = self.sequence.saturating_add(1);
         self
+    }
+
+    /// A report from a shallower nesting level is dropped while a deeper
+    /// reporter's state is still fresh, so outer multiplexer hooks racing
+    /// with inner ones on the same focus change lose to the innermost.
+    fn suppresses_nested(&self, report: &CurrentContextReport, now: OffsetDateTime) -> bool {
+        match (report.depth, self.active.depth) {
+            (Some(incoming), Some(current)) => {
+                incoming < current && now - self.updated_at < NESTED_REPORT_GRACE
+            }
+            _ => false,
+        }
     }
 }
 
@@ -144,8 +173,12 @@ pub fn report_current_context(
     path: &Path,
     report: CurrentContextReport,
 ) -> Result<CurrentContext, CurrentContextError> {
-    let current = read_current_context(path)?.apply_report(report);
-    write_current_context_atomic(path, &current)?;
+    let previous = read_current_context(path)?;
+    let sequence_before = previous.sequence;
+    let current = previous.apply_report(report);
+    if current.sequence != sequence_before {
+        write_current_context_atomic(path, &current)?;
+    }
     Ok(current)
 }
 
@@ -233,5 +266,75 @@ mod tests {
 
         let roundtrip = read_current_context(&path).expect("read");
         assert_eq!(roundtrip, browser);
+    }
+
+    fn depth_report(source: &str, depth: u32) -> CurrentContextReport {
+        CurrentContextReport {
+            source: Some(source.to_string()),
+            kind: Some(ContextKind::Terminal),
+            cwd: Some(format!("/tmp/{source}")),
+            depth: Some(depth),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn shallow_report_is_dropped_while_deeper_report_is_fresh() {
+        let now = OffsetDateTime::now_utc();
+        let inner = CurrentContext::default().apply_report_at(depth_report("herdr", 2), now);
+        assert_eq!(inner.active.depth, Some(2));
+
+        let racing_outer = inner
+            .clone()
+            .apply_report_at(depth_report("tmux", 1), now + Duration::milliseconds(50));
+        assert_eq!(racing_outer.sequence, inner.sequence);
+        assert_eq!(racing_outer.active.source.as_deref(), Some("herdr"));
+    }
+
+    #[test]
+    fn shallow_report_wins_after_grace_period() {
+        let now = OffsetDateTime::now_utc();
+        let inner = CurrentContext::default().apply_report_at(depth_report("herdr", 2), now);
+
+        let later_outer =
+            inner.apply_report_at(depth_report("tmux", 1), now + Duration::seconds(5));
+        assert_eq!(later_outer.active.source.as_deref(), Some("tmux"));
+        assert_eq!(later_outer.active.depth, Some(1));
+    }
+
+    #[test]
+    fn deeper_and_depthless_reports_always_apply() {
+        let now = OffsetDateTime::now_utc();
+        let outer = CurrentContext::default().apply_report_at(depth_report("tmux", 1), now);
+
+        let deeper = outer
+            .clone()
+            .apply_report_at(depth_report("zellij", 2), now + Duration::milliseconds(10));
+        assert_eq!(deeper.active.source.as_deref(), Some("zellij"));
+
+        let depthless = deeper.apply_report_at(
+            CurrentContextReport {
+                source: Some("aerospace".to_string()),
+                kind: Some(ContextKind::Application),
+                ..Default::default()
+            },
+            now + Duration::milliseconds(20),
+        );
+        assert_eq!(depthless.active.source.as_deref(), Some("aerospace"));
+        assert_eq!(depthless.active.depth, None);
+    }
+
+    #[test]
+    fn suppressed_report_does_not_rewrite_state_file() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let path = temp.path().join("current-context.json");
+
+        let inner = report_current_context(&path, depth_report("herdr", 2)).expect("inner");
+        let outer = report_current_context(&path, depth_report("tmux", 1)).expect("outer");
+        assert_eq!(outer.sequence, inner.sequence);
+        assert_eq!(outer.active.source.as_deref(), Some("herdr"));
+
+        let on_disk = read_current_context(&path).expect("read");
+        assert_eq!(on_disk.active.source.as_deref(), Some("herdr"));
     }
 }

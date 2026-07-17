@@ -36,7 +36,12 @@
         "workspace": { "type": "string" },
         "url": { "type": "string", "format": "uri" },
         "cwd": { "type": "string" },
-        "project": { "type": "string" }
+        "project": { "type": "string" },
+        "depth": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Terminal nesting depth of the reporter (tmux=1, herdr inside tmux=2). While a deeper report is fresh, shallower reports are dropped so the innermost multiplexer wins races on the same focus change."
+        }
       },
       "additionalProperties": false
     }
