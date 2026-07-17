@@ -30,7 +30,7 @@ screenshot_timeout_ms = 2000
 # Where captures are stored.
 capture_dir = "~/.local/share/ctx/captures"
 # Where session state is written.
-state_file = "~/.local/state/ctx/sessions.json"
+state_file = "~/.local/state/ctx/current-context.json"
 # Central directory for ctx context bundles (Agent Handoff).
 bundle_dir = "~/.local/share/ctx/bundles"
 

@@ -4,6 +4,7 @@ use clap::{ArgAction, Parser, Subcommand, ValueEnum};
 
 use ctx_core::capture::{AppInfo, CaptureEnvelope, DisplayInfo, WindowInfo};
 use ctx_core::config;
+use ctx_core::current::{self, ContextKind, CurrentContextReport};
 use ctx_core::platform::{CaptureRequest, ContextProvider, DesktopPlatform, NoopPlatform};
 
 #[derive(Parser, Debug)]
@@ -60,7 +61,7 @@ struct Cli {
     #[arg(long)]
     capture_dir: Option<String>,
     /// Override state file path
-    #[arg(long)]
+    #[arg(long, global = true)]
     state_file: Option<String>,
     /// Platform provider to use (desktop interacts with clipboard/screenshots)
     #[arg(long, value_enum, default_value_t = Provider::Desktop)]
@@ -80,6 +81,14 @@ enum Command {
         #[arg(short = 'p', long = "path")]
         path: bool,
     },
+    /// Show or update the lightweight current-context state file
+    Current {
+        /// Emit current context as JSON
+        #[arg(long)]
+        json: bool,
+        #[command(subcommand)]
+        action: Option<CurrentAction>,
+    },
     /// Manage context bundles for Agent Handoff
     Bundle(bundle::BundleCli),
 }
@@ -88,6 +97,97 @@ enum Command {
 enum Provider {
     Desktop,
     Noop,
+}
+
+#[derive(Debug, Subcommand)]
+enum CurrentAction {
+    /// Report the complete active context from an event source
+    Report {
+        /// Source name, e.g. shell, tmux, pi, aerospace
+        #[arg(long)]
+        source: Option<String>,
+        /// Explicit context kind for stale-field prevention
+        #[arg(long, value_enum)]
+        kind: Option<CurrentKindArg>,
+        /// Current application name
+        #[arg(long)]
+        app: Option<String>,
+        /// Current application bundle ID when available
+        #[arg(long)]
+        bundle_id: Option<String>,
+        /// Current window title
+        #[arg(long)]
+        window: Option<String>,
+        /// Current workspace/space name
+        #[arg(long)]
+        workspace: Option<String>,
+        /// Current URL, only when the reported context is actually a browser/web context
+        #[arg(long)]
+        url: Option<String>,
+        /// Current working directory, only when the reported context is actually a terminal/shell context
+        #[arg(long)]
+        cwd: Option<String>,
+        /// Current project or repository name/path
+        #[arg(long)]
+        project: Option<String>,
+        /// Emit current context as JSON after updating
+        #[arg(long)]
+        json: bool,
+    },
+    /// Deprecated alias for report
+    Set {
+        /// Source name, e.g. shell, tmux, pi, aerospace
+        #[arg(long)]
+        source: Option<String>,
+        /// Explicit context kind for stale-field prevention
+        #[arg(long, value_enum)]
+        kind: Option<CurrentKindArg>,
+        /// Current application name
+        #[arg(long)]
+        app: Option<String>,
+        /// Current application bundle ID when available
+        #[arg(long)]
+        bundle_id: Option<String>,
+        /// Current window title
+        #[arg(long)]
+        window: Option<String>,
+        /// Current workspace/space name
+        #[arg(long)]
+        workspace: Option<String>,
+        /// Current URL, only when the reported context is actually a browser/web context
+        #[arg(long)]
+        url: Option<String>,
+        /// Current working directory, only when the reported context is actually a terminal/shell context
+        #[arg(long)]
+        cwd: Option<String>,
+        /// Current project or repository name/path
+        #[arg(long)]
+        project: Option<String>,
+        /// Emit current context as JSON after updating
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
+enum CurrentKindArg {
+    Application,
+    Terminal,
+    Browser,
+    Editor,
+    Unknown,
+}
+
+impl From<CurrentKindArg> for ContextKind {
+    fn from(value: CurrentKindArg) -> Self {
+        match value {
+            CurrentKindArg::Application => Self::Application,
+            CurrentKindArg::Terminal => Self::Terminal,
+            CurrentKindArg::Browser => Self::Browser,
+            CurrentKindArg::Editor => Self::Editor,
+            CurrentKindArg::Unknown => Self::Unknown,
+        }
+    }
 }
 
 fn main() -> anyhow::Result<()> {
@@ -106,6 +206,9 @@ fn main() -> anyhow::Result<()> {
         Some(Command::Bundle(bundle_cli)) => {
             let cfg = config::load(config::default_app_name())?;
             bundle::run(bundle_cli, &cfg)?;
+        }
+        Some(Command::Current { json, action }) => {
+            cmd_current(&cli, *json, action.as_ref())?;
         }
         Some(Command::Capture) | None => {
             cmd_capture(&cli)?;
@@ -190,6 +293,110 @@ fn cmd_capture(cli: &Cli) -> anyhow::Result<()> {
         } else {
             println!("Saved capture to {}", path.display());
         }
+    }
+
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Current-context command
+// ---------------------------------------------------------------------------
+
+fn cmd_current(cli: &Cli, json: bool, action: Option<&CurrentAction>) -> anyhow::Result<()> {
+    let mut overrides = config::ConfigOverrides::default();
+    if let Some(value) = &cli.state_file {
+        overrides.output.state_file = Some(value.clone());
+    }
+    let cfg = config::load_with_options(
+        config::default_app_name(),
+        config::LoadOptions {
+            cli_config: cli.config.clone(),
+            overrides,
+        },
+    )?;
+
+    let context = match action {
+        Some(CurrentAction::Report {
+            source,
+            kind,
+            app,
+            bundle_id,
+            window,
+            workspace,
+            url,
+            cwd,
+            project,
+            json: _,
+        })
+        | Some(CurrentAction::Set {
+            source,
+            kind,
+            app,
+            bundle_id,
+            window,
+            workspace,
+            url,
+            cwd,
+            project,
+            json: _,
+        }) => current::report_current_context(
+            &cfg.output.state_file,
+            CurrentContextReport {
+                source: source.clone(),
+                kind: kind.map(ContextKind::from),
+                app: app.clone(),
+                bundle_id: bundle_id.clone(),
+                window: window.clone(),
+                workspace: workspace.clone(),
+                url: url.clone(),
+                cwd: cwd.clone(),
+                project: project.clone(),
+            },
+        )?,
+        None => current::read_current_context(&cfg.output.state_file)?,
+    };
+
+    let output_json = json
+        || matches!(
+            action,
+            Some(CurrentAction::Report { json: true, .. } | CurrentAction::Set { json: true, .. })
+        );
+
+    if output_json {
+        println!("{}", serde_json::to_string_pretty(&context)?);
+    } else {
+        println!("Current context");
+        println!("State file: {}", cfg.output.state_file.display());
+        println!("Sequence: {}", context.sequence);
+        if let Ok(ts) = context
+            .updated_at
+            .format(&time::format_description::well_known::Rfc3339)
+        {
+            println!("Updated at: {ts}");
+        }
+        let active = &context.active;
+        println!("Source: {}", active.source.as_deref().unwrap_or("<none>"));
+        println!(
+            "Kind: {}",
+            active
+                .kind
+                .as_ref()
+                .map(|kind| format!("{kind:?}"))
+                .unwrap_or_else(|| "<none>".to_string())
+        );
+        println!("App: {}", active.app.as_deref().unwrap_or("<none>"));
+        println!(
+            "Bundle ID: {}",
+            active.bundle_id.as_deref().unwrap_or("<none>")
+        );
+        println!("Window: {}", active.window.as_deref().unwrap_or("<none>"));
+        println!(
+            "Workspace: {}",
+            active.workspace.as_deref().unwrap_or("<none>")
+        );
+        println!("URL: {}", active.url.as_deref().unwrap_or("<none>"));
+        println!("CWD: {}", active.cwd.as_deref().unwrap_or("<none>"));
+        println!("Project: {}", active.project.as_deref().unwrap_or("<none>"));
     }
 
     Ok(())
@@ -297,12 +504,7 @@ fn cmd_config_interactive() -> anyhow::Result<()> {
 
     let default_provider: String = Input::new()
         .with_prompt("Default AI provider, e.g. openai, anthropic (leave empty for none)")
-        .default(
-            cfg.providers
-                .default_provider
-                .clone()
-                .unwrap_or_default(),
-        )
+        .default(cfg.providers.default_provider.clone().unwrap_or_default())
         .allow_empty(true)
         .interact_text()?;
 
@@ -586,11 +788,7 @@ mod tests {
             serde_json::from_str(&contents).expect("envelope roundtrip");
         assert!(!saved_envelope.metadata.session_id.is_empty());
 
-        let file_name = saved
-            .file_name()
-            .unwrap()
-            .to_string_lossy()
-            .to_string();
+        let file_name = saved.file_name().unwrap().to_string_lossy().to_string();
         assert!(file_name.contains(&saved_envelope.metadata.session_id));
         assert!(saved.starts_with(&cfg.output.capture_dir));
     }

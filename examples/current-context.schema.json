@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://byteowlz.github.io/schemas/ctx/current-context.v1.json",
+  "title": "ctx current context",
+  "type": "object",
+  "required": ["schema", "version", "updated_at", "sequence", "active"],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "https://byteowlz.github.io/schemas/ctx/current-context.v1.json"
+    },
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "active": {
+      "type": "object",
+      "description": "Authoritative context the user is looking at now. Reports replace this object wholesale to avoid stale mixed fields.",
+      "properties": {
+        "source": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": ["application", "terminal", "browser", "editor", "unknown"]
+        },
+        "app": { "type": "string" },
+        "bundle_id": { "type": "string" },
+        "window": { "type": "string" },
+        "workspace": { "type": "string" },
+        "url": { "type": "string", "format": "uri" },
+        "cwd": { "type": "string" },
+        "project": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

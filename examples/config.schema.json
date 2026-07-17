@@ -70,7 +70,8 @@
           "type": ["string", "null"]
         },
         "state_file": {
-          "type": ["string", "null"]
+          "type": ["string", "null"],
+          "description": "Path to the lightweight current-context JSON state file, typically $XDG_STATE_HOME/ctx/current-context.json."
         },
         "bundle_dir": {
           "type": ["string", "null"],

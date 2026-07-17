@@ -407,7 +407,7 @@ fn default_capture_dir(directories: &AppDirectories) -> String {
 fn default_state_file(directories: &AppDirectories) -> String {
     directories
         .state_dir
-        .join("sessions.json")
+        .join("current-context.json")
         .to_string_lossy()
         .into_owned()
 }
@@ -487,11 +487,9 @@ pub fn save_config(app_name: &str, cfg: &AppConfig) -> Result<(), ConfigError> {
         ocr: cfg.ocr.clone(),
     };
 
-    let content = toml::to_string_pretty(&file_config).map_err(|e| {
-        ConfigError::WriteDefault {
-            path: config_path.clone(),
-            source: std::io::Error::other(e.to_string()),
-        }
+    let content = toml::to_string_pretty(&file_config).map_err(|e| ConfigError::WriteDefault {
+        path: config_path.clone(),
+        source: std::io::Error::other(e.to_string()),
     })?;
 
     // Prepend a comment header
@@ -584,7 +582,7 @@ mod tests {
         assert_eq!(cfg.output.capture_dir, capture_dir);
         assert!(cfg.output.capture_dir.exists(), "capture dir created");
 
-        let state_file = cfg.directories.state_dir.join("sessions.json");
+        let state_file = cfg.directories.state_dir.join("current-context.json");
         assert_eq!(cfg.output.state_file, state_file);
         assert!(
             cfg.output.state_file.parent().unwrap().exists(),
