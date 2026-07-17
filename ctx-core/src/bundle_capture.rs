@@ -20,10 +20,8 @@ use time::OffsetDateTime;
 use uuid::Uuid;
 use x_win::get_active_window;
 
-use crate::manifest::{
-    CaptureMode, Dimensions, ImageProvenance, ImageRole, Item, Rect, Warning,
-};
-use crate::store::{item_id, BundleStoreMut, StoreError};
+use crate::manifest::{CaptureMode, Dimensions, ImageProvenance, ImageRole, Item, Rect, Warning};
+use crate::store::{BundleStoreMut, StoreError, item_id};
 
 /// Which target to capture for a bundle screenshot.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -115,9 +113,7 @@ pub fn add_screenshot(
             .map_err(|e| StoreError::Other(format!("display capture failed: {e}")))?;
         let buffer: ImageBuffer<Rgba<u8>, Vec<u8>> =
             ImageBuffer::from_vec(raw.width() as u32, raw.height() as u32, raw.to_vec())
-                .ok_or_else(|| {
-                    StoreError::Other("failed to read capture buffer".to_string())
-                })?;
+                .ok_or_else(|| StoreError::Other("failed to read capture buffer".to_string()))?;
         let dyn_img = DynamicImage::ImageRgba8(buffer);
 
         // For frontmost, crop to the window rect on that display.
@@ -188,10 +184,7 @@ fn find_screen_for_window(
             let local_y = (wy - dy).max(0) as u32;
             let w = window.position.width as u32;
             let h = window.position.height as u32;
-            return Some((
-                *screen,
-                Rect::new(local_x, local_y, w, h),
-            ));
+            return Some((*screen, Rect::new(local_x, local_y, w, h)));
         }
     }
     None
@@ -333,9 +326,8 @@ pub fn ocr_item(
             Ok(Some(item))
         }
         Err(err) => {
-            let _ = bundle.add_warning(
-                Warning::new("ocr_failed", err.to_string()).for_item(image_item_id),
-            );
+            let _ = bundle
+                .add_warning(Warning::new("ocr_failed", err.to_string()).for_item(image_item_id));
             Ok(None)
         }
     }
@@ -344,15 +336,14 @@ pub fn ocr_item(
 /// Read the current clipboard text, if available. Used for the
 /// `add-text --role clipboard` workflow.
 pub fn read_clipboard_text() -> Option<String> {
-    arboard::Clipboard::new().and_then(|mut c| c.get_text()).ok()
+    arboard::Clipboard::new()
+        .and_then(|mut c| c.get_text())
+        .ok()
 }
 
 /// Capture a desktop snapshot envelope into `path` (JSON), returning the path.
 /// Reuses the existing platform capture to produce a full desktop context file.
-pub fn write_desktop_snapshot(
-    path: &Path,
-    capture_dir: &Path,
-) -> Result<PathBuf, StoreError> {
+pub fn write_desktop_snapshot(path: &Path, capture_dir: &Path) -> Result<PathBuf, StoreError> {
     use crate::platform::{CaptureRequest, ContextProvider, DesktopPlatform};
     let request = CaptureRequest {
         capture_dir: capture_dir.to_path_buf(),
@@ -433,7 +424,10 @@ mod tests {
         let loaded = store.load(h.id()).unwrap();
         assert_eq!(loaded.warnings.len(), 1);
         assert_eq!(loaded.warnings[0].code, "ocr_failed");
-        assert_eq!(loaded.warnings[0].item_id.as_deref(), Some(image_item.id.as_str()));
+        assert_eq!(
+            loaded.warnings[0].item_id.as_deref(),
+            Some(image_item.id.as_str())
+        );
     }
 
     #[test]

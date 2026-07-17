@@ -261,7 +261,11 @@ pub struct ImageProvenance {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rect: Option<Rect>,
     /// When the capture happened.
-    #[serde(with = "time::serde::rfc3339::option", default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        with = "time::serde::rfc3339::option",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     pub captured_at: Option<OffsetDateTime>,
 }
 
@@ -483,13 +487,29 @@ pub enum HandoffStatus {
 /// Optional timestamps for a handoff record.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 pub struct HandoffTimestamps {
-    #[serde(with = "time::serde::rfc3339::option", default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        with = "time::serde::rfc3339::option",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     pub queued_at: Option<OffsetDateTime>,
-    #[serde(with = "time::serde::rfc3339::option", default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        with = "time::serde::rfc3339::option",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     pub sent_at: Option<OffsetDateTime>,
-    #[serde(with = "time::serde::rfc3339::option", default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        with = "time::serde::rfc3339::option",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     pub delivered_at: Option<OffsetDateTime>,
-    #[serde(with = "time::serde::rfc3339::option", default, skip_serializing_if = "Option::is_none")]
+    #[serde(
+        with = "time::serde::rfc3339::option",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
     pub failed_at: Option<OffsetDateTime>,
 }
 
@@ -800,8 +820,7 @@ mod tests {
             .join(rel);
         let content = std::fs::read_to_string(&path)
             .unwrap_or_else(|err| panic!("read example {rel} at {}: {err}", path.display()));
-        serde_json::from_str(&content)
-            .unwrap_or_else(|err| panic!("parse example {rel}: {err}"))
+        serde_json::from_str(&content).unwrap_or_else(|err| panic!("parse example {rel}: {err}"))
     }
 
     #[test]
@@ -835,5 +854,3 @@ mod tests {
         assert!(manifest.handoffs.is_empty());
     }
 }
-
-

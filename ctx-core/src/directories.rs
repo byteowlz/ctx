@@ -51,12 +51,16 @@ fn ensure_dir(path: PathBuf) -> Result<PathBuf, DirectoryError> {
 
 #[cfg(not(target_os = "windows"))]
 fn home_dir() -> Option<PathBuf> {
-    env::var_os("HOME").map(PathBuf::from).or_else(dirs::home_dir)
+    env::var_os("HOME")
+        .map(PathBuf::from)
+        .or_else(dirs::home_dir)
 }
 
 #[cfg(target_os = "windows")]
 fn home_dir() -> Option<PathBuf> {
-    env::var_os("USERPROFILE").map(PathBuf::from).or_else(dirs::home_dir)
+    env::var_os("USERPROFILE")
+        .map(PathBuf::from)
+        .or_else(dirs::home_dir)
 }
 
 #[cfg(not(target_os = "windows"))]

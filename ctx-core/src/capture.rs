@@ -89,7 +89,10 @@ mod tests {
 
         let now = OffsetDateTime::now_utc();
         let delta = now - envelope.metadata.captured_at;
-        assert!(delta.whole_seconds().abs() < 5, "timestamp should be recent");
+        assert!(
+            delta.whole_seconds().abs() < 5,
+            "timestamp should be recent"
+        );
         assert_eq!(envelope.metadata.version, 1);
     }
 }

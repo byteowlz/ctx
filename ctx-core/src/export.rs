@@ -16,8 +16,8 @@ use std::io::{Read, Write};
 use std::path::{Component, Path, PathBuf};
 
 use time::OffsetDateTime;
-use zip::write::SimpleFileOptions;
 use zip::ZipWriter;
+use zip::write::SimpleFileOptions;
 
 use crate::manifest::{
     ExportMeta, FileFields, FileStorage, Item, ItemBody, Manifest, UnresolvedRef,
@@ -168,8 +168,7 @@ fn write_zip(manifest: &Manifest, bundle_dir: &Path, archive: &Path) -> Result<(
 
     let file = fs::File::create(archive)?;
     let mut zip = ZipWriter::new(file);
-    let options = SimpleFileOptions::default()
-        .compression_method(zip::CompressionMethod::Deflated);
+    let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
     // 1. manifest.json (rewritten, with materialized files)
     zip.start_file("manifest.json", options).map_err(zip_err)?;
@@ -298,7 +297,13 @@ mod tests {
         let mut h = store_create_mut(&store, &id);
         let archive = export_ctx(&mut h).unwrap();
         assert!(archive.exists());
-        assert!(archive.file_name().unwrap().to_string_lossy().ends_with(".ctx"));
+        assert!(
+            archive
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .ends_with(".ctx")
+        );
 
         // The archive should be a valid zip with manifest.json and context.md.
         let file = fs::File::open(&archive).unwrap();
@@ -306,7 +311,10 @@ mod tests {
         let names: Vec<String> = (0..zip.len())
             .map(|i| zip.name_for_index(i).unwrap().to_string())
             .collect();
-        assert!(names.iter().any(|n| n == "manifest.json"), "names={names:?}");
+        assert!(
+            names.iter().any(|n| n == "manifest.json"),
+            "names={names:?}"
+        );
         assert!(names.iter().any(|n| n == "context.md"), "names={names:?}");
 
         // manifest.json inside the zip must parse.
@@ -337,7 +345,9 @@ mod tests {
         // Add a real file referenced in place.
         let file_path = tmp.path().join("external.txt");
         fs::write(&file_path, "external data").unwrap();
-        let file_item = h.add_file(&file_path, crate::manifest::FilePolicy::Reference).unwrap();
+        let file_item = h
+            .add_file(&file_path, crate::manifest::FilePolicy::Reference)
+            .unwrap();
         let _ = file_item;
 
         let archive = export_ctx(&mut h).unwrap();
@@ -356,10 +366,14 @@ mod tests {
         let mut buf = String::new();
         entry.read_to_string(&mut buf).unwrap();
         let parsed: Manifest = serde_json::from_str(&buf).unwrap();
-        let file_body = parsed.items.iter().find_map(|i| match &i.body {
-            ItemBody::File(f) => Some(f.clone()),
-            _ => None,
-        }).unwrap();
+        let file_body = parsed
+            .items
+            .iter()
+            .find_map(|i| match &i.body {
+                ItemBody::File(f) => Some(f.clone()),
+                _ => None,
+            })
+            .unwrap();
         assert!(matches!(file_body.storage, FileStorage::Copied { .. }));
         assert!(parsed.unresolved_refs.is_empty());
         let _ = manifest;
@@ -372,7 +386,9 @@ mod tests {
         let (_manifest, mut h) = store.create(Some("missing"), Producer::new("ctx")).unwrap();
         // Add a referenced file pointing at a path that does not exist.
         let ghost = tmp.path().join("nope.txt");
-        let _ = h.add_file(&ghost, crate::manifest::FilePolicy::Reference).unwrap();
+        let _ = h
+            .add_file(&ghost, crate::manifest::FilePolicy::Reference)
+            .unwrap();
         export_ctx(&mut h).unwrap();
         let loaded = store.load(h.id()).unwrap();
         assert_eq!(loaded.unresolved_refs.len(), 1);

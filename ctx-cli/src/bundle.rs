@@ -10,7 +10,7 @@ use std::path::PathBuf;
 use clap::{Args, Subcommand, ValueEnum};
 
 use ctx_core::bundle_capture::{
-    self, ocr_item, write_desktop_snapshot, CaptureHints, CaptureTarget, OcrBackend,
+    self, CaptureHints, CaptureTarget, OcrBackend, ocr_item, write_desktop_snapshot,
 };
 use ctx_core::config::{self, AppConfig};
 use ctx_core::export::export_ctx;
@@ -199,15 +199,17 @@ impl BundleCommand {
                     Ok(captured) => {
                         let items: Vec<_> = captured
                             .iter()
-                            .map(|c| serde_json::json!({
-                                "item_id": c.item.id,
-                                "path": item_path(&h, &c.item.id),
-                                "role": "screenshot",
-                                "dimensions": {
-                                    "width": c.dimensions.width,
-                                    "height": c.dimensions.height,
-                                },
-                            }))
+                            .map(|c| {
+                                serde_json::json!({
+                                    "item_id": c.item.id,
+                                    "path": item_path(&h, &c.item.id),
+                                    "role": "screenshot",
+                                    "dimensions": {
+                                        "width": c.dimensions.width,
+                                        "height": c.dimensions.height,
+                                    },
+                                })
+                            })
                             .collect();
                         print_json(&serde_json::json!({
                             "bundle_id": h.id(),
@@ -215,10 +217,8 @@ impl BundleCommand {
                         }));
                     }
                     Err(err) => {
-                        let warning = ctx_core::manifest::Warning::new(
-                            "capture_failed",
-                            err.to_string(),
-                        );
+                        let warning =
+                            ctx_core::manifest::Warning::new("capture_failed", err.to_string());
                         h.add_warning(warning)?;
                         print_json(&serde_json::json!({
                             "bundle_id": h.id(),
@@ -392,7 +392,11 @@ impl BundleCommand {
                     map.insert(
                         "context_md_path".to_string(),
                         serde_json::json!(
-                            store.bundle_dir(bundle_id).join("context.md").display().to_string()
+                            store
+                                .bundle_dir(bundle_id)
+                                .join("context.md")
+                                .display()
+                                .to_string()
                         ),
                     );
                 }
@@ -426,9 +430,10 @@ impl BundleCommand {
 fn open(store: &BundleStore, id: &str) -> anyhow::Result<BundleStoreMut> {
     Ok(BundleStoreMut::new(
         store.clone(),
-        store.load(id).map_err(|_| {
-            anyhow::anyhow!("bundle not found: {id} (check `ctx bundle list`)")
-        })?.id,
+        store
+            .load(id)
+            .map_err(|_| anyhow::anyhow!("bundle not found: {id} (check `ctx bundle list`)"))?
+            .id,
     ))
 }
 
@@ -491,7 +496,10 @@ fn manifest_path_of(manifest: &ctx_core::manifest::Manifest) -> String {
 }
 
 fn print_json(value: &serde_json::Value) {
-    println!("{}", serde_json::to_string_pretty(value).unwrap_or_else(|_| "{}".into()));
+    println!(
+        "{}",
+        serde_json::to_string_pretty(value).unwrap_or_else(|_| "{}".into())
+    );
 }
 
 /// Entry point used by the top-level CLI when `ctx bundle ...` is invoked.

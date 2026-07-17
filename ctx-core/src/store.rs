@@ -21,8 +21,8 @@ use uuid::Uuid;
 use crate::manifest::{
     BundleState, DesktopSnapshotFields, Dimensions, ExportMeta, FileFields, FileHash, FilePolicy,
     FileStorage, HandoffRecord, HandoffStatus, HandoffTimestamps, ImageFields, ImageProvenance,
-    ImageRole, Item, ItemBody, Manifest, Producer, Rect, TextContent, TextFields, TextRole,
-    Transport, UrlFields, UrlSource, Warning, SCHEMA_VERSION,
+    ImageRole, Item, ItemBody, Manifest, Producer, Rect, SCHEMA_VERSION, TextContent, TextFields,
+    TextRole, Transport, UrlFields, UrlSource, Warning,
 };
 
 /// Layout of a `.ctx` portable archive.
@@ -128,8 +128,8 @@ impl Sha256 {
     fn new() -> Self {
         Self {
             state: [
-                0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c,
-                0x1f83d9ab, 0x5be0cd19,
+                0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
+                0x5be0cd19,
             ],
             buffer: [0u8; 64],
             buffer_len: 0,
@@ -143,8 +143,7 @@ impl Sha256 {
         if self.buffer_len > 0 {
             let need = 64 - self.buffer_len;
             let take = need.min(data.len());
-            self.buffer[self.buffer_len..self.buffer_len + take]
-                .copy_from_slice(&data[..take]);
+            self.buffer[self.buffer_len..self.buffer_len + take].copy_from_slice(&data[..take]);
             self.buffer_len += take;
             data = &data[take..];
             if self.buffer_len == 64 {
@@ -482,11 +481,7 @@ impl BundleStoreMut {
     }
 
     /// Add a file item, honoring the requested storage policy.
-    pub fn add_file(
-        &mut self,
-        path: &Path,
-        policy: FilePolicy,
-    ) -> Result<Item, StoreError> {
+    pub fn add_file(&mut self, path: &Path, policy: FilePolicy) -> Result<Item, StoreError> {
         // Reference policy only stores the path; the file need not exist yet.
         // Copy/Auto require reading metadata and bytes.
         let want_copy = match policy {
@@ -502,7 +497,11 @@ impl BundleStoreMut {
         };
         let size_bytes = meta.as_ref().map(|m| m.len());
         let mime = mime_for(path);
-        let hash = if want_copy { sha256_file(path).ok() } else { None };
+        let hash = if want_copy {
+            sha256_file(path).ok()
+        } else {
+            None
+        };
 
         let do_copy = match policy {
             FilePolicy::Auto => meta.map(|m| !m.is_dir()).unwrap_or(false),
@@ -660,11 +659,7 @@ impl BundleStoreMut {
 
     /// Attach an OCR text item to an image, recording the reference on the
     /// image and writing the recognized text into the bundle.
-    pub fn attach_ocr(
-        &mut self,
-        image_item_id: &str,
-        text: &str,
-    ) -> Result<Item, StoreError> {
+    pub fn attach_ocr(&mut self, image_item_id: &str, text: &str) -> Result<Item, StoreError> {
         let ocr_item_id = item_id("txt");
         // Write the OCR text to a file within the bundle for durability.
         let rel = format!("ocr/{}.txt", ocr_item_id);
@@ -744,7 +739,12 @@ impl BundleStoreMut {
     }
 
     /// Record an unresolved external reference.
-    pub fn add_unresolved(&mut self, item_id: &str, path: &str, reason: &str) -> Result<(), StoreError> {
+    pub fn add_unresolved(
+        &mut self,
+        item_id: &str,
+        path: &str,
+        reason: &str,
+    ) -> Result<(), StoreError> {
         let r = crate::manifest::UnresolvedRef {
             item_id: item_id.to_string(),
             path: path.to_string(),
@@ -775,7 +775,13 @@ fn validate_rect(rect: &Rect, width: u32, height: u32) -> Result<(), StoreError>
 
 fn sanitize_filename(name: &str) -> String {
     name.chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_' { c } else { '_' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '.' || c == '-' || c == '_' {
+                c
+            } else {
+                '_'
+            }
+        })
         .collect()
 }
 
@@ -812,23 +818,20 @@ pub fn render_context_md(manifest: &Manifest, bundle_dir: &Path) -> String {
     if let Some(slug) = &manifest.slug {
         md.push_str(&format!("- **Slug:** {slug}\n"));
     }
-    md.push_str(&format!(
-        "- **Producer:** {}\n",
-        manifest.producer.name
-    ));
-    md.push_str(&format!(
-        "- **Bundle path:** `{}`\n",
-        bundle_dir.display()
-    ));
+    md.push_str(&format!("- **Producer:** {}\n", manifest.producer.name));
+    md.push_str(&format!("- **Bundle path:** `{}`\n", bundle_dir.display()));
     md.push('\n');
 
     // Task / primary text first.
-    if let Some(task) = manifest.items.iter().find(|i| matches!(
-        &i.body,
-        ItemBody::Text(TextFields {
-            role: TextRole::Task, ..
-        })
-    )) {
+    if let Some(task) = manifest.items.iter().find(|i| {
+        matches!(
+            &i.body,
+            ItemBody::Text(TextFields {
+                role: TextRole::Task,
+                ..
+            })
+        )
+    }) {
         md.push_str("## Task\n\n");
         append_text(&mut md, task, bundle_dir);
         md.push('\n');
@@ -965,9 +968,7 @@ pub fn render_context_md(manifest: &Manifest, bundle_dir: &Path) -> String {
         md.push('\n');
     }
 
-    md.push_str(&format!(
-        "_schema_version {SCHEMA_VERSION}_\n"
-    ));
+    md.push_str(&format!("_schema_version {SCHEMA_VERSION}_\n"));
     md
 }
 
@@ -1062,8 +1063,9 @@ mod tests {
     fn store_create_load_save_roundtrip() {
         let tmp = tempfile::tempdir().unwrap();
         let store = BundleStore::new(tmp.path()).unwrap();
-        let (manifest, muthandle) =
-            store.create(Some("roundtrip"), Producer::new("ctx")).unwrap();
+        let (manifest, muthandle) = store
+            .create(Some("roundtrip"), Producer::new("ctx"))
+            .unwrap();
         assert_eq!(manifest.schema_version, SCHEMA_VERSION);
         assert_eq!(manifest.state, BundleState::Draft);
         assert!(manifest.slug.as_deref() == Some("roundtrip"));
@@ -1098,7 +1100,9 @@ mod tests {
         fs::write(&file_path, "# Notes\nhello").unwrap();
         let file = h.add_file(&file_path, FilePolicy::Auto).unwrap();
 
-        let md_path = store.write_context_md(&store.load(&manifest.id).unwrap()).unwrap();
+        let md_path = store
+            .write_context_md(&store.load(&manifest.id).unwrap())
+            .unwrap();
         let md = fs::read_to_string(&md_path).unwrap();
         assert!(md.contains("Build a deck about bundles"));
         assert!(md.contains("https://example.com/spec"));
@@ -1124,8 +1128,7 @@ mod tests {
     fn store_crop_image() {
         let tmp = tempfile::tempdir().unwrap();
         let store = BundleStore::new(tmp.path()).unwrap();
-        let (manifest, mut h) =
-            store.create(Some("crop"), Producer::new("ctx")).unwrap();
+        let (manifest, mut h) = store.create(Some("crop"), Producer::new("ctx")).unwrap();
 
         // Create a 100x100 solid image as the source.
         let src_rel = "images/source.jpg";
@@ -1230,7 +1233,13 @@ mod tests {
             _ => panic!("expected image"),
         }
         let ocr_back = loaded.find_item(&ocr.id).unwrap();
-        assert!(matches!(ocr_back.body, ItemBody::Text(TextFields { role: TextRole::Ocr, .. })));
+        assert!(matches!(
+            ocr_back.body,
+            ItemBody::Text(TextFields {
+                role: TextRole::Ocr,
+                ..
+            })
+        ));
     }
 
     #[test]
