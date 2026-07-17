@@ -350,7 +350,7 @@ fn default_config_toml(directories: &AppDirectories) -> String {
     let bundle_dir = default_bundle_dir(directories);
 
     format!(
-        r#""$schema" = "https://raw.githubusercontent.com/byteowlz/schemas/refs/heads/main/ctx/ctx.config.schema.json"
+        r#"#:schema https://raw.githubusercontent.com/byteowlz/schemas/refs/heads/main/ctx/ctx.config.schema.json
 
 # ctx configuration
 # Paths expand ~ and environment variables like $XDG_CONFIG_HOME.
