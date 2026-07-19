@@ -102,6 +102,18 @@ pub fn sha256_file(path: &Path) -> std::io::Result<FileHash> {
     })
 }
 
+/// Compute a SHA-256 hex digest over a sequence of byte chunks.
+pub fn sha256_chunks<'a>(chunks: impl IntoIterator<Item = &'a [u8]>) -> FileHash {
+    let mut hasher = Sha256::new();
+    for chunk in chunks {
+        hasher.update(chunk);
+    }
+    FileHash {
+        algorithm: "sha256".to_string(),
+        value: hasher.finalize_hex(),
+    }
+}
+
 // Minimal, dependency-free SHA-256 used for file content addressing. Keeping it
 // internal avoids pulling another crate into ctx-core for hashing alone.
 struct Sha256 {

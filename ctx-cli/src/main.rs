@@ -5,6 +5,7 @@ use clap::{ArgAction, Parser, Subcommand, ValueEnum};
 use ctx_core::capture::{AppInfo, CaptureEnvelope, DisplayInfo, WindowInfo};
 use ctx_core::config;
 use ctx_core::current::{self, ContextKind, CurrentContextReport};
+use ctx_core::ingest;
 use ctx_core::platform::{CaptureRequest, ContextProvider, DesktopPlatform, NoopPlatform};
 
 #[derive(Parser, Debug)]
@@ -91,6 +92,24 @@ enum Command {
     },
     /// Manage context bundles for Agent Handoff
     Bundle(bundle::BundleCli),
+    /// Watch screenshot sources (clipboard + screenshot dirs) and emit JSONL detection events
+    Watch {
+        /// Directory to watch (repeatable; defaults to platform screenshot dirs)
+        #[arg(long = "dir")]
+        dirs: Vec<std::path::PathBuf>,
+        /// Disable clipboard image polling
+        #[arg(long = "no-clipboard", id = "watch_no_clipboard")]
+        no_clipboard: bool,
+        /// Poll interval in milliseconds
+        #[arg(long, default_value_t = 1000)]
+        interval_ms: u64,
+        /// Only consider files modified within this many seconds (0 = no limit)
+        #[arg(long, default_value_t = 600)]
+        max_age_secs: u64,
+        /// Run a single detection pass and exit
+        #[arg(long)]
+        once: bool,
+    },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
@@ -216,6 +235,15 @@ fn main() -> anyhow::Result<()> {
         Some(Command::Current { json, action }) => {
             cmd_current(&cli, *json, action.as_ref())?;
         }
+        Some(Command::Watch {
+            dirs,
+            no_clipboard,
+            interval_ms,
+            max_age_secs,
+            once,
+        }) => {
+            cmd_watch(dirs, *no_clipboard, *interval_ms, *max_age_secs, *once)?;
+        }
         Some(Command::Capture) | None => {
             cmd_capture(&cli)?;
         }
@@ -302,6 +330,80 @@ fn cmd_capture(cli: &Cli) -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// Watch command
+// ---------------------------------------------------------------------------
+
+fn cmd_watch(
+    dirs: &[std::path::PathBuf],
+    no_clipboard: bool,
+    interval_ms: u64,
+    max_age_secs: u64,
+    once: bool,
+) -> anyhow::Result<()> {
+    use std::time::Duration;
+
+    let app_dirs = ctx_core::directories::AppDirectories::discover(config::default_app_name())?;
+    let watch_dirs = if dirs.is_empty() {
+        ingest::default_watch_dirs()
+    } else {
+        dirs.to_vec()
+    };
+    if watch_dirs.is_empty() && no_clipboard {
+        anyhow::bail!("no screenshot directories found and clipboard polling disabled");
+    }
+    eprintln!(
+        "watching {} (clipboard: {})",
+        if watch_dirs.is_empty() {
+            "no directories".to_string()
+        } else {
+            watch_dirs
+                .iter()
+                .map(|dir| dir.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        },
+        if no_clipboard { "off" } else { "on" }
+    );
+
+    let mut detector = ingest::ScreenshotDetector::new(ingest::DetectorOptions {
+        watch_dirs,
+        seen_index_path: app_dirs.state_dir.join("screenshot-seen.json"),
+        inbox_dir: app_dirs.data_dir.join("inbox"),
+        max_age: (max_age_secs > 0).then(|| Duration::from_secs(max_age_secs)),
+    });
+    let interval = Duration::from_millis(interval_ms.max(100));
+    // The scanner needs two scans to consider a file settled, so a single
+    // pass still polls twice with a short pause.
+    let settle = Duration::from_millis(300);
+
+    let emit = |event: &ingest::ScreenshotEvent| {
+        if let Ok(line) = serde_json::to_string(event) {
+            println!("{line}");
+        }
+    };
+
+    loop {
+        for event in detector.poll_files() {
+            emit(&event);
+        }
+        if !no_clipboard
+            && let Some((rgba, width, height)) = ingest::read_clipboard_image()
+            && let Some(event) = detector.ingest_pixels(&rgba, width, height)?
+        {
+            emit(&event);
+        }
+        if once {
+            std::thread::sleep(settle);
+            for event in detector.poll_files() {
+                emit(&event);
+            }
+            return Ok(());
+        }
+        std::thread::sleep(interval);
+    }
 }
 
 // ---------------------------------------------------------------------------

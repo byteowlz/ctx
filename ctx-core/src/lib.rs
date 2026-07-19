@@ -4,6 +4,7 @@ pub mod config;
 pub mod current;
 pub mod directories;
 pub mod export;
+pub mod ingest;
 pub mod manifest;
 pub mod platform;
 pub mod store;
