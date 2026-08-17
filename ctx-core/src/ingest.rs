@@ -416,7 +416,7 @@ mod tests {
         let duplicate = det.ingest_pixels(rgba.as_raw(), 4, 4).expect("ingest");
         assert!(duplicate.is_none(), "same pixels via clipboard are deduped");
 
-        let fresh = det.ingest_pixels(&vec![9u8; 64], 4, 4).expect("ingest");
+        let fresh = det.ingest_pixels(&[9u8; 64], 4, 4).expect("ingest");
         let event = fresh.expect("new clipboard content emits event");
         assert_eq!(event.source, ScreenshotSource::Clipboard);
         assert!(event.path.exists(), "clipboard image spooled to inbox");

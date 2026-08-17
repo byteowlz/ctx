@@ -112,7 +112,7 @@ pub fn add_screenshot(
             .capture()
             .map_err(|e| StoreError::Other(format!("display capture failed: {e}")))?;
         let buffer: ImageBuffer<Rgba<u8>, Vec<u8>> =
-            ImageBuffer::from_vec(raw.width() as u32, raw.height() as u32, raw.to_vec())
+            ImageBuffer::from_vec(raw.width(), raw.height(), raw.to_vec())
                 .ok_or_else(|| StoreError::Other("failed to read capture buffer".to_string()))?;
         let dyn_img = DynamicImage::ImageRgba8(buffer);
 
@@ -355,7 +355,7 @@ pub fn write_desktop_snapshot(path: &Path, capture_dir: &Path) -> Result<PathBuf
         image_quality: 85,
         screenshot_timeout_ms: 2000,
     };
-    let provider = DesktopPlatform::default();
+    let provider = DesktopPlatform;
     let result = provider
         .capture(&request)
         .map_err(|e| StoreError::Other(format!("desktop capture failed: {e}")))?;

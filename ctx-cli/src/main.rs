@@ -305,8 +305,8 @@ fn cmd_capture(cli: &Cli) -> anyhow::Result<()> {
     let request = CaptureRequest::from_config(&cfg.capture, cfg.output.capture_dir.clone());
 
     let platform: Box<dyn ContextProvider> = match cli.provider {
-        Provider::Desktop => Box::new(DesktopPlatform::default()),
-        Provider::Noop => Box::new(NoopPlatform::default()),
+        Provider::Desktop => Box::new(DesktopPlatform),
+        Provider::Noop => Box::new(NoopPlatform),
     };
     let result = platform.capture(&request)?;
     let envelope = CaptureEnvelope::new(result);
@@ -893,7 +893,7 @@ mod tests {
         let cfg = config::load(config::default_app_name()).expect("load config");
         let request = CaptureRequest::from_config(&cfg.capture, cfg.output.capture_dir.clone());
 
-        let platform = NoopPlatform::default();
+        let platform = NoopPlatform;
         let result = platform.capture(&request).expect("capture");
         let envelope = CaptureEnvelope::new(result);
 

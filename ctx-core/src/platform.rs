@@ -175,7 +175,7 @@ impl ContextProvider for DesktopPlatform {
                     name: None,
                     width: screen.display_info.width,
                     height: screen.display_info.height,
-                    scale_factor: Some(screen.display_info.scale_factor as f32),
+                    scale_factor: Some(screen.display_info.scale_factor),
                 })
                 .collect(),
             Err(err) => {
@@ -290,10 +290,9 @@ fn capture_screens(capture_dir: &PathBuf, quality: u8) -> Result<Vec<PathBuf>, C
     for screen in screens {
         let image = screen.capture().map_err(CaptureError::Screenshots)?;
         let buffer: ImageBuffer<Rgba<u8>, Vec<u8>> =
-            ImageBuffer::from_vec(image.width() as u32, image.height() as u32, image.to_vec())
-                .ok_or_else(|| {
-                    CaptureError::Custom("Failed to read screenshot buffer".to_string())
-                })?;
+            ImageBuffer::from_vec(image.width(), image.height(), image.to_vec()).ok_or_else(
+                || CaptureError::Custom("Failed to read screenshot buffer".to_string()),
+            )?;
 
         let file_name = format!("screenshot-{}.jpg", Uuid::new_v4());
         let path = capture_dir.join(file_name);
@@ -343,7 +342,7 @@ fn capture_windows_and_apps(notes: &mut Vec<String>) -> (Vec<WindowInfo>, Vec<Ap
     let mut mapped = Vec::with_capacity(windows.len());
     for window in windows {
         let focused = active.as_ref().map(|a| a.id == window.id).unwrap_or(false);
-        let pid = window.info.process_id as u32;
+        let pid = window.info.process_id;
         let app_entry = apps_by_pid.entry(pid).or_insert_with(|| AppInfo {
             name: Some(window.info.name.clone()),
             bundle_id: None,
