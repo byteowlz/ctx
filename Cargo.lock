@@ -848,6 +848,7 @@ dependencies = [
  "clap",
  "ctx-core",
  "dialoguer",
+ "serde",
  "serde_json",
  "tempfile",
  "time",
@@ -883,6 +884,16 @@ dependencies = [
 [[package]]
 name = "ctx-mcp"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64",
+ "ctx-core",
+ "serde",
+ "serde_json",
+ "sysinfo",
+ "tempfile",
+ "time",
+]
 
 [[package]]
 name = "dbus"

@@ -13,7 +13,11 @@ use ctx_core::bundle_capture::{
     self, CaptureHints, CaptureTarget, OcrBackend, ocr_item, write_desktop_snapshot,
 };
 use ctx_core::config::{self, AppConfig};
+use ctx_core::current::read_current_context;
 use ctx_core::export::export_ctx;
+use ctx_core::handoff::{
+    BundlePin, HandoffError, HandoffMode, HandoffProvenance, HandoffRequest, TargetHints,
+};
 use ctx_core::manifest::{
     FilePolicy, HandoffStatus, Producer, Rect, TextRole, Transport, UrlSource,
 };
@@ -113,6 +117,43 @@ pub enum BundleCommand {
         #[arg(long, value_enum, default_value_t = TransportCli::LocalProcess)]
         transport: TransportCli,
     },
+    /// List targets offered by a destination integration.
+    Targets {
+        /// Destination integration name (e.g. `fake`).
+        #[arg(long)]
+        destination: String,
+        /// Filter targets by query string.
+        #[arg(long)]
+        query: Option<String>,
+    },
+    /// Deliberately stage or send a reviewed bundle to a destination.
+    ///
+    /// Prints a preview and asks for confirmation unless --yes is given.
+    Send {
+        bundle_id: String,
+        /// Destination integration name (e.g. `fake`).
+        #[arg(long)]
+        destination: String,
+        /// Opaque target id (from `ctx bundle targets`). If omitted, targets
+        /// are resolved via --query; ambiguity fails with choices.
+        #[arg(long)]
+        target: Option<String>,
+        /// Target query used when --target is not given.
+        #[arg(long)]
+        query: Option<String>,
+        /// Handoff mode.
+        #[arg(long, value_enum, default_value_t = HandoffModeCli::Send)]
+        mode: HandoffModeCli,
+        /// Optional instruction accompanying the bundle.
+        #[arg(long)]
+        instruction: Option<String>,
+        /// Idempotency id; reuse to retry without duplicating the handoff.
+        #[arg(long)]
+        request_id: Option<String>,
+        /// Skip the interactive confirmation (required when noninteractive).
+        #[arg(long)]
+        yes: bool,
+    },
     /// Export a bundle to a portable `.ctx` zip archive.
     Export {
         bundle_id: String,
@@ -168,6 +209,21 @@ pub enum TransportCli {
 #[derive(Debug, Clone, Copy, ValueEnum)]
 pub enum ExportFormatCli {
     Ctx,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum HandoffModeCli {
+    Stage,
+    Send,
+}
+
+impl From<HandoffModeCli> for HandoffMode {
+    fn from(value: HandoffModeCli) -> Self {
+        match value {
+            HandoffModeCli::Stage => Self::Stage,
+            HandoffModeCli::Send => Self::Send,
+        }
+    }
 }
 
 impl BundleCommand {
@@ -369,6 +425,41 @@ impl BundleCommand {
                     "status": format!("{:?}", record.status),
                 }));
             }
+            Self::Targets { destination, query } => {
+                let dest = crate::destinations::resolve(destination, &cfg.directories.data_dir)?;
+                let hints = current_hints(cfg);
+                let targets = dest
+                    .list_targets(query.as_deref(), &hints)
+                    .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+                print_json(&serde_json::json!({
+                    "destination": destination,
+                    "hints": hints,
+                    "targets": targets,
+                }));
+            }
+            Self::Send {
+                bundle_id,
+                destination,
+                target,
+                query,
+                mode,
+                instruction,
+                request_id,
+                yes,
+            } => {
+                cmd_send(
+                    cfg,
+                    &store,
+                    bundle_id,
+                    destination,
+                    target.as_deref(),
+                    query.as_deref(),
+                    (*mode).into(),
+                    instruction.as_deref(),
+                    request_id.as_deref(),
+                    *yes,
+                )?;
+            }
             Self::Export {
                 bundle_id,
                 format: _,
@@ -424,6 +515,128 @@ impl BundleCommand {
             }
         }
         Ok(())
+    }
+}
+
+fn current_hints(cfg: &AppConfig) -> TargetHints {
+    read_current_context(&cfg.output.state_file)
+        .map(|context| TargetHints::from_current_context(&context))
+        .unwrap_or_default()
+}
+
+#[allow(clippy::too_many_arguments)]
+fn cmd_send(
+    cfg: &AppConfig,
+    store: &BundleStore,
+    bundle_id: &str,
+    destination: &str,
+    target: Option<&str>,
+    query: Option<&str>,
+    mode: HandoffMode,
+    instruction: Option<&str>,
+    request_id: Option<&str>,
+    yes: bool,
+) -> anyhow::Result<()> {
+    let dest = crate::destinations::resolve(destination, &cfg.directories.data_dir)?;
+    let mut h = open(store, bundle_id)?;
+
+    let hints = current_hints(cfg);
+    let resolved_target = match target {
+        Some(id) => id.to_string(),
+        None => {
+            let candidates = dest
+                .list_targets(query, &hints)
+                .map_err(|e| anyhow::anyhow!(e.to_string()))?;
+            match candidates.len() {
+                0 => anyhow::bail!(
+                    "no targets matched{} on destination '{destination}'",
+                    query.map(|q| format!(" query '{q}'")).unwrap_or_default()
+                ),
+                1 => candidates[0].id.clone(),
+                _ => {
+                    print_json(&serde_json::json!({
+                        "error": "ambiguous_target",
+                        "message": "multiple targets matched; pass --target with one of these ids",
+                        "choices": candidates,
+                    }));
+                    anyhow::bail!("ambiguous target: {} candidates", candidates.len());
+                }
+            }
+        }
+    };
+
+    // Pin the exact content by exporting the reviewed bundle to a .ctx
+    // archive and hashing it.
+    let archive_path = export_ctx(&mut h)?;
+    let archive_hash = ctx_core::store::sha256_file(&archive_path)?;
+
+    let request = HandoffRequest {
+        request_id: request_id
+            .map(str::to_string)
+            .unwrap_or_else(|| ctx_core::store::item_id("handoff")),
+        bundle: BundlePin {
+            bundle_id: h.id().to_string(),
+            archive_hash: Some(archive_hash),
+            archive_path: Some(archive_path.display().to_string()),
+        },
+        instruction: instruction.map(str::to_string),
+        target_id: resolved_target,
+        mode,
+        provenance: HandoffProvenance {
+            producer: Some("ctx".to_string()),
+            producer_version: Some(env!("CARGO_PKG_VERSION").to_string()),
+            host: None,
+        },
+        created_at: time::OffsetDateTime::now_utc(),
+    };
+
+    print_json(&serde_json::json!({
+        "preview": {
+            "destination": destination,
+            "request": request,
+        },
+    }));
+
+    if !yes {
+        if !std::io::IsTerminal::is_terminal(&std::io::stdin()) {
+            anyhow::bail!("confirmation required: re-run with --yes to confirm this handoff");
+        }
+        let confirmed = dialoguer::Confirm::new()
+            .with_prompt(format!(
+                "{mode} bundle {} to target '{}' via '{destination}'?",
+                request.bundle.bundle_id, request.target_id
+            ))
+            .default(false)
+            .interact()?;
+        if !confirmed {
+            println!("{}", serde_json::json!({"cancelled": true}));
+            return Ok(());
+        }
+    }
+
+    match dest.handoff(&request) {
+        Ok(receipt) => {
+            print_json(&serde_json::json!({
+                "destination": destination,
+                "receipt": receipt,
+            }));
+            Ok(())
+        }
+        Err(HandoffError::AmbiguousTarget { choices }) => {
+            print_json(&serde_json::json!({
+                "error": "ambiguous_target",
+                "choices": choices,
+            }));
+            anyhow::bail!("ambiguous target")
+        }
+        Err(err) => {
+            print_json(&serde_json::json!({
+                "error": "handoff_failed",
+                "message": err.to_string(),
+                "bundle_preserved": true,
+            }));
+            anyhow::bail!(err.to_string())
+        }
     }
 }
 

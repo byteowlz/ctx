@@ -363,7 +363,7 @@ pub enum FilePolicy {
 }
 
 /// A content-addressed file hash.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FileHash {
     /// Algorithm name, e.g. `sha256`.
     pub algorithm: String,

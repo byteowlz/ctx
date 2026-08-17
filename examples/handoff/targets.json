@@ -1,0 +1,11 @@
+[
+  {
+    "id": "opaque-target-alpha",
+    "title": "Alpha workspace",
+    "description": "Example destination target"
+  },
+  {
+    "id": "opaque-target-beta",
+    "title": "Beta workspace"
+  }
+]

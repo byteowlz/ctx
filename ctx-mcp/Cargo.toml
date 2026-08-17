@@ -4,4 +4,22 @@ version = "0.1.0"
 edition = "2024"
 repository.workspace = true
 
+[lib]
+name = "ctx_mcp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ctx-mcp"
+path = "src/main.rs"
+
 [dependencies]
+anyhow = "1.0.94"
+base64 = "0.22"
+ctx-core = { path = "../ctx-core" }
+serde = { version = "1.0.215", features = ["derive"] }
+serde_json = "1.0.132"
+sysinfo = "0.30.13"
+
+[dev-dependencies]
+tempfile = "3.14.0"
+time = { version = "0.3.37", features = ["formatting"] }

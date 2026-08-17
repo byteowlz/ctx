@@ -1,0 +1,17 @@
+{
+  "request_id": "handoff-2026-06-24-7hf3k2",
+  "outcome": "sent",
+  "target": {
+    "id": "opaque-target-alpha",
+    "title": "Alpha workspace",
+    "description": "Example destination target"
+  },
+  "remote_refs": [
+    {
+      "label": "upload",
+      "reference": "opaque-remote-ref-1"
+    }
+  ],
+  "warnings": [],
+  "completed_at": "2026-06-24T10:45:02Z"
+}

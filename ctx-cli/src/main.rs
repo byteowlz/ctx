@@ -1,4 +1,5 @@
 mod bundle;
+mod destinations;
 
 use clap::{ArgAction, Parser, Subcommand, ValueEnum};
 
