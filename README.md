@@ -2,6 +2,7 @@
 
 Rust workspace for the ctx context-capture tool.
 
+- Building on Linux requires `libpipewire-0.3` pkg-config headers and `libclang` (for the `xcap` screen-capture backend): `pacman -S libpipewire clang` / `apt install libpipewire-0.3-dev libclang-dev`.
 - Default config is created at `$XDG_CONFIG_HOME/ctx/config.toml` (or `~/.config/ctx/config.toml`), with data in `$XDG_DATA_HOME/ctx` and state in `$XDG_STATE_HOME/ctx`.
 - Config precedence (highest first): CLI flags, CLI `--config`, environment variables (`CTX__...`), local `./ctx.toml`, global config file.
 - A commented example config lives in `examples/config.toml` with a `$schema` reference (schema in `examples/config.schema.json`).

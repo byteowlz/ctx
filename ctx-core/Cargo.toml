@@ -19,10 +19,10 @@ sysinfo = "0.30.13"
 time = { version = "0.3.37", features = ["formatting", "parsing", "serde", "serde-well-known", "macros"] }
 uuid = { version = "1.11.0", features = ["v4"] }
 arboard = "3.4.1"
-screenshots = "0.8.10"
 image = { version = "0.25.5", default-features = false, features = ["png", "jpeg"] }
 x-win = "5.3.1"
 zip = { version = "2", default-features = false, features = ["deflate"] }
+xcap = { version = "0.9.8", default-features = false }
 
 [dev-dependencies]
 tempfile = "3.14.0"

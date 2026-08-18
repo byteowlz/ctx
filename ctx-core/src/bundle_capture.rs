@@ -14,11 +14,11 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use image::{DynamicImage, GenericImageView, ImageBuffer, Rgba};
-use screenshots::Screen;
+use image::{DynamicImage, GenericImageView};
 use time::OffsetDateTime;
 use uuid::Uuid;
 use x_win::get_active_window;
+use xcap::Monitor;
 
 use crate::manifest::{CaptureMode, Dimensions, ImageProvenance, ImageRole, Item, Rect, Warning};
 use crate::store::{BundleStoreMut, StoreError, item_id};
@@ -77,15 +77,15 @@ pub fn add_screenshot(
     let mode = target.mode();
 
     // Determine which displays to capture and, for frontmost, the window rect.
-    // Per-display capture plan: (screen, optional window rect, optional app/title).
-    type CapturePlan = Vec<(Screen, Option<Rect>, Option<(String, String)>)>;
+    // Per-display capture plan: (monitor, optional window rect, optional app/title).
+    type CapturePlan = Vec<(Monitor, Option<Rect>, Option<(String, String)>)>;
     let mut captures: CapturePlan = Vec::new();
     let screens = list_screens();
 
     match target {
         CaptureTarget::All => {
             for screen in &screens {
-                captures.push((*screen, None, None));
+                captures.push((screen.clone(), None, None));
             }
         }
         CaptureTarget::Display => {
@@ -109,12 +109,9 @@ pub fn add_screenshot(
     let mut results = Vec::new();
     for (screen, rect, app_meta) in captures {
         let raw = screen
-            .capture()
+            .capture_image()
             .map_err(|e| StoreError::Other(format!("display capture failed: {e}")))?;
-        let buffer: ImageBuffer<Rgba<u8>, Vec<u8>> =
-            ImageBuffer::from_vec(raw.width(), raw.height(), raw.to_vec())
-                .ok_or_else(|| StoreError::Other("failed to read capture buffer".to_string()))?;
-        let dyn_img = DynamicImage::ImageRgba8(buffer);
+        let dyn_img = DynamicImage::ImageRgba8(raw);
 
         // For frontmost, crop to the window rect on that display.
         let final_img = match rect {
@@ -134,7 +131,7 @@ pub fn add_screenshot(
             app: app_meta.as_ref().map(|(a, _)| a.clone()),
             window_title: app_meta.as_ref().map(|(_, t)| t.clone()),
             url: hints.url.clone(),
-            display: Some(screen.display_info.width.to_string()),
+            display: screen.name().ok(),
             mode: Some(mode),
             rect,
             captured_at: Some(now),
@@ -161,30 +158,29 @@ pub fn add_screenshot(
     Ok(results)
 }
 
-fn list_screens() -> Vec<Screen> {
-    Screen::all().unwrap_or_default()
+fn list_screens() -> Vec<Monitor> {
+    Monitor::all().unwrap_or_default()
 }
 
 /// Find the display containing a window and compute the window rect within that
 /// display's coordinate space. `x_win` reports global coordinates; screenshots
 /// are per-display, so we translate the window origin into the display frame.
 fn find_screen_for_window(
-    screens: &[Screen],
+    screens: &[Monitor],
     window: &x_win::WindowInfo,
-) -> Option<(Screen, Rect)> {
+) -> Option<(Monitor, Rect)> {
     let wx = window.position.x;
     let wy = window.position.y;
     for screen in screens {
-        let info = &screen.display_info;
-        let dx = info.x;
-        let dy = info.y;
+        let dx = screen.x().unwrap_or(0);
+        let dy = screen.y().unwrap_or(0);
         // Approximate containment: window origin inside this display.
         if wx >= dx && wy >= dy {
             let local_x = (wx - dx).max(0) as u32;
             let local_y = (wy - dy).max(0) as u32;
             let w = window.position.width as u32;
             let h = window.position.height as u32;
-            return Some((*screen, Rect::new(local_x, local_y, w, h)));
+            return Some((screen.clone(), Rect::new(local_x, local_y, w, h)));
         }
     }
     None

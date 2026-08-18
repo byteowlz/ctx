@@ -4,10 +4,10 @@ use std::path::PathBuf;
 
 use arboard::Clipboard;
 use image::{ImageBuffer, ImageError, Rgb, Rgba};
-use screenshots::Screen;
 use sysinfo::System;
 use uuid::Uuid;
 use x_win::{get_active_window, get_open_windows};
+use xcap::Monitor;
 
 use crate::capture::{
     AccessibilityResult, ActionSupport, AppInfo, CaptureResult, ClipboardResult, DisplayInfo,
@@ -166,16 +166,16 @@ impl ContextProvider for DesktopPlatform {
             hostname: System::host_name().or_else(|| env::var("HOSTNAME").ok()),
         };
 
-        let displays = match Screen::all() {
-            Ok(screens) => screens
-                .into_iter()
+        let displays = match Monitor::all() {
+            Ok(monitors) => monitors
+                .iter()
                 .enumerate()
-                .map(|(index, screen)| DisplayInfo {
+                .map(|(index, monitor)| DisplayInfo {
                     index: index as u32,
-                    name: None,
-                    width: screen.display_info.width,
-                    height: screen.display_info.height,
-                    scale_factor: Some(screen.display_info.scale_factor),
+                    name: monitor.name().ok(),
+                    width: monitor.width().unwrap_or(0),
+                    height: monitor.height().unwrap_or(0),
+                    scale_factor: monitor.scale_factor().ok(),
                 })
                 .collect(),
             Err(err) => {
@@ -281,18 +281,14 @@ impl ContextProvider for DesktopPlatform {
 fn capture_screens(capture_dir: &PathBuf, quality: u8) -> Result<Vec<PathBuf>, CaptureError> {
     std::fs::create_dir_all(capture_dir)?;
 
-    let screens = Screen::all().map_err(CaptureError::Screenshots)?;
-    if screens.is_empty() {
+    let monitors = Monitor::all().map_err(CaptureError::Screenshots)?;
+    if monitors.is_empty() {
         return Err(CaptureError::Custom("No displays found".to_string()));
     }
 
-    let mut paths = Vec::with_capacity(screens.len());
-    for screen in screens {
-        let image = screen.capture().map_err(CaptureError::Screenshots)?;
-        let buffer: ImageBuffer<Rgba<u8>, Vec<u8>> =
-            ImageBuffer::from_vec(image.width(), image.height(), image.to_vec()).ok_or_else(
-                || CaptureError::Custom("Failed to read screenshot buffer".to_string()),
-            )?;
+    let mut paths = Vec::with_capacity(monitors.len());
+    for monitor in monitors {
+        let buffer = monitor.capture_image().map_err(CaptureError::Screenshots)?;
 
         let file_name = format!("screenshot-{}.jpg", Uuid::new_v4());
         let path = capture_dir.join(file_name);
@@ -484,7 +480,7 @@ fn snapshot_node(element: &AXUIElement) -> crate::capture::AccessibilityNode {
 #[derive(thiserror::Error, Debug)]
 enum CaptureError {
     #[error("screenshot error: {0}")]
-    Screenshots(#[source] anyhow::Error),
+    Screenshots(#[source] xcap::XCapError),
     #[error("image save error: {0}")]
     ImageSave(#[source] ImageError),
     #[error("{0}")]
