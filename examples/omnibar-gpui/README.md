@@ -11,6 +11,12 @@ Owner: `trx-xv4n.3`. All selections remain previews, never execution.
 just omnibar-run
 ```
 
+The window explicitly requests a **frameless popup**: no titlebar or window
+controls, client-side decorations without app chrome, and no user resize frame.
+Programmatic progressive expansion remains enabled. Compositors can override
+Linux decoration requests; actual OS border/shadow appearance remains an
+on-screen acceptance check.
+
 Idle is only the input, in a 72–80-logical-pixel-high window. The default trial
 is **Dot matrix with embedded Departure Mono**. Suggestions/status expand the
 window; up to five rows are visible before scrolling.

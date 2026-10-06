@@ -1,5 +1,6 @@
 //! Native ctx omnibar trial. Local appearance commands and preview-only routing.
 mod app;
+mod host;
 mod matrix;
 mod presentation;
 mod review;
@@ -8,10 +9,7 @@ mod theme;
 use std::path::PathBuf;
 
 use gpui_kit::component::Root;
-use gpui_kit::{
-    App, AppContext as _, AsyncApp, WindowBackgroundAppearance, WindowBounds, WindowKind,
-    WindowOptions, px, size,
-};
+use gpui_kit::{App, AppContext as _, AsyncApp, WindowBounds, WindowOptions, px, size};
 
 use ctx_bar::config::Config;
 
@@ -58,24 +56,12 @@ fn fatal(error: anyhow::Error) -> ! {
 
 fn window_options(config: &Config, review: bool, cx: &App) -> WindowOptions {
     let height = ctx_bar::layout::layout(config.design, 0, false, config.height).height;
-    WindowOptions {
-        window_bounds: Some(WindowBounds::centered(
-            size(px(config.width), px(height)),
-            cx,
-        )),
-        window_min_size: Some(size(px(480.), px(64.))),
-        window_background: if config.design == ctx_bar_design::BarDesign::Lens {
-            WindowBackgroundAppearance::Blurred
-        } else {
-            WindowBackgroundAppearance::Transparent
-        },
-        kind: WindowKind::PopUp,
-        titlebar: None,
-        focus: !review,
-        show: !review,
-        app_id: Some("ctx-bar".into()),
-        ..Default::default()
-    }
+    let mut options = host::options(config, review);
+    options.window_bounds = Some(WindowBounds::centered(
+        size(px(config.width), px(height)),
+        cx,
+    ));
+    options
 }
 
 async fn open(

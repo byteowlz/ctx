@@ -7,6 +7,13 @@
   accessibility or release acceptance. Mode: Operate.
 - Startup: one input, genuinely 72–80 logical pixels high including inset.
   No title, demo controls, examples, startup badge, footer or separate picker.
+- User clarification: frameless native window, not just hidden app header.
+  Explicit popup/titlebar-none, client-side decoration request, no user resize
+  frame or minimization controls. Bar enclosures remain intentional design ink,
+  not OS chrome. Programmatic expansion stays enabled. Windows popup styles omit
+  native frame flags; macOS GPUI hides title/buttons using a full-size-content
+  panel. OS rounding/shadow and compositor decoration overrides are not accepted
+  by source/policy tests and remain part of the on-screen gate.
 - Direction: text to bounded interface choices, never chat or execution.
   Suggestions/status disclose progressively; all ten structural identities
   survive the port. Typing `ctx theme` exposes local choices; Enter applies
