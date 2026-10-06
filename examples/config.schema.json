@@ -5,10 +5,6 @@
   "description": "Configuration schema for ctx",
   "type": "object",
   "properties": {
-    "$schema": {
-      "type": "string",
-      "description": "JSON Schema reference for editor support"
-    },
     "capture": {
       "type": "object",
       "properties": {

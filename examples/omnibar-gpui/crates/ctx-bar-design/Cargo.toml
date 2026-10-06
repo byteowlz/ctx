@@ -1,0 +1,15 @@
+[package]
+name = "ctx-bar-design"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Template-derived base24/role mechanism and Studio scheme snapshots"
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+
+[lints]
+workspace = true

@@ -158,12 +158,6 @@ pub enum ConfigError {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 struct FileConfig {
-    #[serde(
-        rename = "$schema",
-        default = "default_schema_url",
-        skip_serializing_if = "String::is_empty"
-    )]
-    schema: String,
     #[serde(default)]
     capture: CaptureConfig,
     #[serde(default)]
@@ -468,8 +462,8 @@ fn default_schema_url() -> String {
 
 /// Save configuration values back to the global config.toml.
 ///
-/// Preserves the `$schema` reference and writes capture, providers, and output
-/// sections.
+/// Writes the editor schema as a `#:schema` comment, followed by capture,
+/// providers, output, and OCR sections. Existing comments are not preserved.
 pub fn save_config(app_name: &str, cfg: &AppConfig) -> Result<(), ConfigError> {
     let config_path = cfg.directories.config_dir.join("config.toml");
 
@@ -480,7 +474,6 @@ pub fn save_config(app_name: &str, cfg: &AppConfig) -> Result<(), ConfigError> {
     };
 
     let file_config = FileConfig {
-        schema: default_schema_url(),
         capture: cfg.capture.clone(),
         providers: cfg.providers.clone(),
         output: output_config,
@@ -494,7 +487,8 @@ pub fn save_config(app_name: &str, cfg: &AppConfig) -> Result<(), ConfigError> {
 
     // Prepend a comment header
     let header = format!(
-        "# {app_name} configuration\n# Paths expand ~ and environment variables like $XDG_CONFIG_HOME.\n\n"
+        "#:schema {}\n\n# {app_name} configuration\n# Paths expand ~ and environment variables like $XDG_CONFIG_HOME.\n\n",
+        default_schema_url()
     );
     let final_content = format!("{header}{content}");
 
@@ -560,6 +554,81 @@ mod tests {
     fn env_lock() -> &'static Mutex<()> {
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
         LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    #[test]
+    fn save_config_uses_schema_comment_and_round_trips_values()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let temp = tempfile::tempdir()?;
+        let cfg = AppConfig {
+            directories: AppDirectories {
+                config_dir: temp.path().join("config"),
+                data_dir: temp.path().join("data"),
+                state_dir: temp.path().join("state"),
+            },
+            capture: CaptureConfig {
+                image_quality: 42,
+                include_clipboard: true,
+                ..CaptureConfig::default()
+            },
+            providers: ProviderConfig {
+                default_provider: Some("noop".to_owned()),
+                api_keys: HashMap::from([("test".to_owned(), "synthetic-key".to_owned())]),
+            },
+            output: OutputPaths {
+                capture_dir: temp.path().join("custom-captures"),
+                state_file: temp.path().join("custom-state.json"),
+                bundle_dir: temp.path().join("custom-bundles"),
+            },
+            ocr: OcrConfig {
+                command: "test-ocr".to_owned(),
+                args: vec!["--text".to_owned()],
+                auto_crops: false,
+            },
+        };
+
+        save_config(default_app_name(), &cfg)?;
+        let path = cfg.directories.config_dir.join("config.toml");
+        let content = fs::read_to_string(&path)?;
+        assert!(content.starts_with(&format!("#:schema {}\n", default_schema_url())));
+        let parsed: toml::Value = toml::from_str(&content)?;
+        assert!(parsed.get("$schema").is_none());
+        assert_eq!(parsed.as_table().map(|table| table.len()), Some(4));
+        assert_eq!(parsed["capture"], toml::Value::try_from(&cfg.capture)?);
+        assert_eq!(parsed["providers"], toml::Value::try_from(&cfg.providers)?);
+        assert_eq!(parsed["ocr"], toml::Value::try_from(&cfg.ocr)?);
+
+        // Exercise the application's parser without changing process environment or cwd.
+        let saved: FileConfig = Config::builder()
+            .add_source(File::from(path))
+            .build()?
+            .try_deserialize()?;
+        let output = resolve_output_paths(&saved.output, &cfg.directories)?;
+        assert_eq!(output.capture_dir, cfg.output.capture_dir);
+        assert_eq!(output.state_file, cfg.output.state_file);
+        assert_eq!(output.bundle_dir, cfg.output.bundle_dir);
+        Ok(())
+    }
+
+    #[test]
+    fn config_example_matches_default_values() -> Result<(), Box<dyn std::error::Error>> {
+        let directories = AppDirectories {
+            config_dir: PathBuf::from("~/.config/ctx"),
+            data_dir: PathBuf::from("~/.local/share/ctx"),
+            state_dir: PathBuf::from("~/.local/state/ctx"),
+        };
+        let generated = default_config_toml(&directories);
+        let example = include_str!("../../examples/config.toml");
+        let directive = format!("#:schema {}\n", default_schema_url());
+        assert!(generated.starts_with(&directive));
+        assert!(example.starts_with(&directive));
+        let generated: toml::Value = toml::from_str(&generated)?;
+        let example: toml::Value = toml::from_str(example)?;
+        assert!(generated.get("$schema").is_none());
+        assert_eq!(example, generated);
+        // Confirm the example also deserializes into the application's typed config.
+        let _: FileConfig = example.try_into()?;
+        Ok(())
     }
 
     #[test]

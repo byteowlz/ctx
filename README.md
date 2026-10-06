@@ -3,12 +3,23 @@
 Rust workspace for the ctx context-capture tool.
 
 - Building on Linux requires `libpipewire-0.3` pkg-config headers and `libclang` (for the `xcap` screen-capture backend): `pacman -S libpipewire clang` / `apt install libpipewire-0.3-dev libclang-dev`.
-- Default config is created at `$XDG_CONFIG_HOME/ctx/config.toml` (or `~/.config/ctx/config.toml`), with data in `$XDG_DATA_HOME/ctx` and state in `$XDG_STATE_HOME/ctx`.
+- Default config is created at `$XDG_CONFIG_HOME/ctx/config.toml`, with data in `$XDG_DATA_HOME/ctx` and state in `$XDG_STATE_HOME/ctx`. When unset, config/data use platform defaults (Linux: `~/.config` / `~/.local/share`; macOS: `~/Library/Application Support`), while Unix state falls back to `~/.local/state`. See [development notes](docs/development.md).
 - Config precedence (highest first): CLI flags, CLI `--config`, environment variables (`CTX__...`), local `./ctx.toml`, global config file.
-- A commented example config lives in `examples/config.toml` with a `$schema` reference (schema in `examples/config.schema.json`).
-- Run `cargo run -p ctx-cli` (binary name: `ctx`) to exercise the CLI; it emits structured JSON (metadata + system, displays, apps, windows, clipboard, screenshots, accessibility, actions) or a human summary (`--json` for machine output). Use `--save` to write the JSON into the configured capture directory. Clipboard and screenshots are captured when enabled; use `--provider noop` to disable host interactions. Use `scripts/copy_config_schema.sh` to publish schema updates to the shared schemas repo.
+- A commented example config lives in `examples/config.toml` with a `#:schema` editor directive (schema in `examples/config.schema.json`). Saving config also writes this comment, not a `$schema` TOML setting.
+- Run `cargo run -p ctx-cli` (binary name: `ctx`) to exercise the CLI; it emits structured JSON (metadata + system, displays, apps, windows, clipboard, screenshots, accessibility, actions) or a human summary (`--json` for machine output). Use `--save` to write the JSON into the configured capture directory. Clipboard and screenshots are captured when enabled; use `--provider noop` to disable host interactions. `just validate-examples` checks local schemas/examples without publishing. `just schema` publishes to the separate shared schemas repo (writes, commits, and pushes; not a local check).
 - `ctx current --json` returns the lightweight current-context state quickly from `$XDG_STATE_HOME/ctx/current-context.json` (or `output.state_file`). Event sources must announce complete active-context reports explicitly; ctx does not poll tmux or window managers automatically. Example: `ctx current report --source shell --kind terminal --cwd "$PWD" --project my-repo --json`. Each report replaces the previous `active` context wholesale, so non-terminal reporters can omit `cwd`/`project` without leaving stale shell state behind. JSON format v1: `schema`, `version`, `updated_at`, `sequence`, and `active` with optional `source`, `kind`, `app`, `bundle_id`, `window`, `workspace`, `url`, `cwd`, `project`, `depth` fields.
 - tmux users can install the example hooks in `examples/tmux-current-context.conf` to report active pane cwd, session, and window on focus changes. zellij and herdr users can run the polling reporters `examples/zellij-current-context.sh` and `examples/herdr-current-context.sh` inside their sessions. AeroSpace users can adapt `examples/aerospace-current-context.sh` to report workspace/window changes with `--kind application`. Browser extensions/native messaging hosts should report focused tabs with `--kind browser --url <url>`.
 - `ctx watch` detects new screenshots from screenshot directories (poll-based file watching with write-settling) and the clipboard, deduplicates them across sources by hashing decoded pixels, and emits one JSON line per detection event. Clipboard-only screenshots are spooled as PNGs into the data-dir `inbox/`; the seen-hash index persists in the state dir so restarts do not re-emit. Flags: `--dir` (repeatable, defaults to platform screenshot dirs), `--no-clipboard`, `--interval-ms`, `--max-age-secs`, `--once`.
 - Nested multiplexers (e.g. herdr inside tmux) are handled via `--depth`: reporters declare their terminal nesting depth, and ctx drops a shallower report that arrives while a deeper report is still fresh (2s grace window), so the innermost multiplexer wins races on the same focus change while genuine outer focus changes still get through. The tmux example hooks additionally skip reporting when the focused pane runs a nested multiplexer.
-- Tooling commands are listed in AGENTS.md.
+
+## Development
+
+```bash
+just build
+just test       # cargo test, including doctests; nextest is not required
+just check-all  # Compile, stable fmt check, strict Clippy, tests, schema/examples
+```
+
+Requires Rust with rustfmt/Clippy, `just`, and `uv` (Python >=3.11 for schema
+validation). See [AGENTS.md](AGENTS.md) and [development notes](docs/development.md)
+for focused checks and scoped exceptions.

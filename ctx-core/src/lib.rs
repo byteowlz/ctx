@@ -6,6 +6,7 @@ pub mod directories;
 pub mod export;
 pub mod handoff;
 pub mod ingest;
+mod jpeg;
 pub mod manifest;
 pub mod platform;
 pub mod store;

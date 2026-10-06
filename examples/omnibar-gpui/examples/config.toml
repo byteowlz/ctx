@@ -1,0 +1,11 @@
+#:schema ./omnibar-gpui.schema.json
+# Explorer only: no actions execute. Timer selects the FIRST row, not a confidence threshold.
+theme = "Lumen Dark"
+fixture = "desktop"
+auto_select_first = false
+timeout_seconds = 3
+debounce_ms = 220
+request_timeout_seconds = 15
+width = 680.0
+height = 520.0
+# platform defaults to the build OS; choose macos, windows, linux or omarchy.

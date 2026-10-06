@@ -311,17 +311,8 @@ fn save_jpeg(
             Rgb([pixel[0], pixel[1], pixel[2]])
         });
 
-    let mut file = std::fs::File::create(path)?;
-    let quality = quality.clamp(1, 100);
-    let mut encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut file, quality);
-    encoder
-        .encode(
-            rgb_buffer.as_raw(),
-            rgb_buffer.width(),
-            rgb_buffer.height(),
-            image::ColorType::Rgb8.into(),
-        )
-        .map_err(CaptureError::ImageSave)
+    let file = std::fs::File::create(path)?;
+    crate::jpeg::write_jpeg(&rgb_buffer, file, quality).map_err(CaptureError::ImageSave)
 }
 
 fn capture_windows_and_apps(notes: &mut Vec<String>) -> (Vec<WindowInfo>, Vec<AppInfo>) {
@@ -433,14 +424,14 @@ fn capture_accessibility(request: &CaptureRequest, notes: &mut Vec<String>) -> A
         }
         path.reverse();
 
-        return AccessibilityResult {
+        AccessibilityResult {
             enabled: true,
             captured: true,
             depth: request.accessibility_depth,
             note: Some("Captured focused window snapshot.".to_string()),
             focused: Some(focused_node),
             path,
-        };
+        }
     }
 
     #[cfg(not(target_os = "macos"))]

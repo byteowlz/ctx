@@ -16,7 +16,7 @@ build-release:
 
 # Fast compile check
 check:
-    cargo check --all-targets
+    cargo check --workspace --all-targets --all-features
 
 # Clean build artifacts
 clean:
@@ -24,13 +24,17 @@ clean:
 
 # === Code Quality ===
 
-# Format code
+# Format code with stable rustfmt (no nightly-only settings)
 fmt:
-    cargo fmt -- --config imports_granularity=Item
+    cargo fmt --all
 
-# Run linter
+# Check formatting without changing files
+fmt-check:
+    cargo fmt --all -- --check
+
+# Deny warnings across the workspace, including tests and examples
 clippy:
-    cargo clippy --all-features --tests
+    cargo clippy --workspace --all-targets --all-features -- -D warnings
 
 # Alias for clippy
 lint: clippy
@@ -41,13 +45,21 @@ fix *args:
 
 # === Testing ===
 
-# Run tests
+# Run workspace tests, including doctests; nextest is not required
 test:
-    cargo nextest run --no-fail-fast
+    cargo test --workspace --no-fail-fast
+
+# Measure release capture stages without exposing captured content
+benchmark-capture:
+    cargo build --release -p ctx-cli
+    bun scripts/benchmark_capture.ts target/release/ctx
 
 # Run tests with all features
 test-all:
-    cargo nextest run --no-fail-fast --all-features
+    cargo test --workspace --all-features --no-fail-fast
+
+# Comprehensive local baseline (YAML tooling/CI are outside this check)
+check-all: check fmt-check clippy test-all validate-examples
 
 # === Install ===
 
@@ -72,6 +84,21 @@ install-all: fetch
 run *args:
     cargo run -p ctx-cli -- {{args}}
 
+# === Native omnibar prototype (separate workspace; no action execution) ===
+
+# Verify native build/tests and local adapter without launching a window
+omnibar-check:
+    bun test examples/omnibar-prototype/prototype.test.ts
+    just --working-directory examples/omnibar-gpui --justfile examples/omnibar-gpui/justfile check-all
+
+# Run the loopback adapter with an explicitly selected existing EAVS profile
+omnibar-server profile="":
+    OMNIBAR_EAVS_PROFILE="$1" bun examples/omnibar-prototype/server.ts
+
+# Human launch: opens a focus-taking GPUI prototype window
+omnibar-run:
+    just --working-directory examples/omnibar-gpui --justfile examples/omnibar-gpui/justfile run
+
 # === Dependencies ===
 
 # Update dependencies
@@ -86,7 +113,17 @@ docs:
 
 # === Schema ===
 
-# Sync config + bundle schemas to shared schemas repo
+# Validate local config TOML against its JSON Schema (uv + Python >=3.11)
+validate-config:
+    uv run --script scripts/validate_examples.py --config-only
+    cargo test -p ctx-core config_example_matches_default_values
+
+# Validate every local schema and the config/bundle examples
+validate-examples:
+    uv run --script scripts/validate_examples.py
+    cargo test -p ctx-core config_example_matches_default_values
+
+# Sync config + bundle schemas to shared schemas repo (commits and pushes there)
 schema:
     ./scripts/sync_schemas.sh
 

@@ -1,0 +1,25 @@
+set shell := ["bash", "-cu"]
+
+help:
+    @just --list
+
+check:
+    cargo check --workspace --all-targets
+
+fmt:
+    cargo fmt --all
+
+fmt-check:
+    cargo fmt --all --check
+
+test:
+    cargo test --workspace
+
+clippy:
+    cargo clippy --workspace --all-targets -- -D warnings
+
+check-all: check fmt-check clippy test
+
+# Only a human should launch this focus-taking native window.
+run *args:
+    cargo run -p ctx-bar -- {{args}}

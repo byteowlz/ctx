@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ctx omnibar local Jev adapter configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "endpoint": {"type":"string","pattern":"^http://127\\.0\\.0\\.1:[0-9]+/","default":"http://127.0.0.1:3033/jev/v1/systemone"},
+    "model": {"type":"string","minLength":1,"default":"jev-latest"},
+    "eavs_profile": {"type":"string","description":"Explicitly selected existing authorized EAVS profile from the local agent models file; resolved only by the backend."},
+    "listener_token": {"type":"string","writeOnly":true,"description":"Optional local override. Prefer resolving from the existing EAVS config/environment."},
+    "virtual_key": {"type":"string","writeOnly":true,"description":"Optional local virtual-key override. Never commit credentials."}
+  }
+}

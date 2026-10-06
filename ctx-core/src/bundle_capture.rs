@@ -199,22 +199,9 @@ fn crop_to_window(img: &DynamicImage, rect: &Rect) -> Option<DynamicImage> {
 }
 
 fn save_jpeg(img: &DynamicImage, path: &Path, quality: u8) -> Result<(), StoreError> {
-    use std::io::Write;
     let rgb = img.to_rgb8();
-    let mut file = fs::File::create(path)?;
-    let quality = quality.clamp(1, 100);
-    let mut encoder = image::codecs::jpeg::JpegEncoder::new_with_quality(&mut file, quality);
-    encoder
-        .encode(
-            rgb.as_raw(),
-            rgb.width(),
-            rgb.height(),
-            image::ColorType::Rgb8.into(),
-        )
-        .map_err(StoreError::Image)?;
-    // Flush to surface permission/write errors early.
-    file.flush()?;
-    Ok(())
+    let file = fs::File::create(path)?;
+    crate::jpeg::write_jpeg(&rgb, file, quality).map_err(StoreError::Image)
 }
 
 // ---------------------------------------------------------------------------

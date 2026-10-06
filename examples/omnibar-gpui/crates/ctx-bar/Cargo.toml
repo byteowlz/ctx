@@ -1,0 +1,21 @@
+[package]
+name = "ctx-bar"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Exploratory native ctx omnibar; suggestions and preview only"
+
+[dependencies]
+ctx-bar-design = { path = "../ctx-bar-design" }
+gpui-kit.workspace = true
+config.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+log.workspace = true
+env_logger.workspace = true
+reqwest.workspace = true
+
+[lints]
+workspace = true

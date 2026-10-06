@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ctx omnibar GPUI prototype config",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "theme": {"enum": ["Lumen Dark", "Lumen Light"], "default": "Lumen Dark"},
+    "platform": {"enum": ["macos", "windows", "linux", "omarchy"]},
+    "fixture": {"enum": ["desktop", "selection", "audio", "unavailable"], "default": "desktop"},
+    "auto_select_first": {"type": "boolean", "default": false},
+    "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 30, "default": 3},
+    "debounce_ms": {"type": "integer", "minimum": 100, "maximum": 2000, "default": 220},
+    "request_timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 30, "default": 15},
+    "width": {"type": "number", "minimum": 480, "maximum": 1200, "default": 680},
+    "height": {"type": "number", "minimum": 400, "maximum": 900, "default": 520}
+  }
+}

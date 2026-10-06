@@ -1,142 +1,93 @@
 # AGENTS.md
 
-## Build/Test Commands
+## Architecture and domain
+
+Rust 2024 workspace:
+
+- `ctx-core`: configuration/XDG directories, host capture and platform adapters,
+  current-context state, bundle manifests/store, ingest/export, and handoff logic.
+- `ctx-cli`: the `ctx` CLI (`src/main.rs`, `bundle.rs`, `destinations.rs`).
+- `ctx-mcp`: read-only stdio JSON-RPC server and resource tests; no network listener.
+- `ctx-api`: placeholder binary, not a shipped HTTP API.
+
+Read [CONTEXT.md](CONTEXT.md) for domain vocabulary and [docs/adr/](docs/adr/)
+for platform-capture and section-assignment decisions. Do not equate domain plans
+with implemented features or mocked tests with live host verification.
+
+## Required checks
+
+Use `just` as the stable command surface; `just help` lists recipes.
 
 ```bash
-cargo check                      # Type-check all crates
-cargo build                      # Build all crates
-cargo test                       # Run all tests
-cargo test -p ctx-core           # Test single crate
-cargo test test_name             # Run single test by name
-cargo clippy                     # Lint (fix all warnings)
-cargo fmt --check                # Check formatting
+just build                 # Debug workspace build
+just check                 # Workspace, all targets/features
+just test                  # cargo test, including doctests (no nextest required)
+just test-all              # Workspace tests with all features
+just fmt                   # Stable cargo fmt; changes files
+just fmt-check             # Formatting check, no writes
+just clippy                # All targets/features, -D warnings
+just validate-config       # Local TOML/schema + typed-default drift check
+just validate-examples     # All local schemas + config and bundle examples
+just check-all             # check, fmt-check, clippy, test-all, validate-examples
+cargo test -p ctx-core save_config_uses_schema_comment_and_round_trips_values
 ```
 
-## Code Style
+Run `cargo check --workspace` after Rust changes and `just check-all` before a
+significant commit. Report existing blockers rather than claiming a green gate
+or sweeping unrelated formatting/lint changes. Linux builds require PipeWire
+headers and libclang for `xcap`; see [README.md](README.md).
 
-- **Rust 2024 edition** with workspace structure (ctx-api, ctx-cli, ctx-core, ctx-mcp)
-- Run `cargo check` after every change; fix all errors before committing
-- Imports: std first, then external crates, then local modules (alphabetized)
-- Use `thiserror` for library errors, `anyhow` for application errors
-- Config: `config` crate with XDG paths (`$XDG_CONFIG_HOME` with `~/.config` fallback/sytem defaults)
-- Config: env-variables have priority over config
-- Data: `$XDG_DATA_HOME` (fallback `~/.local/share`/system defaults), State: `$XDG_STATE_HOME` (fallback `~/.local/state`/system defaults)
-- No emojis in code, comments, or commit messages
-- Prefer `Result<T, E>` over panics; degrade gracefully when permissions/APIs unavailable
+Validation requires `uv` and Python >=3.11; `uv` resolves the script's pinned
+JSON Schema validator. See [docs/development.md](docs/development.md) for scope
+and prerequisites. Never run `just schema` as a local validation check: it writes,
+commits, and pushes to the separate shared schemas repository.
 
----
+## Code and configuration
 
-## Issue Tracking with trx
+- Imports: std, external crates, then local modules; match the local style.
+- Use `thiserror` for library errors, `anyhow` for applications. Prefer `Result`
+  over panics; degrade gracefully when host permissions/APIs are unavailable.
+- No emojis in code, comments, or commit messages.
+- Config uses the `config` crate. Precedence: CLI flags, explicit CLI config file,
+  `CTX__...` environment variables, local `./ctx.toml`, global config file.
+- Paths honor XDG config/data/state variables. Platform directory defaults are
+  used when unset (macOS uses platform config/data directories; see
+  `ctx-core/src/directories.rs`). First load creates a commented config.
+- Editor metadata in TOML is a `#:schema` comment, never an application-visible
+  `$schema` setting. `save_config` rewrites values/comments rather than editing
+  the original file in place. JSON Schema documents still use `$schema`.
+- Schemas in `examples/` are hand-maintained. Validate examples and update schema
+  constraints alongside typed config changes; there is no typed schema generator.
 
-**IMPORTANT**: This project uses **trx** for ALL issue tracking.
+## Issue tracking
 
-### Why trx?
-
-- Dependency-aware: Track blockers and relationships between issues
-- Git-friendly: Auto-syncs to JSONL for version control
-- Agent-optimized: JSON output, ready work detection, discovered-from links
-- Prevents duplicate tracking systems and confusion
-
-### Quick Start
-
-**Check for ready work:**
+Use **trx** for all substantial work; use `--json` for programmatic calls.
 
 ```bash
 trx ready --json
-```
-
-**Create new issues:**
-
-```bash
-trx create "Issue title" -t bug|feature|task -p 0-4 --json
-trx create "Issue title" -p 1 --deps discovered-from:trx-123 --json
-```
-
-**Claim and update:**
-
-```bash
+trx create "Issue title" -t task -p 2 --json
 trx update trx-42 --status in_progress --json
-trx update trx-42 --priority 1 --json
+trx create "Discovered gap" -t bug -p 2 --parent trx-42 --json
+trx verify add trx-42 --status passed --command "just check-all" --summary "Checks passed" --json
+trx close trx-42 --reason "Implemented and verified" --json
 ```
 
-**Complete work:**
+Tracked state is `.trx/issues.jsonl`, `.trx/events.jsonl`, and (when evidence is
+recorded) `.trx/verifications.jsonl`; include changed tracker files with related
+code when a commit is authorized. trx persists updates locally; it does not
+automatically commit/push code. `trx sync` is an explicit commit action.
+Do not use Beads paths, Markdown TODO lists, or external issue trackers.
+Record deferred gaps and honest verification evidence in the issue.
 
-```bash
-trx close trx-42 --reason "Completed" --json
-```
+## Scoped exceptions and artifacts
 
-### Issue Types
-
-- `bug` - Something broken
-- `feature` - New functionality
-- `task` - Work item (tests, docs, refactoring)
-- `epic` - Large feature with subtasks
-- `chore` - Maintenance (dependencies, tooling)
-
-### Priorities
-
-- `0` - Critical (security, data loss, broken builds)
-- `1` - High (major features, important bugs)
-- `2` - Medium (default, nice-to-have)
-- `3` - Low (polish, optimization)
-- `4` - Backlog (future ideas)
-
-### Workflow for AI Agents
-
-1. **Check ready work**: `trx ready` shows unblocked issues
-2. **Claim your task**: `trx update <id> --status in_progress`
-3. **Work on it**: Implement, test, document
-4. **Discover new work?** Create linked issue:
-   - `trx create "Found bug" -p 1 --deps discovered-from:<parent-id>`
-5. **Complete**: `trx close <id> --reason "Done"`
-6. **Commit together**: Always commit the `.beads/issues.jsonl` file together with the code changes so issue state stays in sync with code state
-
-### Auto-Sync
-
-trx automatically syncs with git
-
-### Managing AI-Generated Planning Documents
-
-AI assistants often create planning and design documents during development:
-
-- PLAN.md, IMPLEMENTATION.md, ARCHITECTURE.md
-- DESIGN.md, CODEBASE_SUMMARY.md, INTEGRATION_PLAN.md
-- TESTING_GUIDE.md, TECHNICAL_DESIGN.md, and similar files
-
-**Best Practice: Use a dedicated directory for these ephemeral files**
-
-**Recommended approach:**
-
-- Create a `history/` directory in the project root
-- Store ALL AI-generated planning/design docs in `history/`
-- Keep the repository root clean and focused on permanent project files
-- Only access `history/` when explicitly asked to review past planning
-
-**Example .gitignore entry (optional):**
-
-```
-# AI planning documents (ephemeral)
-history/
-```
-
-**Benefits:**
-
-- Clean repository root
-- Clear separation between ephemeral and permanent documentation
-- Easy to exclude from version control if desired
-- Preserves planning history for archeological research
-- Reduces noise when browsing the project
-
-### Important Rules
-
-- Use trx for ALL task tracking
-- Always use `--json` flag for programmatic use
-- Link discovered work with `discovered-from` dependencies
-- Check `trx ready` before asking "what should I work on?"
-- Store AI planning docs in `history/` directory
-- Do NOT create markdown TODO lists
-- Do NOT use external issue trackers
-- Do NOT duplicate tracking systems
-- Do NOT clutter repo root with planning documents
-
-For more details, see README.md and QUICKSTART.md.
+- `just check-all` excludes YAML tooling, ast-grep, and CI work. Do not introduce
+  or modify YAML or ast-grep configuration as part of the baseline task.
+- Strict Clippy means the existing lint set with warnings denied, not adoption of
+  the entire template lint preset. Platform FFI and existing environment-mutating
+  tests use unsafe code; enabling `forbid(unsafe_code)` needs a separate audit.
+- Release/version workflow changes and central schema publication need separate
+  approval; existing release helpers are not a claim of standard compliance.
+- Put ephemeral planning documents under `history/`; only inspect existing
+  history when explicitly requested. Use repo docs/ADRs for durable design and
+  trx for work status. Keep private host data and credentials out of git.

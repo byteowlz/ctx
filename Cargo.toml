@@ -1,5 +1,8 @@
 [workspace]
-version = "0.1.0"
-members = [ "ctx-api", "ctx-cli","ctx-core", "ctx-mcp"]
+members = ["ctx-api", "ctx-cli", "ctx-core", "ctx-mcp"]
+exclude = ["examples/omnibar-gpui"]
 resolver = "2"
-package.repository = "https://github.com/byteowlz/ctx.git"
+
+[workspace.package]
+version = "0.1.0"
+repository = "https://github.com/byteowlz/ctx.git"
