@@ -6,9 +6,13 @@ license.workspace = true
 authors.workspace = true
 description = "Exploratory native ctx omnibar; suggestions and preview only"
 
+[features]
+native-review = ["gpui-kit/test-support"]
+
 [dependencies]
 ctx-bar-design = { path = "../ctx-bar-design" }
 gpui-kit.workspace = true
+fontdue = "=0.9.4"
 config.workspace = true
 serde.workspace = true
 serde_json.workspace = true

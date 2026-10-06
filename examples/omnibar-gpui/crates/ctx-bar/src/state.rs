@@ -1,6 +1,18 @@
 //! Pure state machine. A selection is a preview receipt or one lazy child request,
 //! never an invocation. Generation and timer tickets bind each action to its list.
+use ctx_bar_design::theme_choices;
+
 use crate::model::{Fixture, Item, Platform, Presentation, Request, Suggestions};
+
+// Hold exact provisional c/ct input locally, even across a debounce pause.
+// This intentionally withholds standalone c/ct requests too. The theme parser
+// still returns None for them, so the UI shows neither choices nor Theme NoMatch.
+fn is_local_or_theme_prefix(query: &str) -> bool {
+    let query = query.trim();
+    query.eq_ignore_ascii_case("c")
+        || query.eq_ignore_ascii_case("ct")
+        || theme_choices(query).is_some()
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Status {
@@ -83,6 +95,15 @@ impl State {
             node: self.node.clone(),
         }
     }
+    /// Only loading ordinary input may be sent to the remote provider.
+    /// Exact trimmed c/ct prefixes are withheld before theme parsing begins.
+    /// `request` remains the unconditional snapshot API for existing callers.
+    pub fn remote_request(&self) -> Option<Request> {
+        if self.status != Status::Loading || is_local_or_theme_prefix(&self.query) {
+            return None;
+        }
+        Some(self.request())
+    }
     pub fn cancel_timer(&mut self) {
         self.timer = None;
         self.timer_serial += 1;
@@ -94,7 +115,7 @@ impl State {
         self.receipt = None;
         self.selected = 0;
         self.source.clear();
-        self.status = if self.query.trim().is_empty() {
+        self.status = if self.query.trim().is_empty() || is_local_or_theme_prefix(&self.query) {
             Status::Overview
         } else {
             Status::Loading
@@ -223,10 +244,16 @@ impl State {
 }
 
 #[cfg(test)]
+#[path = "state_theme_tests.rs"]
+mod theme_tests;
+
+// Suggestion lifecycle fixtures are shared with the local-command boundary
+// suite; preview/branch/timer behavior remains covered here.
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::model::fixture_catalog;
-    fn response() -> Suggestions {
+    pub(super) fn response() -> Suggestions {
         let mut items: Vec<_> = fixture_catalog()
             .unwrap()
             .items
@@ -242,7 +269,7 @@ mod tests {
             latency_ms: 25.0,
         }
     }
-    fn ready(enabled: bool) -> State {
+    pub(super) fn ready(enabled: bool) -> State {
         let mut state = State::new(Platform::Macos, Fixture::Desktop, enabled);
         state.edit("change appearance".into());
         state.complete(state.generation, Ok(response()));

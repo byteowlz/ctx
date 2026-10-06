@@ -1,67 +1,86 @@
-# ctx native omnibar prototype
+# ctx native omnibar trial
 
-Standalone nested workspace: `ctx-bar` + GPUI-free `ctx-bar-design`, scaffolded
-from `templates/rust-gpui` at `222d3b4`. Only `ctx-bar` depends on GPUI, through
-`gpui-kit = 0.6.6`. Owner issue: `trx-xv4n`.
+Standalone `ctx-bar` + GPUI-free `ctx-bar-design`, based on the first-party
+`templates/rust-gpui` revision `222d3b4`, with `gpui-kit = 0.6.6`.
+Owner: `trx-xv4n.3`. All selections remain previews, never execution.
 
-## Interaction
+## Use
 
-One native text input, then highlighted tool/interface suggestions. System
-dictation insertion is intended through platform text input but remains unverified. Up/down selects, Enter previews,
-Escape cancels (or returns from a branch). Mouse selection also previews.
-No actions, commands, capture, clipboard reads or microphone recording execute.
-Selections produce an in-memory preview receipt, not an execution record.
+```sh
+# From the ctx root; opens a focus-taking native window:
+just omnibar-run
+```
 
-Flat is the default. The exploratory Branches toggle permits only root plus one
-child level. Selecting a declared branch requests its children lazily: one new
-Jev request with the same query/platform/fixture. Back invalidates old child
-results; edits and option changes reset root. Branch metadata must be exposed
-by the proxy catalog as branch items (`kind = "branch"`, `node = <declared ID>`),
-in `items` or `branches`. Missing metadata is an explicit error, not invented
-branches or a silently substituted flat result.
+Idle is only the input, in a 72–80-logical-pixel-high window. The default trial
+is **Dot matrix with embedded Departure Mono**. Suggestions/status expand the
+window; up to five rows are visible before scrolling.
 
-Optional first-row timeout is **off by default**, independent of probability.
-A fresh response arms it when enabled; edits, navigation, selectors, focus loss,
-Escape, back, manual choice and timeout-option changes cancel it. Enabling the
-option does not arm an already visible list. Debounced edits coalesce behind at
-most one in-flight request. Generation/timer tickets discard stale completions.
+Type in the bar:
+
+- `ctx theme` — list all ten designs.
+- `ctx theme dot` — filter to Dot matrix; Enter applies it and clears the input.
+- `ctx theme lens` — likewise choose Lens.
+
+Underline, Monolith, Lens, Signal, Prompt, Dot matrix, Corners, Slot, Unframed and
+Notch are available. Arrows/Enter or a click select; Escape cancels. Design changes
+are in-memory; TOML/`--design` sets the next-launch default. Unknown design filters
+remain local. These commands never go to Jev and invalidate pending responses and
+timers. Paused command prefixes are also withheld; the exact standalone queries
+`c` and `ct` therefore do not route. Other ordinary queries retain real routing.
+`ctx theme` changes the design; `--theme` selects the Lumen light/dark palette.
+
+For ordinary suggestions, start the existing adapter in another terminal:
+
+```sh
+just omnibar-server your-existing-authorized-eavs-profile
+```
+
+EAVS must already run. Context/catalog/platform remain synthetic; the adapter's
+Jev transport is real. The browser gallery is separate and uses no model.
+Enter previews a suggested interface. Flat is the default; `presentation =
+"branches"` permits root plus one lazily requested child level. No speculative
+tree, tool invocation, grants, host capture or microphone recording is added.
+Native explicit editing remains available; no periodic clipboard reads occur.
+
+Optional first-row timeout defaults off, independent of confidence. Edits,
+navigation, selection changes, focus loss and local commands cancel it.
+Generation/timer tickets reject stale completions. Config precedence is CLI >
+`--config` file > `CTX_BAR__...` environment > local `ctx-bar.toml` > global
+`$XDG_CONFIG_HOME/ctx/omnibar-gpui.toml` (`~/.config` fallback). First launch creates
+missing defaults/schema without rewriting existing files. `height` is maximum
+expansion, not idle geometry. See `examples/` and `ctx-bar --help`.
 
 ## Runtime boundary
 
-Start the separately owned loopback Bun proxy first. The native client reads
-`$XDG_STATE_HOME/ctx/omnibar-prototype.json` (fallback
-`~/.local/state/ctx/omnibar-prototype.json`) containing only `origin` and
-`reviewKey`. Unix permissions must be owner-only. The accepted origin is exactly
-`http://127.0.0.1:4784`; redirects and environment HTTP proxies are disabled.
+The client reads only the owner-private loopback descriptor
+`$XDG_STATE_HOME/ctx/omnibar-prototype.json` (`~/.local/state` fallback), containing
+`origin` and `reviewKey`, not provider credentials. Only
+`http://127.0.0.1:4784` is accepted; redirects/environment proxies are disabled.
+Catalog/response validation and transport bounds remain enforced. Startup has no
+catalog examples or permanent controls.
 
-`GET /api/catalog` loads prototype metadata; `POST /api/suggest` sends
-`{query, platform, fixture, presentation, node}` with same-origin `Origin` and
-`X-Prototype-Key` headers. No EAVS/upstream credential is read by this app.
-Responses are bounded and validated; raw error bodies are withheld. The bundled
-catalog provides labeled startup examples, **never fake inference**.
-
-Context is synthetic: Desktop, Selection, Audio or Unavailable. Platforms are
-macOS, Windows, Linux and Omarchy. No full `ctx capture` runs on input/decisions.
-A future live adapter should consume cached/event-updated lightweight current
-state rather than placing full capture on the keystroke path.
-
-Config: `$XDG_CONFIG_HOME/ctx/omnibar-gpui.toml`, fallback
-`~/.config/ctx/omnibar-gpui.toml`; defaults and sibling JSON schema are created on
-first launch without rewriting existing files. Precedence: CLI > `--config`
-file > `CTX_BAR__...` environment > local `ctx-bar.toml` > global file. See
-`examples/` and `ctx-bar --help`.
-
-## Checks and launch
+## Checks and evidence
 
 ```sh
 cd examples/omnibar-gpui
 just check-all
-# From the ctx root, start the adapter in a separate terminal first:
-# just omnibar-server your-existing-authorized-eavs-profile
-# Human launch only: opens a focus-taking native window.
-just run
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+# Explicit, hidden synthetic native scene capture; no desktop capture/model:
+cargo run -p ctx-bar --features native-review -- --review-dir /tmp/ctx-native-proof
 ```
 
-Build/test evidence is not native render, dictation, accessibility or
-cross-platform runtime proof. No window was launched during implementation.
-See `DESIGN.md` for the exploratory visual scope and deferred rendering proof.
+Use a dedicated review directory: named synthetic PNGs/manifest are overwritten.
+Review requires the opt-in `native-review` feature; failure exits nonzero.
+Evidence includes actual GPUI scene renders for all ten empty/suggestion states
+at dark 680px and light 480px widths, and GPUI-dispatched Enter switching checks.
+These are **hidden native scenes**, not browser mocks or OS-compositor captures.
+
+Dot matrix uses the actual OFL font at 11px sampling/3x display with separated
+rounded cells. A complete current native-layout mask is required before covering
+native ink. Non-ASCII values, IME composition or unsupported geometry leave
+visible native text. The pixel caret is steady during this trial.
+
+On-screen focus/keyboard, selection/scroll alignment, real IME, dictation,
+VoiceOver, OS blur and other-platform runtime acceptance remain open. Transparent
+surfaces need real-backdrop review. `DESIGN.md` records native exceptions; shared
+Studio `artifacts/ctx/omnibar/native-designs/` owns source/render evidence.

@@ -5,6 +5,8 @@
   "additionalProperties": false,
   "properties": {
     "theme": {"enum": ["Lumen Dark", "Lumen Light"], "default": "Lumen Dark"},
+    "design": {"enum": ["underline", "monolith", "lens", "signal", "prompt", "dot-matrix", "corners", "slot", "unframed", "notch"], "default": "dot-matrix"},
+    "presentation": {"enum": ["flat", "branches"], "default": "flat"},
     "platform": {"enum": ["macos", "windows", "linux", "omarchy"]},
     "fixture": {"enum": ["desktop", "selection", "audio", "unavailable"], "default": "desktop"},
     "auto_select_first": {"type": "boolean", "default": false},
@@ -12,6 +14,6 @@
     "debounce_ms": {"type": "integer", "minimum": 100, "maximum": 2000, "default": 220},
     "request_timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 30, "default": 15},
     "width": {"type": "number", "minimum": 480, "maximum": 1200, "default": 680},
-    "height": {"type": "number", "minimum": 400, "maximum": 900, "default": 520}
+    "height": {"type": "number", "minimum": 240, "maximum": 900, "default": 520, "description": "Maximum expansion height; idle height is design geometry (56 or 64)."}
   }
 }

@@ -1,49 +1,110 @@
+use std::ops::Range;
 use std::time::Duration;
 
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
-use gpui_kit::component::input::{Input, InputEvent, InputState};
+use gpui_kit::component::input::{InputEvent, InputState};
 use gpui_kit::component::{ActiveTheme as _, Icon};
 use gpui_kit::{
     AppContext as _, Context, Entity, FontWeight, InteractiveElement as _, IntoElement,
     KeyDownEvent, ParentElement as _, Render, ScrollHandle, SharedString,
-    StatefulInteractiveElement as _, Styled as _, Subscription, Window, div, px,
+    StatefulInteractiveElement as _, Styled as _, Subscription, Window, WindowBackgroundAppearance,
+    div, px, size,
 };
 
 use ctx_bar::config::{Config, descriptor_path};
+use ctx_bar::layout::{INSET, ROW_HEIGHT, layout};
 use ctx_bar::model::{Catalog, Item, fixture_catalog};
 use ctx_bar::proxy::Proxy;
 use ctx_bar::state::{Selection, State, Status};
+use ctx_bar_design::{BarDesign, theme_choices};
 
-use crate::theme;
+use crate::presentation;
 
 pub struct Bar {
     config: Config,
     input: Entity<InputState>,
     state: State,
+    local_themes: Option<Vec<BarDesign>>,
     catalog: Catalog,
     catalog_ready: bool,
     connection: String,
     busy: bool,
     remaining: u64,
+    height: f32,
+    review: bool,
+    last_selection: Range<usize>,
     scroll: ScrollHandle,
     _subscriptions: Vec<Subscription>,
 }
 impl Bar {
-    pub fn new(config: Config, window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let input = cx.new(|cx| InputState::new(window, cx).placeholder("What do you want to do?"));
-        let changed = cx.subscribe_in(&input, window, |this, input, event, window, cx| {
+    pub fn new(config: Config, review: bool, window: &mut Window, cx: &mut Context<Self>) -> Self {
+        let input = cx.new(|cx| InputState::new(window, cx).placeholder("Type..."));
+        let subscriptions = Self::subscribe_input(&input, window, cx);
+        input.update(cx, |input, cx| input.focus(window, cx));
+        let mut state = State::new(
+            config.platform,
+            config.fixture,
+            config.auto_select_first && !review,
+        );
+        state.presentation = config.presentation;
+        let height = layout(config.design, 0, false, config.height).height;
+        let mut bar = Self {
+            state,
+            config,
+            input,
+            local_themes: None,
+            catalog: fixture_catalog().unwrap_or(Catalog {
+                items: vec![],
+                branches: vec![],
+            }),
+            catalog_ready: false,
+            connection: "Start the local omnibar adapter, then edit to retry.".into(),
+            busy: false,
+            remaining: 0,
+            height,
+            review,
+            last_selection: 0..0,
+            scroll: ScrollHandle::new(),
+            _subscriptions: subscriptions,
+        };
+        // Review scenes never read a descriptor or contact a decision service.
+        if !review {
+            bar.load_catalog(cx);
+        }
+        bar
+    }
+
+    fn subscribe_input(
+        input: &Entity<InputState>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Vec<Subscription> {
+        let changed = cx.subscribe_in(input, window, |this, input, event, window, cx| {
             match event {
                 InputEvent::Change => {
                     this.state.edit(input.read(cx).value().to_string());
+                    this.local_themes = theme_choices(&this.state.query);
                     this.scroll.scroll_to_item(0);
+                    #[cfg(feature = "native-review")]
+                    if this.review {
+                        this.complete_review();
+                    }
                     this.schedule(true, cx);
                 }
-                InputEvent::PressEnter { .. } => this.choose(this.state.selected, cx),
+                InputEvent::PressEnter { .. } => this.choose(this.state.selected, window, cx),
                 InputEvent::Focus => this.state.focus(window.is_window_active()),
                 InputEvent::Blur => this.state.focus(false),
             }
             cx.notify();
+        });
+        let selection = cx.observe(input, |this, input, cx| {
+            let range = input.read(cx).selected_range();
+            if range != this.last_selection {
+                this.last_selection = range;
+                this.state.cancel_timer();
+            }
+            cx.notify(); // Repaint native caret/selection pixel ink.
         });
         let activated = cx.observe_window_activation(window, |this, window, cx| {
             if !window.is_window_active() {
@@ -51,24 +112,7 @@ impl Bar {
                 cx.notify()
             }
         });
-        input.update(cx, |input, cx| input.focus(window, cx));
-        let mut bar = Self {
-            state: State::new(config.platform, config.fixture, config.auto_select_first),
-            config,
-            input,
-            catalog: fixture_catalog().unwrap_or(Catalog {
-                items: vec![],
-                branches: vec![],
-            }),
-            catalog_ready: false,
-            connection: "Connecting to local Jev proxy…".into(),
-            busy: false,
-            remaining: 0,
-            scroll: ScrollHandle::new(),
-            _subscriptions: vec![changed, activated],
-        };
-        bar.load_catalog(cx);
-        bar
+        vec![changed, selection, activated]
     }
 
     fn load_catalog(&mut self, cx: &mut Context<Self>) {
@@ -77,7 +121,6 @@ impl Bar {
         }
         self.busy = true;
         self.catalog_ready = false;
-        self.connection = "Connecting to local Jev proxy…".into();
         let path = descriptor_path();
         let timeout = self.config.request_timeout_seconds;
         let task = cx.background_executor().spawn(async move {
@@ -92,14 +135,14 @@ impl Bar {
                     Ok(catalog) => {
                         this.catalog = catalog;
                         this.catalog_ready = true;
-                        this.connection =
-                            "Local proxy catalog ready · synthetic fixture only".into();
                         this.schedule(true, cx)
                     }
                     Err(error) => {
-                        this.connection = error.clone();
-                        if this.state.status == Status::Loading {
-                            this.state.complete(this.state.generation, Err(error));
+                        this.connection =
+                            format!("{error}. Start the local adapter, then edit to retry.");
+                        if this.state.remote_request().is_some() {
+                            this.state
+                                .complete(this.state.generation, Err(this.connection.clone()));
                         }
                     }
                 }
@@ -109,16 +152,15 @@ impl Bar {
         .detach();
     }
 
-    /// One in-flight network request; edits coalesce to the latest generation.
-    /// No full capture or ctx CLI calls, synchronously or otherwise.
+    /// Local presentation commands never enter the transport path. Edits coalesce
+    /// to one latest-generation network request; no desktop capture is performed.
     fn schedule(&mut self, debounce: bool, cx: &mut Context<Self>) {
-        if self.state.status != Status::Loading {
+        if self.review || self.state.remote_request().is_none() {
             return;
         }
         if !self.catalog_ready {
             if !self.busy {
-                self.state
-                    .complete(self.state.generation, Err(self.connection.clone()));
+                self.load_catalog(cx);
             }
             return;
         }
@@ -130,7 +172,13 @@ impl Bar {
                 .chain(&self.catalog.branches)
                 .any(Item::is_branch)
         {
-            self.state.complete(self.state.generation, Err("Branches unavailable: update the local proxy catalog, then retry. Flat remains available.".into()));
+            self.state.complete(
+                self.state.generation,
+                Err(
+                    "Branches unavailable; use flat presentation or update the local adapter."
+                        .into(),
+                ),
+            );
             cx.notify();
             return;
         }
@@ -142,15 +190,13 @@ impl Bar {
                 .await;
             let work = this
                 .update(cx, |this, _cx| {
-                    if this.busy
-                        || generation != this.state.generation
-                        || this.state.status != Status::Loading
-                    {
+                    if this.busy || generation != this.state.generation {
                         return None;
                     }
+                    let request = this.state.remote_request()?;
                     this.busy = true;
                     Some((
-                        this.state.request(),
+                        request,
                         this.catalog.clone(),
                         this.config.request_timeout_seconds,
                     ))
@@ -179,6 +225,7 @@ impl Bar {
         })
         .detach();
     }
+
     fn arm_timer(&mut self, cx: &mut Context<Self>) {
         let Some(ticket) = self.state.timer.clone() else {
             return;
@@ -216,24 +263,32 @@ impl Bar {
                 self.scroll.scroll_to_item(0);
                 self.schedule(false, cx)
             }
-            Selection::Preview(_receipt) => {} // Intentionally no invocation, launch, shell or posting API.
+            Selection::Preview(_) => {} // Never an invocation, shell, launch or capture.
         }
         cx.notify();
     }
-    fn choose(&mut self, index: usize, cx: &mut Context<Self>) {
-        if let Some(selection) = self.state.choose(index) {
+    fn choose(&mut self, index: usize, window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(choices) = &self.local_themes {
+            let Some(design) = choices.get(index).copied() else {
+                return;
+            };
+            self.config.design = design;
+            window.set_background_appearance(if design == BarDesign::Lens {
+                WindowBackgroundAppearance::Blurred
+            } else {
+                WindowBackgroundAppearance::Transparent
+            });
+            self.state.escape();
+            self.local_themes = None;
+            self.input.update(cx, |input, cx| {
+                input.set_value("", window, cx);
+                input.focus(window, cx);
+            });
+            self.scroll.scroll_to_item(0);
+            cx.notify();
+        } else if let Some(selection) = self.state.choose(index) {
             self.selection(selection, cx)
         }
-    }
-    fn reset_options(&mut self, cx: &mut Context<Self>) {
-        self.state.options(
-            self.state.platform,
-            self.state.fixture,
-            self.state.presentation,
-        );
-        self.scroll.scroll_to_item(0);
-        self.schedule(true, cx);
-        cx.notify();
     }
     fn back(&mut self, cx: &mut Context<Self>) {
         if self.state.back() {
@@ -252,277 +307,171 @@ impl Bar {
         }
         match event.keystroke.key.as_str() {
             "up" | "down" => {
-                self.state
-                    .navigate(if event.keystroke.key == "up" { -1 } else { 1 });
-                self.scroll.scroll_to_item(self.state.selected);
-                window.prevent_default();
-                cx.stop_propagation();
+                let delta = if event.keystroke.key == "up" { -1 } else { 1 };
+                if !self.navigate(delta) {
+                    return;
+                }
             }
             "escape" => {
-                if self.state.node != "root" {
-                    self.back(cx)
-                } else {
-                    self.state.escape();
-                    self.input
-                        .update(cx, |input, cx| input.set_value("", window, cx));
-                }
-                window.prevent_default();
-                cx.stop_propagation();
+                self.escape_input(window, cx);
             }
             _ => return,
         }
+        window.prevent_default();
+        cx.stop_propagation();
         cx.notify();
     }
-    fn overview(&self) -> Vec<Item> {
-        [
-            "oqto.open",
-            "screenshot.capture",
-            "tasks.add",
-            "dictation.start",
-            "selection.speak",
-            "audio.transcribe",
-            "system.settings",
-        ]
-        .iter()
-        .filter_map(|id| {
-            self.catalog
+    fn navigate(&mut self, delta: isize) -> bool {
+        let count = match &self.local_themes {
+            Some(choices) => choices.len(),
+            None if self.state.status == Status::Ready => self.state.items.len(),
+            _ => return false,
+        };
+        if count == 0 {
+            return false;
+        }
+        if self.local_themes.is_some() {
+            self.state.cancel_timer();
+            self.state.selected =
+                (self.state.selected as isize + delta).rem_euclid(count as isize) as usize;
+        } else {
+            self.state.navigate(delta);
+        }
+        self.scroll.scroll_to_item(self.state.selected);
+        true
+    }
+
+    fn escape_input(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.state.node != "root" {
+            self.back(cx);
+            return;
+        }
+        self.state.escape();
+        self.local_themes = None;
+        self.input
+            .update(cx, |input, cx| input.set_value("", window, cx));
+    }
+
+    fn status_text(&self) -> String {
+        if let Some(choices) = &self.local_themes {
+            return if choices.is_empty() {
+                "No design matches. Type ctx theme to see all ten.".into()
+            } else {
+                String::new()
+            };
+        }
+        if self.state.timer.is_some() {
+            return format!("First preview in {}s · nothing executes", self.remaining);
+        }
+        match &self.state.status {
+            Status::Overview | Status::Ready => String::new(),
+            Status::Loading => "Asking Jev…".into(),
+            Status::NoMatch => "No matching interface. Edit the request to retry.".into(),
+            Status::Error(error) | Status::Preview(error) => error.clone(),
+        }
+    }
+
+    /// Explicit synthetic review support, only invoked by --review-dir. Does not
+    /// run decision transport or read desktop context. User text is never used.
+    #[cfg(feature = "native-review")]
+    pub fn review_scene(
+        &mut self,
+        design: BarDesign,
+        query: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if !self.review {
+            return;
+        }
+        self.config.design = design;
+        self.input
+            .update(cx, |input, cx| input.set_value(query, window, cx));
+        self.state.edit(query.into());
+        self.local_themes = theme_choices(query);
+        self.complete_review();
+        cx.notify();
+    }
+
+    #[cfg(feature = "native-review")]
+    pub fn review_snapshot(&self, cx: &gpui_kit::App) -> serde_json::Value {
+        serde_json::json!({
+            "design": self.config.design.id(), "query": self.state.query,
+            "input_empty": self.state.query.is_empty() && self.input.read(cx).value().is_empty(),
+            "local_choices": self.local_themes.as_ref().map(Vec::len),
+            "routable": self.state.remote_request().is_some(),
+            "timer": self.state.timer.is_some(), "generation": self.state.generation,
+        })
+    }
+
+    #[cfg(feature = "native-review")]
+    fn complete_review(&mut self) {
+        if !self.state.query.is_empty() && self.local_themes.is_none() {
+            let items = self
+                .catalog
                 .items
                 .iter()
-                .find(|i| &i.id == id && i.offered(self.state.platform, self.state.fixture))
+                .filter(|item| {
+                    ["appearance.light", "system.settings", "appearance.dark"]
+                        .contains(&item.id.as_str())
+                })
                 .cloned()
-        })
-        .take(5)
-        .collect()
-    }
-    fn status_text(&self) -> String {
-        match &self.state.status {
-            Status::Overview => {
-                "Catalog examples — type a request for real Jev suggestions.".into()
-            }
-            Status::Loading => "Asking Jev… older results cannot replace this request.".into(),
-            Status::Ready => format!(
-                "{} · {:.0} ms · choose an interface",
-                self.state.source, self.state.latency_ms
-            ),
-            Status::NoMatch => {
-                "No matching interface. Rephrase or choose another synthetic fixture.".into()
-            }
-            Status::Error(error) | Status::Preview(error) => error.clone(),
+                .collect();
+            self.state.complete(
+                self.state.generation,
+                Ok(ctx_bar::model::Suggestions {
+                    items,
+                    source: "synthetic-native-review-not-Jev".into(),
+                    latency_ms: 0.0,
+                }),
+            );
         }
     }
 }
 
 impl Render for Bar {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.theme().clone();
-        let overview = self.state.status == Status::Overview;
-        let rows = if overview {
-            self.overview()
+        let message = self.status_text();
+        let count = self.local_themes.as_ref().map_or_else(
+            || {
+                if self.state.status == Status::Ready {
+                    self.state.items.len()
+                } else {
+                    0
+                }
+            },
+            Vec::len,
+        );
+        let breadcrumb_height = if self.state.breadcrumb.is_some() {
+            ctx_bar::layout::STATUS_HEIGHT
         } else {
-            self.state.items.clone()
+            0.0
         };
-        let selected = self.state.selected;
-        let muted = theme.muted_foreground;
-        let error = matches!(self.state.status, Status::Error(_));
-        let state_text = self.status_text();
-        let mut list = div()
-            .id("suggestions")
-            .flex_1()
-            .min_h_0()
-            .overflow_y_scroll()
-            .track_scroll(&self.scroll)
-            .flex()
-            .flex_col()
-            .gap_1();
-        for (index, item) in rows.into_iter().enumerate() {
-            let label = item.label.clone();
-            let branch = item.is_branch();
-            let active = !overview && index == selected;
-            let score = item
-                .probability
-                .map(|p| format!("{:.0}%", p * 100.0))
-                .unwrap_or_default();
-            list = list.child(
-                div()
-                    .id(SharedString::from(format!("suggestion-{index}")))
-                    .flex()
-                    .items_center()
-                    .gap_3()
-                    .px_3()
-                    .py_2()
-                    .min_h(px(62.))
-                    .flex_shrink_0()
-                    .rounded(px(theme.radius_lg.as_f32()))
-                    .bg(if active {
-                        theme.primary.alpha(0.13)
-                    } else {
-                        theme.popover.alpha(0.20)
-                    })
-                    .hover(|style| style.bg(theme.primary.alpha(0.10)))
-                    .cursor_pointer()
-                    .on_click(cx.listener(move |this, _, window, cx| {
-                        if overview {
-                            this.input.update(cx, |input, cx| {
-                                input.set_value(label.clone(), window, cx);
-                                input.focus(window, cx)
-                            });
-                        } else {
-                            this.choose(index, cx)
-                        }
-                    }))
-                    .child(
-                        Icon::new(icon(&item.icon))
-                            .size(px(20.))
-                            .text_color(if active { theme.primary } else { muted }),
-                    )
-                    .child(
-                        div()
-                            .flex_1()
-                            .min_w_0()
-                            .flex()
-                            .flex_col()
-                            .gap_1()
-                            .child(
-                                div()
-                                    .flex()
-                                    .items_center()
-                                    .gap_2()
-                                    .child(
-                                        div()
-                                            .text_color(theme.primary)
-                                            .font_weight(FontWeight::SEMIBOLD)
-                                            .child(item.tool),
-                                    )
-                                    .child(div().text_color(muted).child("/"))
-                                    .child(div().text_color(muted).child(item.interface)),
-                            )
-                            .child(
-                                div()
-                                    .font_weight(FontWeight::MEDIUM)
-                                    .text_ellipsis()
-                                    .child(item.label),
-                            )
-                            .child(
-                                div()
-                                    .text_size(px(11.))
-                                    .text_color(muted)
-                                    .text_ellipsis()
-                                    .child(item.description),
-                            ),
-                    )
-                    .child(div().text_size(px(11.)).text_color(muted).child(score))
-                    .child(
-                        Icon::new(if branch {
-                            IconName::ChevronRight
-                        } else {
-                            IconName::CornerDownLeft
-                        })
-                        .size(px(16.))
-                        .text_color(muted),
-                    ),
-            );
+        let mut geometry = layout(
+            self.config.design,
+            count,
+            !message.is_empty(),
+            self.config.height - breadcrumb_height,
+        );
+        geometry.height += breadcrumb_height;
+        if (self.height - geometry.height).abs() > 0.5 {
+            self.height = geometry.height;
+            window.resize(size(px(self.config.width), px(self.height)));
         }
+        let input = presentation::input(self.config.design, &self.input, window, cx);
         let mut panel = div()
             .id("ctx-bar")
             .key_context("CtxBar")
             .w_full()
             .h_full()
-            .p_4()
+            .p(px(INSET))
             .flex()
             .flex_col()
-            .gap_3()
             .text_color(theme.foreground)
             .text_size(px(13.5))
             .capture_key_down(cx.listener(Self::key_down))
-            .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap_2()
-                    .child(
-                        div()
-                            .text_size(px(20.))
-                            .font_weight(FontWeight::SEMIBOLD)
-                            .child("ctx"),
-                    )
-                    .child(div().text_color(muted).child("Preview only"))
-                    .child(div().flex_1())
-                    .child(
-                        Button::new("scheme")
-                            .ghost()
-                            .icon(if self.config.theme == theme::DARK {
-                                IconName::Sun
-                            } else {
-                                IconName::Moon
-                            })
-                            .label("Appearance")
-                            .h(px(36.))
-                            .on_click(cx.listener(|this, _, _, cx| {
-                                this.state.cancel_timer();
-                                this.config.theme = if this.config.theme == theme::DARK {
-                                    theme::LIGHT
-                                } else {
-                                    theme::DARK
-                                }
-                                .into();
-                                theme::apply(cx, &this.config.theme);
-                                cx.notify();
-                            })),
-                    ),
-            )
-            .child(
-                div()
-                    .bg(theme.popover.alpha(0.45))
-                    .rounded(px(theme.radius_lg.as_f32()))
-                    .px_2()
-                    .child(
-                        Input::new(&self.input)
-                            .aria_label("Omnibar request; type or use system dictation")
-                            .prefix(Icon::new(IconName::Search).text_color(theme.primary))
-                            .h(px(52.))
-                            .bordered(false)
-                            .focus_bordered(true),
-                    ),
-            )
-            .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap_2()
-                    .child(
-                        Button::new("platform")
-                            .outline()
-                            .label(format!("Platform: {}", self.state.platform.label()))
-                            .h(px(36.))
-                            .on_click(cx.listener(|this, _, _, cx| {
-                                this.state.platform = this.state.platform.next();
-                                this.reset_options(cx)
-                            })),
-                    )
-                    .child(
-                        Button::new("fixture")
-                            .outline()
-                            .label(format!("Fixture: {}", self.state.fixture.label()))
-                            .h(px(36.))
-                            .on_click(cx.listener(|this, _, _, cx| {
-                                this.state.fixture = this.state.fixture.next();
-                                this.reset_options(cx)
-                            })),
-                    )
-                    .child(
-                        Button::new("presentation")
-                            .outline()
-                            .label(self.state.presentation.label())
-                            .h(px(36.))
-                            .on_click(cx.listener(|this, _, _, cx| {
-                                this.state.presentation = this.state.presentation.next();
-                                this.reset_options(cx)
-                            })),
-                    ),
-            )
-            .child(div().text_size(px(11.)).text_color(muted).child(
-                "Type or use system dictation · fixture context only, never desktop capture",
-            ));
+            .child(input);
         if let Some(breadcrumb) = &self.state.breadcrumb {
             panel = panel.child(
                 div()
@@ -538,79 +487,167 @@ impl Render for Bar {
                     )
                     .child(
                         div()
-                            .text_color(muted)
-                            .text_ellipsis()
-                            .child(format!("Root / {breadcrumb}")),
+                            .text_color(theme.muted_foreground)
+                            .child(breadcrumb.clone()),
                     ),
             );
         }
-        panel = panel.child(
-            div()
-                .text_size(px(12.))
-                .text_color(if error { theme.danger } else { muted })
-                .child(state_text),
-        );
-        if matches!(self.state.status, Status::Loading) {
+        if !message.is_empty() {
             panel = panel.child(
                 div()
-                    .flex_1()
-                    .text_color(muted)
-                    .child("Loading live suggestions…"),
+                    .py_2()
+                    .text_size(px(12.))
+                    .text_ellipsis()
+                    .text_color(if matches!(self.state.status, Status::Error(_)) {
+                        theme.danger
+                    } else {
+                        theme.muted_foreground
+                    })
+                    .child(message),
             );
-        } else {
-            panel = panel.child(list)
+        }
+        if count > 0 {
+            panel = panel.child(self.result_list(geometry.list_height, cx));
         }
         panel
-            .child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap_2()
-                    .child(
-                        Button::new("first-timeout")
-                            .outline()
-                            .label(format!(
-                                "First after {}s: {}",
-                                self.config.timeout_seconds,
-                                if self.state.timeout_enabled {
-                                    "on"
-                                } else {
-                                    "off"
-                                }
-                            ))
-                            .h(px(36.))
-                            .on_click(cx.listener(|this, _, _, cx| {
-                                this.state.set_timeout(!this.state.timeout_enabled);
-                                cx.notify()
-                            })),
-                    )
-                    .child(div().flex_1())
-                    .child(div().text_size(px(11.)).text_color(muted).child(
-                        if self.state.timer.is_some() {
-                            format!("First selection in {}s", self.remaining)
+    }
+}
+
+impl Bar {
+    fn result_list(&self, height: f32, cx: &mut Context<Self>) -> impl IntoElement {
+        let theme = cx.theme().clone();
+        // Light accent misses normal-text contrast on selected/hover surfaces.
+        let metadata_ink = if theme.is_dark() {
+            theme.primary
+        } else {
+            theme.foreground
+        };
+        let mut list = div()
+            .id("suggestions")
+            .mt(px(INSET))
+            .h(px(height))
+            .overflow_y_scroll()
+            .track_scroll(&self.scroll)
+            .flex()
+            .flex_col()
+            .bg(theme.popover);
+        if let Some(choices) = &self.local_themes {
+            for (index, design) in choices.iter().copied().enumerate() {
+                list = list.child(
+                    div()
+                        .id(SharedString::from(format!("design-{}", design.id())))
+                        .h(px(ROW_HEIGHT))
+                        .flex_shrink_0()
+                        .px_3()
+                        .flex()
+                        .items_center()
+                        .gap_3()
+                        .bg(if index == self.state.selected {
+                            theme.secondary
                         } else {
-                            "↑ ↓ choose · Enter preview · Esc cancel".into()
-                        },
-                    ))
-                    .child(
-                        Button::new("retry")
-                            .ghost()
-                            .icon(IconName::RefreshCw)
-                            .label("Retry")
-                            .on_click(cx.listener(|this, _, _, cx| {
-                                this.state.edit(this.state.query.clone());
-                                this.load_catalog(cx);
-                                cx.notify();
-                            })),
-                    ),
-            )
-            .child(
-                div()
-                    .text_size(px(10.))
-                    .text_color(muted)
-                    .text_ellipsis()
-                    .child(self.connection.clone()),
-            )
+                            theme.popover
+                        })
+                        .hover(|style| style.bg(theme.secondary))
+                        .cursor_pointer()
+                        .on_click(
+                            cx.listener(move |this, _, window, cx| this.choose(index, window, cx)),
+                        )
+                        .child(
+                            div()
+                                .flex_1()
+                                .flex()
+                                .flex_col()
+                                .gap_1()
+                                .child(
+                                    div()
+                                        .font_weight(FontWeight::SEMIBOLD)
+                                        .child(design.label()),
+                                )
+                                .child(
+                                    div()
+                                        .text_size(px(11.))
+                                        .text_color(theme.muted_foreground)
+                                        .child(design.description()),
+                                ),
+                        )
+                        .child(
+                            div()
+                                .text_size(px(11.))
+                                .text_color(metadata_ink)
+                                .child("Local design"),
+                        ),
+                );
+            }
+        } else {
+            for (index, item) in self.state.items.iter().enumerate() {
+                list = list.child(
+                    div()
+                        .id(SharedString::from(format!("suggestion-{index}")))
+                        .h(px(ROW_HEIGHT))
+                        .flex_shrink_0()
+                        .px_3()
+                        .flex()
+                        .items_center()
+                        .gap_3()
+                        .bg(if index == self.state.selected {
+                            theme.secondary
+                        } else {
+                            theme.popover
+                        })
+                        .hover(|style| style.bg(theme.secondary))
+                        .cursor_pointer()
+                        .on_click(
+                            cx.listener(move |this, _, window, cx| this.choose(index, window, cx)),
+                        )
+                        .child(
+                            Icon::new(icon(&item.icon))
+                                .size(px(18.))
+                                .text_color(theme.muted_foreground),
+                        )
+                        .child(
+                            div()
+                                .flex_1()
+                                .min_w_0()
+                                .flex()
+                                .flex_col()
+                                .gap_1()
+                                .child(
+                                    div()
+                                        .font_weight(FontWeight::MEDIUM)
+                                        .text_ellipsis()
+                                        .child(item.label.clone()),
+                                )
+                                .child(
+                                    div()
+                                        .flex()
+                                        .gap_2()
+                                        .text_size(px(11.))
+                                        .child(
+                                            div()
+                                                .text_color(metadata_ink)
+                                                .font_weight(FontWeight::SEMIBOLD)
+                                                .child(item.tool.clone()),
+                                        )
+                                        .child(
+                                            div()
+                                                .text_color(theme.muted_foreground)
+                                                .child(item.interface.clone()),
+                                        ),
+                                ),
+                        )
+                        .child(
+                            Icon::new(if item.is_branch() {
+                                IconName::ChevronRight
+                            } else {
+                                IconName::CornerDownLeft
+                            })
+                            .size(px(16.))
+                            .text_color(theme.muted_foreground),
+                        ),
+                );
+            }
+        }
+        list
     }
 }
 

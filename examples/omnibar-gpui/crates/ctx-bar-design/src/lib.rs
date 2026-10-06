@@ -1,11 +1,13 @@
 //! Template-derived design mechanism, with no GPUI types.
 //! Studio Lumen snapshots are data, not a visual approval of ctx/omnibar rev1.
+pub mod bar;
 pub mod color;
 pub mod radius;
 pub mod roles;
 pub mod scheme;
 pub mod theme_set;
 
+pub use bar::{BarDesign, theme_choices};
 pub use radius::RadiusScale;
 pub use theme_set::{Identity, theme_set_json};
 

@@ -1,9 +1,6 @@
 //! Template theme adapter: Studio schemes -> role colors -> native toolkit.
 use gpui_kit::component::{Theme, ThemeRegistry};
 
-pub const DARK: &str = "Lumen Dark";
-pub const LIGHT: &str = "Lumen Light";
-
 pub fn init(cx: &mut gpui_kit::App, name: &str) -> anyhow::Result<()> {
     let json = ctx_bar_design::studio_theme_set_json()?;
     ThemeRegistry::global_mut(cx).load_themes_from_str(&json)?;

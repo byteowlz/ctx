@@ -3,14 +3,19 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result, bail};
+use ctx_bar_design::BarDesign;
 use serde::{Deserialize, Serialize};
 
-use crate::model::{Fixture, Platform};
+use crate::model::{Fixture, Platform, Presentation};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
     pub theme: String,
+    #[serde(deserialize_with = "canonical_selector")]
+    pub design: BarDesign,
+    #[serde(deserialize_with = "canonical_selector")]
+    pub presentation: Presentation,
     pub platform: Platform,
     pub fixture: Fixture,
     pub auto_select_first: bool,
@@ -18,12 +23,26 @@ pub struct Config {
     pub debounce_ms: u64,
     pub request_timeout_seconds: u64,
     pub width: f32,
+    /// Maximum expansion height; idle height comes from BarDesign geometry.
     pub height: f32,
 }
+// config's enum deserializer accepts case-insensitive variants. These selectors
+// must instead use the canonical IDs shared by CLI flags and the JSON schema.
+fn canonical_selector<'de, D, T>(deserializer: D) -> std::result::Result<T, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: serde::de::DeserializeOwned,
+{
+    let value = String::deserialize(deserializer)?;
+    serde_json::from_value(value.into()).map_err(serde::de::Error::custom)
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
             theme: "Lumen Dark".into(),
+            design: BarDesign::default(),
+            presentation: Presentation::default(),
             platform: if cfg!(target_os = "windows") {
                 Platform::Windows
             } else if cfg!(target_os = "linux") {
@@ -50,7 +69,7 @@ impl Config {
             || !self.width.is_finite()
             || !(480.0..=1200.0).contains(&self.width)
             || !self.height.is_finite()
-            || !(400.0..=900.0).contains(&self.height)
+            || !(240.0..=900.0).contains(&self.height)
         {
             bail!("Invalid omnibar config; check the shipped JSON schema");
         }
@@ -122,6 +141,13 @@ pub fn load_layers(
     let defaults = Config::default();
     let mut builder = config::Config::builder()
         .set_default("theme", defaults.theme)?
+        .set_default("design", defaults.design.id())?
+        .set_default(
+            "presentation",
+            serde_json::to_value(defaults.presentation)?
+                .as_str()
+                .unwrap_or("flat"),
+        )?
         .set_default(
             "platform",
             serde_json::to_value(defaults.platform)?
@@ -170,7 +196,8 @@ pub fn load_or_create(args: impl IntoIterator<Item = String>) -> Result<Config> 
             "--no-auto-select-first" => {
                 overrides.push(("auto_select_first".into(), "false".into()))
             }
-            "--theme" | "--platform" | "--fixture" | "--timeout-seconds" => {
+            "--theme" | "--design" | "--presentation" | "--platform" | "--fixture"
+            | "--timeout-seconds" => {
                 let value = args.next().context("Flag requires a value")?;
                 overrides.push((flag.trim_start_matches("--").replace('-', "_"), value));
             }
@@ -190,31 +217,14 @@ pub fn load_or_create(args: impl IntoIterator<Item = String>) -> Result<Config> 
 }
 
 #[cfg(test)]
+#[path = "config_design_tests.rs"]
+mod design_tests;
+
+// Filesystem locations and first-run persistence remain separate from the
+// native design/schema contract exercised by design_tests.
+#[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn default_toml_matches_typed_defaults_and_schema() {
-        let cfg: Config = config::Config::builder()
-            .add_source(config::File::from_str(
-                DEFAULT_TOML,
-                config::FileFormat::Toml,
-            ))
-            .build()
-            .unwrap()
-            .try_deserialize()
-            .unwrap();
-        cfg.validate().unwrap();
-        assert!(!cfg.auto_select_first);
-        assert_eq!(cfg.timeout_seconds, 3);
-        let schema: serde_json::Value =
-            serde_json::from_str(include_str!("../../../examples/omnibar-gpui.schema.json"))
-                .unwrap();
-        assert_eq!(schema["properties"]["auto_select_first"]["default"], false);
-        assert_eq!(
-            schema["properties"]["timeout_seconds"]["default"],
-            cfg.timeout_seconds
-        );
-    }
     #[test]
     fn xdg_and_fallback_paths_are_pure() {
         let home = PathBuf::from("/synthetic/home");

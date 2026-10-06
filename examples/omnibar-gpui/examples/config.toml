@@ -1,11 +1,15 @@
 #:schema ./omnibar-gpui.schema.json
 # Explorer only: no actions execute. Timer selects the FIRST row, not a confidence threshold.
 theme = "Lumen Dark"
+# Native design ID; input command `ctx theme dot` selects dot-matrix locally.
+design = "dot-matrix"
+presentation = "flat"
 fixture = "desktop"
 auto_select_first = false
 timeout_seconds = 3
 debounce_ms = 220
 request_timeout_seconds = 15
 width = 680.0
+# Maximum expansion (240-900); idle bar height is design geometry (56 or 64).
 height = 520.0
 # platform defaults to the build OS; choose macos, windows, linux or omarchy.
