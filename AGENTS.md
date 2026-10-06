@@ -76,6 +76,9 @@ Tracked state is `.trx/issues.jsonl`, `.trx/events.jsonl`, and (when evidence is
 recorded) `.trx/verifications.jsonl`; include changed tracker files with related
 code when a commit is authorized. trx persists updates locally; it does not
 automatically commit/push code. `trx sync` is an explicit commit action.
+Do not install bd/Beads hooks, filters or configuration. Use `just purge-beads`
+on existing clones to archive legacy integration outside git; it never invokes bd
+or alters `.trx`. Mixed/unrecognized or external shared hooks require manual review.
 Do not use Beads paths, Markdown TODO lists, or external issue trackers.
 Record deferred gaps and honest verification evidence in the issue.
 

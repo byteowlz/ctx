@@ -59,7 +59,15 @@ test-all:
     cargo test --workspace --all-features --no-fail-fast
 
 # Comprehensive local baseline (YAML tooling/CI are outside this check)
-check-all: check fmt-check clippy test-all validate-examples
+check-all: check fmt-check clippy test-all validate-examples check-repo-hygiene
+
+# Archive clone-local legacy Beads integration; preserve trx and unrelated hooks
+purge-beads:
+    uv run --script scripts/purge_beads.py
+
+# Verify legacy hook cleanup against isolated Git repositories
+check-repo-hygiene:
+    uv run --script scripts/test_purge_beads.py
 
 # === Install ===
 

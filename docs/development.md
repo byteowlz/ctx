@@ -3,7 +3,8 @@
 The root `justfile` is the local command surface. `just check-all` runs workspace
 compilation (all targets/features), stable formatting checks, Clippy with warnings
 denied (all targets/features), workspace tests with all features including
-doctests, and local schema/example validation. Tests use `cargo test`; nextest is
+doctests, local schema/example validation, and isolated repository-hygiene tests.
+Tests use `cargo test`; nextest is
 not required. `just fmt` uses stable rustfmt without nightly-only import options.
 
 Prerequisites: Rust with rustfmt and Clippy, `just`, and `uv`. Schema validation
@@ -17,6 +18,26 @@ Capture benchmarks and the routing/capture latency boundary are documented in
 requires Bun and builds the release CLI; it does not install it. Native GPUI
 prototype sources are an excluded standalone workspace under
 `examples/omnibar-gpui`, so the root gate does not prove that UI builds.
+
+## Legacy clone cleanup
+
+This repository uses trx only; do not install bd/Beads to silence old hook warnings.
+Git does not distribute `.git/hooks`, so a clean source tree cannot remove hooks
+left in another clone. In the affected clone run:
+
+```bash
+just purge-beads
+```
+
+Recognized standalone Beads hooks, `.beads` data and a backup of modified local
+Git config are archived under `$XDG_STATE_HOME/ctx/beads-backups/` (fallback
+`~/.local/state/ctx/beads-backups/`) in a private directory outside the repo.
+Only Beads-specific local config keys are removed. `.trx`, unrelated hooks and
+global settings are untouched. Mixed/unrecognized hooks or external shared hook
+paths stop cleanup without changes and require manual review. Legacy issue data
+is archived, not automatically imported into trx. Repeated runs are no-ops.
+`just check-repo-hygiene` replays the Git warning in disposable repos and verifies
+cleanup, backups, custom paths and preservation safeguards.
 
 ## Configuration and schema checks
 
