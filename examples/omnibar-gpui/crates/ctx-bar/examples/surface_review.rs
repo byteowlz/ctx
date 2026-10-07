@@ -204,10 +204,13 @@ fn verify_pixels(
     if design == BarDesign::Unframed && scene == "empty" {
         anyhow::ensure!(pixel(0, 0)[3] == 0, "root surround regressed");
     }
+    let device = pixel_width as f32 / width;
+    if scene == "empty" {
+        verify_no_shared_focus_line(design, device, &pixel)?;
+    }
     if design != BarDesign::DotMatrix || scene == "empty" {
         return Ok(());
     }
-    let device = pixel_width as f32 / width;
     let bright = ((64.0 * device) as u32 + 1..pixel_height)
         .flat_map(|y| (0..pixel_width).map(move |x| (x, y)))
         .filter(|&(x, y)| {
@@ -261,5 +264,28 @@ fn verify_pixels(
         "static row cells not separated: centers={centers} gaps={gaps} total={total}"
     );
     println!("dot row pixels: centers={centers} bright_gaps={gaps} total={total}");
+    Ok(())
+}
+
+#[cfg(feature = "native-review")]
+fn verify_no_shared_focus_line(
+    design: ctx_bar_design::BarDesign,
+    device: f32,
+    pixel: &impl Fn(u32, u32) -> [u8; 4],
+) -> anyhow::Result<()> {
+    use ctx_bar_design::BarDesign;
+    let x = match design {
+        BarDesign::Corners => 26.0,
+        BarDesign::Unframed => 6.0,
+        _ => return Ok(()),
+    };
+    let y = design.bar_height() - 1.5;
+    for offset in 0..10 {
+        anyhow::ensure!(
+            pixel(((x + offset as f32) * device) as u32, (y * device) as u32)[3] == 0,
+            "empty {} still paints the shared input focus mark",
+            design.id()
+        );
+    }
     Ok(())
 }

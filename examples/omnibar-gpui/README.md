@@ -90,7 +90,8 @@ These are **hidden native scenes**, not browser mocks or OS-compositor captures.
 Dot matrix uses the actual OFL font at 11px sampling/3x display with separated
 rounded cells. A complete current native-layout mask is required before covering
 native ink. Non-ASCII values, IME composition or unsupported geometry leave
-visible native text. The pixel caret is steady during this trial. The grid is submitted once per
+visible native text. No shared bottom-left focus line is painted on any design; native caret and
+selection remain authoritative. The pixel caret is steady during this trial. The grid is submitted once per
 successful mask, with an 8,192-cell paint ceiling and visible native fallback
 above it. [Pixel visibility and input latency](docs/input-latency.md) records
 explicit overlay anchoring, batched visible-cell painting (~90 ms to ~5.7 ms

@@ -77,7 +77,7 @@ pub fn register_font(cx: &mut App) -> Result<()> {
 pub fn input(
     design: BarDesign,
     state: &Entity<InputState>,
-    window: &mut Window,
+    _window: &mut Window,
     cx: &mut App,
 ) -> AnyElement {
     let colors = cx.theme().color_tokens();
@@ -98,11 +98,6 @@ pub fn input(
         BarDesign::Unframed => 25.0,
         _ => 20.0,
     };
-    let focused = state
-        .read(cx)
-        .presentation()
-        .focus_handle()
-        .is_focused(window);
     let mut native = Input::new(state)
         .aria_label("ctx input")
         .appearance(false)
@@ -171,15 +166,6 @@ pub fn input(
         },
         move |bounds, _, window, _| {
             paint_enclosure(design, bounds, &colors, window);
-            if focused && design != BarDesign::DotMatrix {
-                window.paint_quad(fill(
-                    Bounds::new(
-                        point(bounds.origin.x + px(padding), bounds.bottom() - px(2.0)),
-                        size(px(26.0), px(2.0)),
-                    ),
-                    ink,
-                ));
-            }
         },
     )
     .absolute()
