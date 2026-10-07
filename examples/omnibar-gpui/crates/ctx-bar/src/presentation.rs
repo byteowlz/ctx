@@ -18,6 +18,33 @@ use gpui_kit::{
 
 use crate::matrix::{CORNER, FONT_BYTES, FONT_FAMILY, FONT_SIZE, Ink, Mask, PITCH, Rect, atlas};
 
+/// Opt-in synthetic review instrumentation. No input values are recorded and
+/// ordinary runs do not install this global or read clocks.
+#[cfg(feature = "native-review")]
+#[derive(Default, Clone, serde::Serialize)]
+pub(crate) struct InputDiagnostics {
+    pub renders: u64,
+    pub changes: u64,
+    pub observations: u64,
+    pub observer_repaints: u64,
+    pub style_updates: u64,
+    pub mask_attempts: u64,
+    pub mask_successes: u64,
+    pub mask_us: u64,
+    pub grid_passes: u64,
+    pub submitted_quads: u64,
+    pub grid_us: u64,
+}
+#[cfg(feature = "native-review")]
+impl Global for InputDiagnostics {}
+
+#[cfg(feature = "native-review")]
+pub(crate) fn diagnose(cx: &mut App, record: impl FnOnce(&mut InputDiagnostics)) {
+    if cx.try_global::<InputDiagnostics>().is_some() {
+        record(cx.global_mut::<InputDiagnostics>());
+    }
+}
+
 struct RegisteredDeparture;
 impl Global for RegisteredDeparture {}
 
@@ -133,6 +160,8 @@ pub fn input(
     };
     let decoration = canvas(
         move |_, _, cx| {
+            #[cfg(feature = "native-review")]
+            diagnose(cx, |d| d.style_updates += 1);
             style_state.update(cx, |state, _| {
                 if !state.presentation().is_multi_line() {
                     state.set_editor_style(editor_style);
@@ -169,11 +198,24 @@ pub fn input(
             canvas(
                 |_, _, _| (),
                 move |bounds, _, window, cx| {
-                    if let Some(mask) = native_mask(&state, bounds, window, cx) {
+                    #[cfg(feature = "native-review")]
+                    let started = cx
+                        .try_global::<InputDiagnostics>()
+                        .map(|_| std::time::Instant::now());
+                    let mask = native_mask(&state, bounds, window, cx);
+                    #[cfg(feature = "native-review")]
+                    if let Some(started) = started {
+                        diagnose(cx, |d| {
+                            d.mask_attempts += 1;
+                            d.mask_successes += u64::from(mask.is_some());
+                            d.mask_us += started.elapsed().as_micros() as u64;
+                        });
+                    }
+                    if let Some(mask) = mask {
                         // Black is the explicit monochrome stage exception, not a
                         // solid enclosure: every visible mark remains a uniform cell.
                         window.paint_quad(fill(bounds, rgb(0x000000)));
-                        paint_mask(&mask, bounds, window);
+                        paint_mask(&mask, bounds, window, cx);
                     }
                 },
             )
@@ -246,12 +288,10 @@ fn paint_enclosure(
                 window.paint_path(path, foreground);
             }
         }
-        BarDesign::DotMatrix => {
-            window.paint_quad(fill(bounds, rgb(0x000000)));
-            if let Some(mask) = Mask::new(bounds.size.width.into(), bounds.size.height.into()) {
-                paint_mask(&mask, bounds, window);
-            }
-        }
+        // Only the validated post-native overlay submits the cell grid. A grid
+        // here is immediately covered on success, doubling thousands of quads.
+        // On fallback keep ordinary native ink visibly on a plain black stage.
+        BarDesign::DotMatrix => window.paint_quad(fill(bounds, rgb(0x000000))),
         BarDesign::Corners => {
             for (x, y, sx, sy) in [
                 (bounds.left(), bounds.top(), 1.0, 1.0),
@@ -411,7 +451,18 @@ fn native_mask(
     Some(mask)
 }
 
-fn paint_mask(mask: &Mask, bounds: Bounds<Pixels>, window: &mut Window) {
+fn paint_mask(mask: &Mask, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut App) {
+    #[cfg(feature = "native-review")]
+    let started = cx
+        .try_global::<InputDiagnostics>()
+        .map(|_| std::time::Instant::now());
+    #[cfg(feature = "native-review")]
+    diagnose(cx, |d| {
+        d.grid_passes += 1;
+        d.submitted_quads += mask.cells.len() as u64;
+    });
+    #[cfg(not(feature = "native-review"))]
+    let _ = cx;
     for (index, ink) in mask.cells.iter().enumerate() {
         let cell = mask.cell(index);
         let color = match ink {
@@ -430,6 +481,10 @@ fn paint_mask(mask: &Mask, bounds: Bounds<Pixels>, window: &mut Window) {
             )
             .corner_radii(px(CORNER * cell.width)),
         );
+    }
+    #[cfg(feature = "native-review")]
+    if let Some(started) = started {
+        diagnose(cx, |d| d.grid_us += started.elapsed().as_micros() as u64);
     }
 }
 

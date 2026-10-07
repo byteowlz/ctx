@@ -88,7 +88,10 @@ These are **hidden native scenes**, not browser mocks or OS-compositor captures.
 Dot matrix uses the actual OFL font at 11px sampling/3x display with separated
 rounded cells. A complete current native-layout mask is required before covering
 native ink. Non-ASCII values, IME composition or unsupported geometry leave
-visible native text. The pixel caret is steady during this trial.
+visible native text. The pixel caret is steady during this trial. The grid is submitted once per
+successful mask, with an 8,192-cell paint ceiling and visible native fallback
+above it. [Input latency regression](docs/input-latency.md) documents the measured
+~94 ms to ~5.5 ms synthetic edit/draw improvement and the native benchmark.
 
 On-screen focus/keyboard, selection/scroll alignment, real IME, dictation,
 VoiceOver, OS blur and other-platform runtime acceptance remain open. Transparent

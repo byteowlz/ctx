@@ -20,6 +20,10 @@ clippy:
 
 check-all: check fmt-check clippy test
 
+# Hidden synthetic native input/paint regression; no model or desktop capture.
+benchmark-input *args:
+    cargo run -p ctx-bar --features native-review --example input_lag -- --assert-single-grid {{args}}
+
 # Only a human should launch this focus-taking native window.
 run *args:
     cargo run -p ctx-bar -- {{args}}

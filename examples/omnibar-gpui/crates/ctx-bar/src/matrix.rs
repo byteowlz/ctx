@@ -15,7 +15,11 @@ pub(crate) const GAP: f32 = 0.25;
 pub(crate) const CORNER: f32 = 0.34;
 pub(crate) const FONT_SIZE: f32 = 33.0;
 const RASTER_SIZE: f32 = 11.0;
-const MAX_CELLS: usize = 262_144;
+// Bounded paint work, not only an allocation limit. Hidden-native measurements
+// at 4,746 cells cost ~5ms/edit after eliminating the discarded backdrop;
+// 14,322 cells cost ~11ms. Reserve headroom for real event/compositor work.
+// Above this conservative ceiling native_mask returns None before covering ink.
+const MAX_CELLS: usize = 8_192;
 
 pub(crate) struct Glyph {
     pub metrics: Metrics,
@@ -191,6 +195,16 @@ mod tests {
             width: 90.0,
             height: 63.0,
         }
+    }
+
+    #[test]
+    fn paint_budget_keeps_normal_stage_and_rejects_oversized_grid() {
+        assert!(Mask::new(680.0, 63.0).is_some());
+        assert_eq!(Mask::new(768.0, 96.0).unwrap().cells.len(), 8192);
+        assert!(
+            Mask::new(771.0, 96.0).is_none(),
+            "leave native ink visible above the paint budget"
+        );
     }
 
     #[test]

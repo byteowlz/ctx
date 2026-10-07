@@ -83,6 +83,8 @@ impl Bar {
         let changed = cx.subscribe_in(input, window, |this, input, event, window, cx| {
             match event {
                 InputEvent::Change => {
+                    #[cfg(feature = "native-review")]
+                    presentation::diagnose(cx, |d| d.changes += 1);
                     this.state.edit(input.read(cx).value().to_string());
                     this.local_themes = theme_choices(&this.state.query);
                     this.scroll.scroll_to_item(0);
@@ -99,11 +101,15 @@ impl Bar {
             cx.notify();
         });
         let selection = cx.observe(input, |this, input, cx| {
+            #[cfg(feature = "native-review")]
+            presentation::diagnose(cx, |d| d.observations += 1);
             let range = input.read(cx).selected_range();
             if range != this.last_selection {
                 this.last_selection = range;
                 this.state.cancel_timer();
             }
+            #[cfg(feature = "native-review")]
+            presentation::diagnose(cx, |d| d.observer_repaints += 1);
             cx.notify(); // Repaint native caret/selection pixel ink.
         });
         let activated = cx.observe_window_activation(window, |this, window, cx| {
@@ -393,6 +399,14 @@ impl Bar {
         cx.notify();
     }
 
+    /// Explicit synthetic review seam for first-party input dispatch. Ordinary
+    /// runs never expose a handle through this hook; no transport or capture.
+    #[cfg(feature = "native-review")]
+    #[allow(dead_code)] // Consumed by the separately compiled hidden-native example.
+    pub fn review_input(&self) -> Option<Entity<InputState>> {
+        self.review.then(|| self.input.clone())
+    }
+
     #[cfg(feature = "native-review")]
     pub fn review_snapshot(&self, cx: &gpui_kit::App) -> serde_json::Value {
         serde_json::json!({
@@ -401,6 +415,7 @@ impl Bar {
             "local_choices": self.local_themes.as_ref().map(Vec::len),
             "routable": self.state.remote_request().is_some(),
             "timer": self.state.timer.is_some(), "generation": self.state.generation,
+            "input_diagnostics": cx.try_global::<presentation::InputDiagnostics>(),
         })
     }
 
@@ -431,6 +446,8 @@ impl Bar {
 
 impl Render for Bar {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        #[cfg(feature = "native-review")]
+        presentation::diagnose(cx, |d| d.renders += 1);
         let theme = cx.theme().clone();
         let message = self.status_text();
         let count = self.local_themes.as_ref().map_or_else(

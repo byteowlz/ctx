@@ -1,0 +1,159 @@
+//! Run: cargo run -p ctx-bar --features native-review --example input_lag
+//! Add -- --assert-single-grid for the real-paint submission regression.
+//! Hidden native windows, synthetic ASCII only; no image/desktop capture/model.
+#[cfg(feature = "native-review")]
+#[path = "../src/app.rs"]
+#[allow(dead_code)] // Production module included by this bounded diagnostic harness.
+mod app;
+#[cfg(feature = "native-review")]
+#[path = "../src/matrix.rs"]
+mod matrix;
+#[cfg(feature = "native-review")]
+#[path = "../src/presentation.rs"]
+mod presentation;
+
+#[cfg(not(feature = "native-review"))]
+fn main() -> anyhow::Result<()> {
+    anyhow::bail!("input_lag requires --features native-review")
+}
+
+#[cfg(feature = "native-review")]
+fn main() {
+    use ctx_bar::config::Config;
+    use ctx_bar_design::BarDesign;
+    use gpui_kit::component::Root;
+    use gpui_kit::{
+        AppContext as _, EntityInputHandler as _, WindowBackgroundAppearance, WindowBounds,
+        WindowKind, WindowOptions, px, size,
+    };
+    use std::time::{Duration, Instant};
+
+    let args: Vec<_> = std::env::args().collect();
+    let assert_budget = args.iter().any(|arg| arg == "--assert-single-grid");
+    let expect_plain = args.iter().any(|arg| arg == "--expect-plain");
+    let append_only = args.iter().any(|arg| arg == "--append-only");
+    let width = args
+        .windows(2)
+        .find(|pair| pair[0] == "--width")
+        .map(|pair| pair[1].parse::<f32>().expect("numeric synthetic width"))
+        .unwrap_or(680.0);
+    gpui_kit::application().with_assets(gpui_kit::assets::AllAssets).run(move |cx| {
+        gpui_kit::init(cx);
+        if let Err(error) = presentation::register_font(cx) {
+            eprintln!("input-lag registration: {error}");
+            std::process::exit(1);
+        }
+        cx.spawn(async move |cx| {
+            let result: anyhow::Result<()> = async {
+                for design in [BarDesign::Unframed, BarDesign::DotMatrix] {
+                    let config = Config { design, width, ..Default::default() };
+                    let height = ctx_bar::layout::layout(design, 0, false, config.height).height;
+                    let options = WindowOptions {
+                        kind: WindowKind::PopUp, titlebar: None, show: false, focus: false,
+                        window_background: WindowBackgroundAppearance::Transparent,
+                        window_bounds: Some(cx.update(|cx| WindowBounds::centered(size(px(config.width), px(height)), cx))),
+                        ..Default::default()
+                    };
+                    let mut bar = None;
+                    let handle = cx.open_window(options, |window, cx| {
+                        let view = cx.new(|cx| app::Bar::new(config, true, window, cx));
+                        bar = Some(view.clone());
+                        cx.new(|cx| Root::new(view, window, cx).bordered(false))
+                    })?;
+                    let bar = bar.unwrap();
+                    let input = bar.read_with(cx, |bar, _| bar.review_input().unwrap());
+                    for _ in 0..3 {
+                        cx.update_window(handle.into(), |_, window, cx| { window.draw(cx).clear(cx); })?;
+                        cx.background_executor().timer(Duration::from_millis(20)).await;
+                    }
+                    cx.update(|cx| cx.set_global(presentation::InputDiagnostics::default()));
+                    let mut samples = Vec::new();
+                    for edit in 0..200 {
+                        let started = Instant::now();
+                        handle.update(cx, |_, window, cx| {
+                            input.update(cx, |input, cx| {
+                                if !append_only && edit % 40 >= 20 {
+                                    let end = input.value().len(); // Synthetic ASCII, UTF-16 == bytes.
+                                    input.replace_text_in_range(Some(end.saturating_sub(1)..end), "", window, cx);
+                                } else {
+                                    input.replace_text_in_range(None, "a", window, cx);
+                                }
+                            });
+                        })?;
+                        cx.update_window(handle.into(), |_, window, cx| { window.draw(cx).clear(cx); })?;
+                        samples.push(started.elapsed().as_micros());
+                        let snapshot = bar.read_with(cx, |bar, cx| bar.review_snapshot(cx));
+                        let expected = if append_only {
+                            edit + 1
+                        } else if edit % 40 < 20 { edit % 40 + 1 } else { 39 - edit % 40 };
+                        anyhow::ensure!(snapshot["query"] == "a".repeat(expected), "editing/state diverged: {snapshot}");
+                    }
+                    samples.sort_unstable();
+                    let stats = cx.update(|cx| cx.global::<presentation::InputDiagnostics>().clone());
+                    println!("[ctx-input-lag] {}", serde_json::json!({
+                        "design":design.id(), "workload":if append_only { "append-200" } else { "insert-delete-200" }, "edits":200, "median_us":samples[100], "p95_us":samples[190], "max_us":samples[199], "stats":stats,
+                        "limits":"hidden-native CPU edit+draw, not physical keyboard/compositor/IME acceptance"
+                    }));
+                    let before_idle = stats.observations;
+                    for _ in 0..10 {
+                        cx.update_window(handle.into(), |_, window, cx| { window.refresh(); window.draw(cx).clear(cx); })?;
+                    }
+                    let after_idle = cx.update(|cx| cx.global::<presentation::InputDiagnostics>().observations);
+                    println!("[ctx-input-lag] idle design={} draws=10 observations_delta={}", design.id(), after_idle - before_idle);
+                    anyhow::ensure!(before_idle == after_idle, "idle frame -> input notify feedback loop");
+                    // Real app/Input/canvas seam. Detect duplicate grid even though
+                    // ordinary correctness tests and successful captures pass.
+                    if assert_budget && design == BarDesign::DotMatrix {
+                        if expect_plain {
+                            anyhow::ensure!(stats.mask_successes == 0 && stats.submitted_quads == 0, "oversized stage did not leave plain visible input");
+                        } else {
+                            anyhow::ensure!(stats.mask_successes == stats.mask_attempts && stats.mask_successes >= 200, "workload did not reach successful native masks");
+                        }
+                        anyhow::ensure!(stats.grid_passes == stats.mask_successes, "duplicate grid submitted: {} passes for {} successful masks", stats.grid_passes, stats.mask_successes);
+                    }
+                    if design == BarDesign::DotMatrix {
+                        handle.update(cx, |_, window, cx| {
+                            input.update(cx, |input, cx| {
+                                input.set_value("abc", window, cx);
+                                input.set_selected_range(0..2, cx);
+                            });
+                        })?;
+                        cx.update_window(handle.into(), |_, window, cx| { window.draw(cx).clear(cx); })?;
+                        anyhow::ensure!(input.read_with(cx, |input, _| input.selected_range()) == (0..2), "presentation mutated native selection");
+                        handle.update(cx, |_, window, cx| input.update(cx, |input, cx| input.replace_text_in_range(None, "a", window, cx)))?;
+                        cx.update_window(handle.into(), |_, window, cx| { window.draw(cx).clear(cx); })?;
+                        anyhow::ensure!(input.read_with(cx, |input, _| input.value()) == "ac", "native selection replacement failed");
+                        println!("[ctx-input-lag] safety selection_replacement=passed");
+                        // Safety cases deliberately go through the same native paint seam.
+                        for (case, text) in [("unicode", "é"), ("ascii-composition", "abc")] {
+                            cx.update(|cx| cx.set_global(presentation::InputDiagnostics::default()));
+                            handle.update(cx, |_, window, cx| {
+                                input.update(cx, |input, cx| {
+                                    input.set_value("", window, cx);
+                                    if case == "ascii-composition" {
+                                        input.replace_and_mark_text_in_range(None, text, Some(0..text.len()), window, cx);
+                                    } else {
+                                        input.replace_text_in_range(None, text, window, cx);
+                                    }
+                                });
+                            })?;
+                            cx.update_window(handle.into(), |_, window, cx| { window.draw(cx).clear(cx); })?;
+                            let stats = cx.update(|cx| cx.global::<presentation::InputDiagnostics>().clone());
+                            anyhow::ensure!(stats.mask_attempts > 0 && stats.mask_successes == 0 && stats.submitted_quads == 0, "{case} must keep visible native ink: {}", serde_json::to_string(&stats)?);
+                            anyhow::ensure!(input.read_with(cx, |input, _| input.value()) == text, "fallback lost native value");
+                            println!("[ctx-input-lag] safety case={case} native_value_preserved=true grid_quads=0");
+                            handle.update(cx, |_, window, cx| input.update(cx, |input, cx| input.unmark_text(window, cx)))?;
+                        }
+                    }
+                    cx.update_window(handle.into(), |_, window, _cx| window.remove_window())?;
+                }
+                Ok(())
+            }.await;
+            if let Err(error) = result {
+                eprintln!("[ctx-input-lag] FAILED: {error}");
+                std::process::exit(1);
+            }
+            cx.update(|cx| cx.quit());
+        }).detach();
+    });
+}
