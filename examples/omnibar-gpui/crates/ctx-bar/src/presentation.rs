@@ -29,6 +29,7 @@ pub(crate) struct InputDiagnostics {
     pub observer_repaints: u64,
     pub style_updates: u64,
     pub mask_attempts: u64,
+    pub stage_bounds: [f32; 4],
     pub mask_successes: u64,
     pub mask_us: u64,
     pub grid_passes: u64,
@@ -207,6 +208,12 @@ pub fn input(
                     if let Some(started) = started {
                         diagnose(cx, |d| {
                             d.mask_attempts += 1;
+                            d.stage_bounds = [
+                                bounds.origin.x.into(),
+                                bounds.origin.y.into(),
+                                bounds.size.width.into(),
+                                bounds.size.height.into(),
+                            ];
                             d.mask_successes += u64::from(mask.is_some());
                             d.mask_us += started.elapsed().as_micros() as u64;
                         });
@@ -220,6 +227,10 @@ pub fn input(
                 },
             )
             .absolute()
+            // Absolute siblings without insets keep their static flow position:
+            // after Input that is one bar below the stage, outside its clip.
+            .top_0()
+            .left_0()
             .size_full(),
         );
     }
@@ -463,25 +474,30 @@ fn paint_mask(mask: &Mask, bounds: Bounds<Pixels>, window: &mut Window, cx: &mut
     });
     #[cfg(not(feature = "native-review"))]
     let _ = cx;
-    for (index, ink) in mask.cells.iter().enumerate() {
-        let cell = mask.cell(index);
-        let color = match ink {
-            Ink::Unlit => 0x101010,
-            Ink::Selection => 0x666666,
-            Ink::SelectedLetter => 0xffffff,
-            Ink::Letter | Ink::Caret => 0xffffff,
-        };
-        window.paint_quad(
-            fill(
-                Bounds::new(
-                    bounds.origin + point(px(cell.x), px(cell.y)),
-                    size(px(cell.width), px(cell.height)),
-                ),
-                rgb(color),
-            )
-            .corner_radii(px(CORNER * cell.width)),
-        );
-    }
+    // These separated cells never overlap: reserve one draw order for the
+    // batch rather than inserting thousands of visible bounds into Scene's tree.
+    // The covering black quad stays outside this layer, before all cells.
+    window.paint_layer(bounds, |window| {
+        for (index, ink) in mask.cells.iter().enumerate() {
+            let cell = mask.cell(index);
+            let color = match ink {
+                Ink::Unlit => 0x101010,
+                Ink::Selection => 0x666666,
+                Ink::SelectedLetter => 0xffffff,
+                Ink::Letter | Ink::Caret => 0xffffff,
+            };
+            window.paint_quad(
+                fill(
+                    Bounds::new(
+                        bounds.origin + point(px(cell.x), px(cell.y)),
+                        size(px(cell.width), px(cell.height)),
+                    ),
+                    rgb(color),
+                )
+                .corner_radii(px(CORNER * cell.width)),
+            );
+        }
+    });
     #[cfg(feature = "native-review")]
     if let Some(started) = started {
         diagnose(cx, |d| d.grid_us += started.elapsed().as_micros() as u64);

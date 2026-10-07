@@ -1,54 +1,61 @@
-# Native input latency regression
+# Native pixel visibility and input latency
 
-Dot matrix painted two full cell grids per successful native mask: an unlit
-backdrop before Input, then a complete validated overlay that covered it. The
-first grid was discarded visually but still submitted thousands of overlapping
-quads. Removing it preserves the actual pixel appearance and native input.
-Unsupported/IME/oversized text stays visible as ordinary native ink on black;
-there is no expensive decorative fallback grid.
+The Dot overlay needs both an explicit position and batched paint ordering.
+A canvas appended after native Input with `.absolute().size_full()` retained its
+static flow position: one bar below the input. Expanded rows covered it. Mask
+success and submitted-quad counters therefore **did not prove visible pixels**.
+
+The corrected overlay uses `.top_0().left_0()`. Non-overlapping cells are painted
+inside GPUI's `paint_layer` batch; the covering black quad stays outside, earlier
+in draw order. There is still exactly one grid per validated native mask. This
+avoids thousands of independent visible primitive-bound ordering insertions.
+Native editing, glyph/font/geometry checks and IME/Unicode fallback remain.
 
 ## Reproduce
 
 From `examples/omnibar-gpui`:
 
 ```sh
-cargo run -p ctx-bar --features native-review --example input_lag -- --assert-single-grid
-cargo run -p ctx-bar --features native-review --example input_lag -- --assert-single-grid --append-only
-cargo run -p ctx-bar --features native-review --example input_lag -- --assert-single-grid --width 1200 --expect-plain
+just benchmark-input --assert-expanded-grid
+just benchmark-input --append-only
+just benchmark-input --local-menu
+just benchmark-input --width 1200 --expect-plain
 ```
 
-Hidden native GPUI windows, synthetic input, no model/config/desktop capture.
-The harness inserts/deletes through the actual native InputState handler and
-forces draws. It checks the actual paint submission seam: one grid per successful
-mask, not a source-string counter. Selection replacement, Unicode/composition
-fallback, native values, long-input geometry and idle notifications are checked.
-Instrumentation is opt-in under `native-review`; ordinary builds record no clocks
-or values.
+Hidden native GPUI windows and synthetic fixtures only; no model/config/desktop
+capture. Expanded-grid checks capture synthetic native scenes for empty, `ctx`,
+`ctx theme`, selection, Unicode and marked composition, light/dark palettes and
+supported/oversized widths. They inspect separated cell centers/gaps and lit text
+pixels, **not just counters**. Actual InputState insertion/deletion and selection
+replacement are exercised; native input values and idle observations are checked.
+Opt-in `native-review` diagnostics record no real input values or ordinary clocks.
 
-## Measurements
+## Measured CPU edit + draw
 
-macOS, debug profile, 200 synthetic edits. Timing is native edit + CPU draw;
-compilation excluded, GPU/compositor presentation not fenced.
+macOS debug build, 200 edits; no GPU/compositor completion fence. Compilation is
+excluded. Representative runs:
 
-| Workload | Before median / p95 | Fixed median / p95 |
-| --- | ---: | ---: |
-| Dot, 200 consecutive insertions | 94.41 / 95.36 ms | 5.45 / 5.92 ms |
-| Plain, same workload | 2.58 / 3.13 ms | 2.55 / 3.07 ms |
-| Dot, insert/delete | 94.24 / 95.03 ms | 5.31 / 5.78 ms |
+| Workload | Median / p95 |
+| --- | ---: |
+| Visible anchored Dot, independent quad submission | 89.65 / 96.78 ms |
+| Visible anchored Dot, batched cells | 5.70 / 7.09 ms |
+| Plain insert/delete | 2.41 / 3.27 ms |
+| Expanded local-menu Dot, owner reproduction | 8.18 / 10.55 ms |
 
-Owner independently reproduced the fixed append measurement: 200 successful
-masks, 200 grid passes, 949,200 quads; before was 400 passes/1,898,400 quads. The
-red submission gate failed after restoring only the redundant grid. Mask creation
-cost about 0.20 ms/edit; painting dominated. A notification feedback loop did
-not reproduce: 200 changes/renders/observations, no extra observations during ten
-forced idle draws. Existing observer/editor/IME handling remains unchanged.
+The earlier ~94 ms to ~5.45 ms result removed an expensive pre-native grid but
+left the post-native overlay misplaced/clipped. That result is historical,
+**not evidence of a fast visible matrix**. Anchoring alone reproduced ~90 ms
+again. The real improvement is verified with both visible pixels and the batch.
 
-An 8,192-cell conservative paint ceiling prevents large-grid workloads from
-covering native ink. The boundary has a unit regression. At width 1200 the owner
-reproduced visible native fallback: zero grid submissions, median 2.23 ms.
-This ceiling is headroom policy, not an adaptive device-performance guarantee.
+A conservative 8,192-cell paint ceiling remains. At width 1200 the native input
+falls back visibly rather than covering ink; this is intentional bounded geometry,
+not proof of a pixel treatment at every configured width. Future full-surface
+styling must budget the whole frame, not increase raw quads without measurement.
+Unsupported live Unicode/composition stays visibly native on black.
 
-65 native test invocations, all-target default/all-feature checks and Clippy
-pass. Physical keyboard-to-present latency, real visible-window focus/selection,
-IME/dictation/accessibility and other platforms remain unaccepted. No claim that
-all lag on every design is fixed. Native border/compositor work is separate.
+65 native test invocations, default/all-feature all-target checks and application
+warnings-denied Clippy pass. User physical keyboard-to-present, active caret/IME,
+dictation/accessibility and other platforms remain unaccepted. Native borderless
+host properties are verified separately; synthetic scene pixels are not a
+private desktop/compositor capture. Expanded rows still need the separately
+tracked whole-surface theme extension.

@@ -92,8 +92,10 @@ rounded cells. A complete current native-layout mask is required before covering
 native ink. Non-ASCII values, IME composition or unsupported geometry leave
 visible native text. The pixel caret is steady during this trial. The grid is submitted once per
 successful mask, with an 8,192-cell paint ceiling and visible native fallback
-above it. [Input latency regression](docs/input-latency.md) documents the measured
-~94 ms to ~5.5 ms synthetic edit/draw improvement and the native benchmark.
+above it. [Pixel visibility and input latency](docs/input-latency.md) records
+explicit overlay anchoring, batched visible-cell painting (~90 ms to ~5.7 ms
+synthetic edit/draw), expanded-menu pixel checks and the corrected historical
+clipped-overlay measurement. Expanded rows remain a separate full-surface port.
 
 On-screen focus/keyboard, selection/scroll alignment, real IME, dictation,
 VoiceOver, OS blur and other-platform runtime acceptance remain open. Transparent
