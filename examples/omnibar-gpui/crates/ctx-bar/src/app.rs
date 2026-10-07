@@ -6,20 +6,27 @@ use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::{InputEvent, InputState};
 use gpui_kit::component::{ActiveTheme as _, Icon};
 use gpui_kit::{
-    AppContext as _, Context, Entity, FontWeight, InteractiveElement as _, IntoElement,
-    KeyDownEvent, ParentElement as _, Render, ScrollHandle, SharedString,
-    StatefulInteractiveElement as _, Styled as _, Subscription, Window, WindowBackgroundAppearance,
-    div, px, size,
+    AppContext as _, Context, Entity, InteractiveElement as _, IntoElement, KeyDownEvent,
+    ParentElement as _, Render, ScrollHandle, SharedString, StatefulInteractiveElement as _,
+    Styled as _, Subscription, Window, WindowBackgroundAppearance, div, px, size,
 };
 
 use ctx_bar::config::{Config, descriptor_path};
-use ctx_bar::layout::{INSET, ROW_HEIGHT, layout};
+use ctx_bar::layout::{INSET, layout};
 use ctx_bar::model::{Catalog, Item, fixture_catalog};
 use ctx_bar::proxy::Proxy;
 use ctx_bar::state::{Selection, State, Status};
 use ctx_bar_design::{BarDesign, theme_choices};
 
 use crate::presentation;
+
+#[path = "surfaces.rs"]
+mod surfaces;
+use surfaces::{Frame, Role};
+
+#[cfg(any(feature = "native-review", test))]
+#[path = "surface_review.rs"]
+pub mod surface_review;
 
 pub struct Bar {
     config: Config,
@@ -399,6 +406,30 @@ impl Bar {
         cx.notify();
     }
 
+    /// Extra hidden synthetic states for the full-surface trial. Never transport.
+    #[cfg(feature = "native-review")]
+    #[allow(dead_code)] // Local source-pinned harness, not a foreground command.
+    pub fn review_surface_scene(
+        &mut self,
+        design: BarDesign,
+        scene: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if !self.review {
+            return;
+        }
+        let Some(scene) = surface_review::Scene::ALL
+            .into_iter()
+            .find(|candidate| candidate.id() == scene)
+        else {
+            return;
+        };
+        self.review_scene(design, scene.query(), window, cx);
+        surface_review::populate(&mut self.state, &self.catalog, scene);
+        cx.notify();
+    }
+
     /// Explicit synthetic review seam for first-party input dispatch. Ordinary
     /// runs never expose a handle through this hook; no transport or capture.
     #[cfg(feature = "native-review")]
@@ -413,9 +444,11 @@ impl Bar {
             "design": self.config.design.id(), "query": self.state.query,
             "input_empty": self.state.query.is_empty() && self.input.read(cx).value().is_empty(),
             "local_choices": self.local_themes.as_ref().map(Vec::len),
+            "selected": self.state.selected, "node": self.state.node,
             "routable": self.state.remote_request().is_some(),
             "timer": self.state.timer.is_some(), "generation": self.state.generation,
             "input_diagnostics": cx.try_global::<presentation::InputDiagnostics>(),
+            "surface_diagnostics": cx.try_global::<surfaces::Diagnostics>(),
         })
     }
 
@@ -447,8 +480,12 @@ impl Bar {
 impl Render for Bar {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         #[cfg(feature = "native-review")]
-        presentation::diagnose(cx, |d| d.renders += 1);
+        {
+            presentation::diagnose(cx, |d| d.renders += 1);
+            surfaces::begin_frame(cx);
+        }
         let theme = cx.theme().clone();
+        let surface = Frame::new(self.config.design, theme.color_tokens(), !theme.is_dark());
         let message = self.status_text();
         let count = self.local_themes.as_ref().map_or_else(
             || {
@@ -491,54 +528,66 @@ impl Render for Bar {
             .child(input);
         if let Some(breadcrumb) = &self.state.breadcrumb {
             panel = panel.child(
-                div()
-                    .flex()
-                    .items_center()
-                    .gap_2()
-                    .child(
-                        Button::new("back")
-                            .ghost()
-                            .icon(IconName::ChevronLeft)
-                            .label("Back")
-                            .on_click(cx.listener(|this, _, _, cx| this.back(cx))),
-                    )
-                    .child(
-                        div()
-                            .text_color(theme.muted_foreground)
-                            .child(breadcrumb.clone()),
-                    ),
+                surface.finish(
+                    surface
+                        .panel()
+                        .h(px(ctx_bar::layout::STATUS_HEIGHT))
+                        .flex_shrink_0()
+                        .flex()
+                        .items_center()
+                        .gap_2()
+                        .child(
+                            Button::new("back")
+                                .ghost()
+                                .icon(IconName::ChevronLeft)
+                                .accessibility_label("Back")
+                                .text_color(surface.ink(false).foreground)
+                                .child(surface.back_label(window, cx))
+                                .on_click(cx.listener(|this, _, _, cx| this.back(cx))),
+                        )
+                        .child(div().flex_1().min_w_0().child(surface.text(
+                            breadcrumb.clone(),
+                            Role::Navigation,
+                            false,
+                            cx,
+                        ))),
+                ),
             );
         }
         if !message.is_empty() {
             panel = panel.child(
-                div()
-                    .py_2()
-                    .text_size(px(12.))
-                    .text_ellipsis()
-                    .text_color(if matches!(self.state.status, Status::Error(_)) {
-                        theme.danger
-                    } else {
-                        theme.muted_foreground
-                    })
-                    .child(message),
+                surface.finish(
+                    surface
+                        .panel()
+                        .h(px(ctx_bar::layout::STATUS_HEIGHT))
+                        .flex_shrink_0()
+                        .flex()
+                        .items_center()
+                        .px_3()
+                        .child(div().w_full().min_w_0().child(surface.text(
+                            message,
+                            status_role(&self.state.status),
+                            false,
+                            cx,
+                        ))),
+                ),
             );
         }
         if count > 0 {
-            panel = panel.child(self.result_list(geometry.list_height, cx));
+            panel = panel.child(self.result_list(geometry.list_height, &surface, cx));
         }
         panel
     }
 }
 
 impl Bar {
-    fn result_list(&self, height: f32, cx: &mut Context<Self>) -> impl IntoElement {
-        let theme = cx.theme().clone();
-        // Light accent misses normal-text contrast on selected/hover surfaces.
-        let metadata_ink = if theme.is_dark() {
-            theme.primary
-        } else {
-            theme.foreground
-        };
+    fn result_list(
+        &self,
+        height: f32,
+        surface: &Frame,
+        cx: &mut Context<Self>,
+    ) -> impl IntoElement {
+        let ink = surface.ink(false);
         let mut list = div()
             .id("suggestions")
             .mt(px(INSET))
@@ -546,25 +595,13 @@ impl Bar {
             .overflow_y_scroll()
             .track_scroll(&self.scroll)
             .flex()
-            .flex_col()
-            .bg(theme.popover);
+            .flex_col();
         if let Some(choices) = &self.local_themes {
             for (index, design) in choices.iter().copied().enumerate() {
                 list = list.child(
-                    div()
+                    surface
+                        .row(index == self.state.selected)
                         .id(SharedString::from(format!("design-{}", design.id())))
-                        .h(px(ROW_HEIGHT))
-                        .flex_shrink_0()
-                        .px_3()
-                        .flex()
-                        .items_center()
-                        .gap_3()
-                        .bg(if index == self.state.selected {
-                            theme.secondary
-                        } else {
-                            theme.popover
-                        })
-                        .hover(|style| style.bg(theme.secondary))
                         .cursor_pointer()
                         .on_click(
                             cx.listener(move |this, _, window, cx| this.choose(index, window, cx)),
@@ -575,43 +612,34 @@ impl Bar {
                                 .flex()
                                 .flex_col()
                                 .gap_1()
-                                .child(
-                                    div()
-                                        .font_weight(FontWeight::SEMIBOLD)
-                                        .child(design.label()),
-                                )
-                                .child(
-                                    div()
-                                        .text_size(px(11.))
-                                        .text_color(theme.muted_foreground)
-                                        .child(design.description()),
-                                ),
+                                .min_w_0()
+                                .child(surface.text(
+                                    design.label(),
+                                    Role::Label,
+                                    index == self.state.selected,
+                                    cx,
+                                ))
+                                .child(surface.text(
+                                    design.description(),
+                                    Role::Metadata,
+                                    index == self.state.selected,
+                                    cx,
+                                )),
                         )
-                        .child(
-                            div()
-                                .text_size(px(11.))
-                                .text_color(metadata_ink)
-                                .child("Local design"),
-                        ),
+                        .child(surface.text(
+                            "Local design",
+                            Role::ToolMetadata,
+                            index == self.state.selected,
+                            cx,
+                        )),
                 );
             }
         } else {
             for (index, item) in self.state.items.iter().enumerate() {
                 list = list.child(
-                    div()
+                    surface
+                        .row(index == self.state.selected)
                         .id(SharedString::from(format!("suggestion-{index}")))
-                        .h(px(ROW_HEIGHT))
-                        .flex_shrink_0()
-                        .px_3()
-                        .flex()
-                        .items_center()
-                        .gap_3()
-                        .bg(if index == self.state.selected {
-                            theme.secondary
-                        } else {
-                            theme.popover
-                        })
-                        .hover(|style| style.bg(theme.secondary))
                         .cursor_pointer()
                         .on_click(
                             cx.listener(move |this, _, window, cx| this.choose(index, window, cx)),
@@ -619,7 +647,7 @@ impl Bar {
                         .child(
                             Icon::new(icon(&item.icon))
                                 .size(px(18.))
-                                .text_color(theme.muted_foreground),
+                                .text_color(ink.metadata),
                         )
                         .child(
                             div()
@@ -628,28 +656,29 @@ impl Bar {
                                 .flex()
                                 .flex_col()
                                 .gap_1()
-                                .child(
-                                    div()
-                                        .font_weight(FontWeight::MEDIUM)
-                                        .text_ellipsis()
-                                        .child(item.label.clone()),
-                                )
+                                .child(surface.text(
+                                    item.label.clone(),
+                                    Role::Label,
+                                    index == self.state.selected,
+                                    cx,
+                                ))
                                 .child(
                                     div()
                                         .flex()
                                         .gap_2()
                                         .text_size(px(11.))
-                                        .child(
-                                            div()
-                                                .text_color(metadata_ink)
-                                                .font_weight(FontWeight::SEMIBOLD)
-                                                .child(item.tool.clone()),
-                                        )
-                                        .child(
-                                            div()
-                                                .text_color(theme.muted_foreground)
-                                                .child(item.interface.clone()),
-                                        ),
+                                        .child(surface.text(
+                                            item.tool.clone(),
+                                            Role::ToolMetadata,
+                                            index == self.state.selected,
+                                            cx,
+                                        ))
+                                        .child(div().flex_1().min_w_0().child(surface.text(
+                                            item.interface.clone(),
+                                            Role::Metadata,
+                                            index == self.state.selected,
+                                            cx,
+                                        ))),
                                 ),
                         )
                         .child(
@@ -659,12 +688,21 @@ impl Bar {
                                 IconName::CornerDownLeft
                             })
                             .size(px(16.))
-                            .text_color(theme.muted_foreground),
+                            .text_color(ink.metadata),
                         ),
                 );
             }
         }
-        list
+        // Enclosure stays in the viewport, outside the unchanged native scroller.
+        surface.finish(surface.panel().h(px(height)).flex_shrink_0().child(list))
+    }
+}
+
+fn status_role(status: &Status) -> Role {
+    match status {
+        Status::Error(_) => Role::Error,
+        Status::Preview(_) => Role::Preview,
+        _ => Role::Status,
     }
 }
 

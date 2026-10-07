@@ -95,7 +95,10 @@ successful mask, with an 8,192-cell paint ceiling and visible native fallback
 above it. [Pixel visibility and input latency](docs/input-latency.md) records
 explicit overlay anchoring, batched visible-cell painting (~90 ms to ~5.7 ms
 synthetic edit/draw), expanded-menu pixel checks and the corrected historical
-clipped-overlay measurement. Expanded rows remain a separate full-surface port.
+clipped-overlay measurement. The [whole-surface trial](docs/full-surface-trial.md)
+now carries the chosen design through rows, status, navigation and previews,
+including actual Departure cell text for supported Dot labels. Native fallback,
+icons/controls and physical/accessibility acceptance remain explicit exceptions.
 
 On-screen focus/keyboard, selection/scroll alignment, real IME, dictation,
 VoiceOver, OS blur and other-platform runtime acceptance remain open. Transparent

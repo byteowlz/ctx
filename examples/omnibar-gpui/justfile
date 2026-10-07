@@ -24,6 +24,10 @@ check-all: check fmt-check clippy test
 benchmark-input *args:
     cargo run -p ctx-bar --features native-review --example input_lag -- --assert-single-grid {{args}}
 
+# Actual hidden synthetic all-ten row/status/navigation scenes; explicit output.
+review-surfaces directory:
+    cargo run -p ctx-bar --features native-review --example surface_review -- --review-dir {{quote(directory)}}
+
 # Only a human should launch this focus-taking native window.
 run *args:
     cargo run -p ctx-bar -- {{args}}
