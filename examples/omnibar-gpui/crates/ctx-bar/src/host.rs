@@ -1,6 +1,8 @@
 //! Frameless popup policy, separate from bar decoration and OS-compositor proof.
+use gpui_kit::component::Root;
 use gpui_kit::{
-    WindowBackgroundAppearance, WindowDecorations, WindowKind, WindowOptions, px, size,
+    AnyView, Context, Styled as _, Window, WindowBackgroundAppearance, WindowDecorations,
+    WindowKind, WindowOptions, px, rgba, size,
 };
 
 use ctx_bar::config::Config;
@@ -15,7 +17,7 @@ pub fn options(config: &Config, review: bool) -> WindowOptions {
         window_decorations: Some(WindowDecorations::Client),
         is_resizable: false,
         is_minimizable: false,
-        window_min_size: Some(size(px(480.), px(64.))),
+        window_min_size: Some(size(px(480.), px(56.))),
         window_background: if config.design == BarDesign::Lens {
             WindowBackgroundAppearance::Blurred
         } else {
@@ -26,6 +28,15 @@ pub fn options(config: &Config, review: bool) -> WindowOptions {
         app_id: Some("ctx-bar".into()),
         ..Default::default()
     }
+}
+
+/// Root defaults to CSD borders and a painted theme background, independent of
+/// WindowOptions. Keep toolkit overlays/input management, but remove that shell.
+pub fn root(view: impl Into<AnyView>, window: &mut Window, cx: &mut Context<Root>) -> Root {
+    Root::new(view, window, cx)
+        .bordered(false)
+        .window_shadow_size(px(0.))
+        .bg(rgba(0x00000000))
 }
 
 #[cfg(test)]

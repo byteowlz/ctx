@@ -77,6 +77,7 @@ pub async fn capture(
                 let _ = window.draw(cx);
                 let image = window.render_to_image()?;
                 let dimensions = (image.width(), image.height());
+                assert_root_transparency(design, state, image.get_pixel(0, 0).0[3])?;
                 image.save(&path)?;
                 Ok(dimensions)
             })??;
@@ -153,9 +154,29 @@ pub async fn capture(
     Ok(())
 }
 
+#[cfg(any(feature = "native-review", test))]
+fn assert_root_transparency(
+    design: ctx_bar_design::BarDesign,
+    state: &str,
+    alpha: u8,
+) -> Result<()> {
+    if design == ctx_bar_design::BarDesign::Unframed && state == "empty" && alpha != 0 {
+        bail!("Unframed root still paints window chrome: corner alpha={alpha}");
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn native_scene_rejects_a_painted_unframed_root() {
+        use ctx_bar_design::BarDesign;
+        assert!(super::assert_root_transparency(BarDesign::Unframed, "empty", 224).is_err());
+        assert!(super::assert_root_transparency(BarDesign::Unframed, "empty", 0).is_ok());
+        assert!(super::assert_root_transparency(BarDesign::Monolith, "empty", 255).is_ok());
+    }
+
     #[test]
     fn review_is_explicit_absolute_and_removed_from_config_flags() {
         let (args, review) = extract_args(vec![

@@ -1,7 +1,8 @@
 //! Pure progressive-disclosure geometry; an idle launcher is only its input.
 use ctx_bar_design::BarDesign;
 
-pub const INSET: f32 = 8.0;
+// No outer window gutter: only the selected bar's own geometry is painted.
+pub const INSET: f32 = 0.0;
 pub const ROW_HEIGHT: f32 = 56.0;
 pub const STATUS_HEIGHT: f32 = 32.0;
 
@@ -32,7 +33,8 @@ mod tests {
             let geometry = layout(design, 0, false, 520.0);
             assert_eq!(geometry.height, design.bar_height() + INSET * 2.0);
             assert_eq!(geometry.list_height, 0.0);
-            assert!(geometry.height <= 80.0);
+            assert_eq!(geometry.height, design.bar_height());
+            assert!(geometry.height <= 64.0);
         }
     }
 

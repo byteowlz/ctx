@@ -5,12 +5,15 @@
   `artifacts/ctx/omnibar/native-designs/README.md`.
 - Approval: user-authorized implementation trial, not production visual,
   accessibility or release acceptance. Mode: Operate.
-- Startup: one input, genuinely 72–80 logical pixels high including inset.
+- Startup: one input, genuinely 56–64 logical pixels high, no outer gutter.
   No title, demo controls, examples, startup badge, footer or separate picker.
 - User clarification: frameless native window, not just hidden app header.
   Explicit popup/titlebar-none, client-side decoration request, no user resize
   frame or minimization controls. Bar enclosures remain intentional design ink,
-  not OS chrome. Programmatic expansion stays enabled. Windows popup styles omit
+  not OS chrome. Programmatic expansion stays enabled. The toolkit root also
+  requires `bordered(false)`, zero wrapper shadow and a transparent style override:
+  default `Root` paints a theme background and Linux CSD even with titlebar-none.
+  A native scene regression rejects nonzero alpha at an empty Unframed corner. Windows popup styles omit
   native frame flags; macOS GPUI hides title/buttons using a full-size-content
   panel. OS rounding/shadow and compositor decoration overrides are not accepted
   by source/policy tests and remain part of the on-screen gate.

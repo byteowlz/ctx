@@ -13,11 +13,13 @@ just omnibar-run
 
 The window explicitly requests a **frameless popup**: no titlebar or window
 controls, client-side decorations without app chrome, and no user resize frame.
+The GPUI root wrapper also has its border/shadow disabled, a transparent
+background and no outer gutter; window options alone do not remove that wrapper.
 Programmatic progressive expansion remains enabled. Compositors can override
 Linux decoration requests; actual OS border/shadow appearance remains an
 on-screen acceptance check.
 
-Idle is only the input, in a 72–80-logical-pixel-high window. The default trial
+Idle is only the input, in a 56–64-logical-pixel-high window. The default trial
 is **Dot matrix with embedded Departure Mono**. Suggestions/status expand the
 window; up to five rows are visible before scrolling.
 

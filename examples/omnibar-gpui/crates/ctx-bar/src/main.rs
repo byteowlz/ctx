@@ -8,7 +8,6 @@ mod theme;
 
 use std::path::PathBuf;
 
-use gpui_kit::component::Root;
 use gpui_kit::{App, AppContext as _, AsyncApp, WindowBounds, WindowOptions, px, size};
 
 use ctx_bar::config::Config;
@@ -75,7 +74,7 @@ async fn open(
     let handle = cx.open_window(options, |window, cx| {
         let view = cx.new(|cx| app::Bar::new(config, review, window, cx));
         bar = Some(view.clone());
-        cx.new(|cx| Root::new(view, window, cx))
+        cx.new(|cx| host::root(view, window, cx))
     })?;
     if let (Some(directory), Some(bar)) = (review_dir, bar) {
         review::capture(handle, bar, directory, cx).await?;
