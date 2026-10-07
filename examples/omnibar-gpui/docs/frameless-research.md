@@ -55,6 +55,22 @@ loosening the application's `unsafe_code = forbid` or sprinkling raw AppKit
 handle calls through rendering. Do not silently change the default behavior of
 all titlebar-none GPUI windows; use an explicit bounded opt-in.
 
+## Implemented bounded native correction
+
+The standalone workspace now patches only the published `gpui-pre-macos` 0.3.6
+package locally. [Patch provenance](../vendor/gpui-pre-macos/CTX-PATCH.md) records
+license, registry archive/source hashes and the exact two changed upstream files.
+No global Cargo files or application unsafe policy are changed.
+
+Only titlebar-none `PopUp` hosts get borderless creation and native shadow off;
+normal/fullscreen/titlebar windows remain upstream behavior. The actual native
+mask regression failed before correction and now reads raw mask **128**
+(nonactivating-panel only), **hasShadow false**. Raw inspection is important:
+Cocoa's convenience getter truncates the nonactivating bit. All-ten native scene/
+Enter checks and 200 native input edits pass afterward; physical keyboard and
+user/compositor screenshot acceptance remain open. This corrects the native
+layer rather than hiding it behind a transparent root.
+
 ## Other platforms
 
 - Linux: request `WindowDecorations::Client` and disable Root's CSD wrapper.

@@ -12,9 +12,11 @@ just omnibar-run
 ```
 
 The popup hides the titlebar/window controls, requests client-side decorations
-without app chrome, and disables user resize handles. **True native borderless
-behavior is still unresolved on macOS**: the pinned GPUI backend retains a titled
-panel. See [frameless research](docs/frameless-research.md).
+without app chrome, and disables user resize handles. The scoped macOS
+[vendor patch](vendor/gpui-pre-macos/CTX-PATCH.md) now creates a genuinely
+borderless popup and disables its native shadow. Actual native style/shadow
+properties are asserted at creation; user on-screen confirmation remains open.
+See [frameless research](docs/frameless-research.md).
 The GPUI root wrapper also has its border/shadow disabled, a transparent
 background and no outer gutter; window options alone do not remove that wrapper.
 Programmatic progressive expansion remains enabled. Compositors can override
