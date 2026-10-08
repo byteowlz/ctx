@@ -67,11 +67,16 @@ commits, and pushes a sibling repository. Never use it for local validation.
 
 Config precedence is CLI overrides, explicit CLI config, `CTX__...` environment
 variables, local `./ctx.toml`, then global config. XDG variables are honored;
-without them config/data follow the `dirs` platform defaults (Linux:
-`~/.config` / `~/.local/share`, macOS: `~/Library/Application Support`). Unix
-state defaults to `~/.local/state`. Windows config uses `APPDATA`; data/state use
-XDG variables or `LOCALAPPDATA`/platform defaults. Changing platform fallbacks to
-an all-platform `~/.config` contract is separate work, not part of this baseline.
+without them Unix config uses `~/.config/ctx/config.toml`, including macOS.
+Native preferences use `[bar]`; backend Jev routing uses `[eavs]`. Core config
+saves preserve these and other tables. Data retains `dirs` platform defaults;
+Unix state defaults to `~/.local/state`. Windows core config still uses `APPDATA`;
+native Windows alignment/acceptance remains separate. Data/state use XDG variables
+or `LOCALAPPDATA`/platform defaults there. On default macOS paths, a missing shared
+file imports the former `~/Library/Application Support/ctx/config.toml` unchanged.
+Native/adapter startup adds only its missing table, migrating the former separate
+TOML if present. Existing shared tables win; old files are never deleted. Explicit
+custom XDG/config paths do not import the old platform config.
 
 The root package version is under Cargo's supported `[workspace.package]` table;
 member crates still declare their versions explicitly. No version inheritance

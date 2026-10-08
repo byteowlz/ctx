@@ -33,6 +33,9 @@ def main() -> None:
     config = tomllib.loads((examples / "config.toml").read_text())
     validators["config.schema.json"].validate(config)
     print("Valid example: config.toml")
+    bar_example = examples / "omnibar-gpui" / "examples" / "config.toml"
+    validators["config.schema.json"].validate(tomllib.loads(bar_example.read_text()))
+    print("Valid shared bar example: omnibar-gpui/examples/config.toml")
     if not args.config_only:
         for path in sorted((examples / "bundles").glob("*.json")):
             validators["bundle.schema.json"].validate(json.loads(path.read_text()))

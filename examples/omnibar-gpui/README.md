@@ -57,9 +57,12 @@ Native explicit editing remains available; no periodic clipboard reads occur.
 Optional first-row timeout defaults off, independent of confidence. Edits,
 navigation, selection changes, focus loss and local commands cancel it.
 Generation/timer tickets reject stale completions. Config precedence is CLI >
-`--config` file > `CTX_BAR__...` environment > local `ctx-bar.toml` > global
-`$XDG_CONFIG_HOME/ctx/omnibar-gpui.toml` (`~/.config` fallback). First launch creates
-missing defaults/schema without rewriting existing files. `height` is maximum
+`--config` file > `CTX__BAR__...` environment (old `CTX_BAR__...` alias retained)
+> local `ctx.toml` > global `$XDG_CONFIG_HOME/ctx/config.toml` (`~/.config` fallback).
+Native settings live in `[bar]`; `[eavs]` in the same file configures the backend.
+First launch adds only a missing bar table/schema, preserving other settings and
+comments. A prior `omnibar-gpui.toml` is a one-time read-only migration source;
+existing shared `[bar]` wins. Explicit legacy flat native files still load. `height` is maximum
 expansion, not idle geometry. See `examples/` and `ctx-bar --help`.
 
 ## Runtime boundary

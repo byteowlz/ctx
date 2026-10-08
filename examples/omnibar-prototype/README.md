@@ -1,4 +1,4 @@
-# Local Jev adapter for the ctx GPUI prototype
+# Local Jev routing for ctx-bar
 
 Loopback-only Bun service, not a browser interface or execution server. Synthetic
 platform/context fixtures go to Jev through the local EAVS SystemOne route;
@@ -8,7 +8,7 @@ authoritative capability registry or proof of installed OS adapters.
 From the ctx root, in separate terminals:
 
 ```sh
-just omnibar-server your-existing-authorized-eavs-profile
+just omnibar-server
 just omnibar-run
 ```
 
@@ -22,14 +22,39 @@ for the final native app. The backend reads listener auth from EAVS and the
 explicitly selected virtual key. Nothing is printed or sent to the native client
 except an ephemeral review capability in an owner-only state descriptor.
 
-Config: `$XDG_CONFIG_HOME/ctx/omnibar-prototype.toml`, fallback
-`~/.config/ctx/omnibar-prototype.toml`; defaults are created on first run.
-`OMNIBAR_CONFIG` selects another file. Environment overrides file values:
-`OMNIBAR_EAVS_URL`, `OMNIBAR_EAVS_MODEL`, `OMNIBAR_EAVS_TOKEN`,
-`OMNIBAR_EAVS_KEY`, `OMNIBAR_EAVS_PROFILE`. Existing listener resolution is
-`EAVS_AUTH_TOKEN`, EAVS `server.auth_token`, then `keys.master_key`.
-`OMNIBAR_EAVS_CONFIG` and `OMNIBAR_MODELS_FILE` select local credential sources.
-Keep all credentials in private local stores, never this directory.
+Configure **`$XDG_CONFIG_HOME/ctx/config.toml`**, fallback
+**`~/.config/ctx/config.toml`**, alongside capture and native preferences:
+
+```toml
+[bar]
+design = "dot-matrix"
+
+[eavs]
+endpoint = "http://127.0.0.1:3033/jev/v1/systemone"
+model = "jev-latest"
+profile = "your-existing-authorized-eavs-profile"
+```
+
+No second user configuration file is needed. Startup adds only a missing `[eavs]`
+table, retaining other settings/comments and old files. The previous
+`omnibar-prototype.toml` is a one-time read-only migration source (`eavs_profile`
+becomes `profile`); existing `[eavs]` wins. Missing default macOS shared files also
+import the old core platform config. New files are private0600; migration containing
+credential values hardens the destination to0600 before appending.
+
+Precedence: explicit `CTX_CONFIG` file > `CTX__EAVS__...` environment > local
+`ctx.toml` > global shared file. Explicit legacy flat adapter files still load.
+`CTX_EAVS__...`, `OMNIBAR_CONFIG`, and `OMNIBAR_EAVS_URL/MODEL/TOKEN/KEY/PROFILE`
+remain compatibility aliases; canonical environment names win. An optional
+`just omnibar-server PROFILE` supplies the legacy profile override, but the normal
+command reads `[eavs].profile`. Shared explicit files override environment values.
+
+Listener resolution is `[eavs].listener_token`, `EAVS_AUTH_TOKEN`, EAVS
+`server.auth_token`, then `keys.master_key`. `[eavs].virtual_key` can supply a
+private client key instead of the selected profile. `OMNIBAR_EAVS_CONFIG` and
+`OMNIBAR_MODELS_FILE` select credential stores. Keep credentials private, never
+in git. Native configuration selects only `[bar]` and never displays `[eavs]`.
+The checked-in shared JSON schema covers both tables.
 
 The native prototype expects `http://127.0.0.1:4784`. Upstream must be the local
 IPv4 EAVS listener, normally `http://127.0.0.1:3033/jev/v1/systemone` with model

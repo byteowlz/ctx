@@ -92,7 +92,7 @@ pub fn config_path() -> Result<PathBuf> {
         home()?,
         ".config",
     )
-    .join("ctx/omnibar-gpui.toml"))
+    .join("ctx/config.toml"))
 }
 pub fn descriptor_path() -> Result<PathBuf> {
     Ok(base_dir(
@@ -103,16 +103,88 @@ pub fn descriptor_path() -> Result<PathBuf> {
     .join("ctx/omnibar-prototype.json"))
 }
 const DEFAULT_TOML: &str = include_str!("../../../examples/config.toml");
-const CONFIG_SCHEMA: &str = include_str!("../../../examples/omnibar-gpui.schema.json");
+const CONFIG_SCHEMA: &str = include_str!("../../../../../examples/config.schema.json");
 
-/// Never rewrites an existing file; first-run creation uses create_new.
+/// Add only the missing bar table; preserve existing ctx settings and comments.
+/// The previous native file is a read-only migration source, never deleted.
 pub fn create_default(path: &Path) -> Result<()> {
     let parent = path
         .parent()
         .context("Config path needs a parent directory")?;
     fs::create_dir_all(parent)?;
-    write_new(&parent.join("omnibar-gpui.schema.json"), CONFIG_SCHEMA)?;
-    write_new(path, DEFAULT_TOML)
+    write_new(&parent.join("config.schema.json"), CONFIG_SCHEMA)?;
+    if !path.exists() {
+        write_new(path, &initial_shared_content(path)?)?;
+    }
+    let existing: serde_json::Value = config::Config::builder()
+        .add_source(config::File::from(path))
+        .build()
+        .map_err(|_| anyhow::anyhow!("Cannot parse shared ctx configuration"))?
+        .try_deserialize()
+        .map_err(|_| anyhow::anyhow!("Invalid shared ctx configuration"))?;
+    if existing.get("bar").is_some() {
+        return Ok(());
+    }
+    let legacy = parent.join("omnibar-gpui.toml");
+    let content = if legacy.exists() {
+        let migrated: Config = bar_layer(&legacy, true, true)?.try_deserialize()?;
+        migrated.validate()?;
+        let fields = serde_json::to_value(migrated)?;
+        let mut text = String::from("\n[bar]\n");
+        for (key, value) in fields.as_object().context("Bar config must be a table")? {
+            text.push_str(&format!("{key} = {value}\n"));
+        }
+        text
+    } else {
+        DEFAULT_TOML
+            .lines()
+            .filter(|line| !line.starts_with("#:schema"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    };
+    let mut file = OpenOptions::new().append(true).open(path)?;
+    file.write_all(format!("\n{content}\n").as_bytes())?;
+    Ok(())
+}
+
+fn initial_shared_content(path: &Path) -> Result<String> {
+    #[cfg(target_os = "macos")]
+    if path == home()?.join(".config/ctx/config.toml") {
+        let legacy = home()?.join("Library/Application Support/ctx/config.toml");
+        if legacy.exists() {
+            let text = fs::read_to_string(&legacy)?;
+            config::Config::builder()
+                .add_source(config::File::from_str(&text, config::FileFormat::Toml))
+                .build()
+                .map_err(|_| anyhow::anyhow!("Invalid legacy ctx configuration"))?;
+            return Ok(text);
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = path;
+    Ok("#:schema https://raw.githubusercontent.com/byteowlz/schemas/refs/heads/main/ctx/ctx.config.schema.json\n".into())
+}
+
+/// Select only [bar]; flat documents are accepted solely for explicit legacy files.
+fn bar_layer(path: &Path, required: bool, legacy_flat: bool) -> Result<config::Config> {
+    let document: serde_json::Value = config::Config::builder()
+        .add_source(config::File::from(path).required(required))
+        .build()
+        .map_err(|_| anyhow::anyhow!("Cannot parse ctx configuration"))?
+        .try_deserialize()
+        .map_err(|_| anyhow::anyhow!("Invalid ctx configuration"))?;
+    let bar = match document.get("bar") {
+        Some(bar) => bar.clone(),
+        None if legacy_flat
+            && !["capture", "providers", "output", "ocr", "eavs"]
+                .iter()
+                .any(|key| document.get(key).is_some()) =>
+        {
+            document
+        }
+        None => serde_json::json!({}),
+    };
+    Ok(config::Config::try_from(&bar)?)
 }
 
 fn write_new(path: &Path, content: &str) -> Result<()> {
@@ -161,18 +233,30 @@ pub fn load_layers(
         .set_default("request_timeout_seconds", 15)?
         .set_default("width", 680.0)?
         .set_default("height", 520.0)?
-        .add_source(config::File::from(global).required(false));
+        .add_source(bar_layer(global, false, false)?);
     if let Some(path) = local {
-        builder = builder.add_source(config::File::from(path).required(false))
+        builder = builder.add_source(bar_layer(path, false, false)?)
     }
-    builder = builder.add_source(
-        config::Environment::with_prefix("CTX_BAR")
-            .separator("__")
-            .prefix_separator("__")
-            .try_parsing(true),
-    );
+    // Canonical ctx namespace, plus the former native spelling as a lower alias.
+    let shared_env: serde_json::Value = config::Config::builder()
+        .add_source(
+            config::Environment::with_prefix("CTX")
+                .separator("__")
+                .prefix_separator("_")
+                .try_parsing(true),
+        )
+        .add_source(
+            config::Environment::with_prefix("CTX")
+                .separator("__")
+                .try_parsing(true),
+        )
+        .build()?
+        .try_deserialize()?;
+    if let Some(bar) = shared_env.get("bar") {
+        builder = builder.add_source(config::Config::try_from(bar)?);
+    }
     if let Some(path) = explicit {
-        builder = builder.add_source(config::File::from(path).required(true))
+        builder = builder.add_source(bar_layer(path, true, true)?)
     }
     for (key, value) in cli {
         builder = builder.set_override(key.clone(), value.clone())?
@@ -210,7 +294,7 @@ pub fn load_or_create(args: impl IntoIterator<Item = String>) -> Result<Config> 
     }
     load_layers(
         &global,
-        Some(Path::new("ctx-bar.toml")),
+        Some(Path::new("ctx.toml")),
         explicit.as_deref(),
         &overrides,
     )
@@ -219,6 +303,10 @@ pub fn load_or_create(args: impl IntoIterator<Item = String>) -> Result<Config> 
 #[cfg(test)]
 #[path = "config_design_tests.rs"]
 mod design_tests;
+
+#[cfg(test)]
+#[path = "config_shared_tests.rs"]
+mod shared_tests;
 
 // Filesystem locations and first-run persistence remain separate from the
 // native design/schema contract exercised by design_tests.
@@ -251,7 +339,7 @@ mod tests {
         fs::create_dir_all(&dir).unwrap();
         let global = dir.join("global.toml");
         let explicit = dir.join("explicit.toml");
-        fs::write(&global, "timeout_seconds = 4\n").unwrap();
+        fs::write(&global, "[bar]\ntimeout_seconds = 4\n").unwrap();
         fs::write(&explicit, "timeout_seconds = 5\n").unwrap();
         assert_eq!(
             load_layers(

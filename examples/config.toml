@@ -41,3 +41,15 @@ command = "ocrs"
 auto_crops = true
 # Extra args inserted before the image path, e.g. []
 args = []
+
+# Native UI and Jev routing share this file; uncomment sections as needed.
+# [bar]
+# design = "dot-matrix"
+# theme = "Lumen Dark"
+# presentation = "flat"
+#
+# [eavs]
+# endpoint = "http://127.0.0.1:3033/jev/v1/systemone"
+# model = "jev-latest"
+# profile = "an-existing-authorized-eavs-profile"
+# Listener auth is read from the existing private EAVS configuration.

@@ -2,6 +2,7 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
 import { resolve } from "node:path";
 import { mkdir, open, rename, rm } from "node:fs/promises";
 import { branches, candidates, fixtures, items, payload, platforms, suggestions, type Platform, type ContextFixture, type Presentation } from "./decision";
+import { configBase, loadEavsConfig, readToml } from "./config";
 
 export type Settings = {
   origin: string; reviewKey: string;
@@ -105,37 +106,28 @@ export function handler(settings: Settings, upstream: typeof fetch = fetch) {
   };
 }
 
-async function readToml(path: string): Promise<Record<string, any>> {
-  return await Bun.file(path).exists() ? Bun.TOML.parse(await Bun.file(path).text()) : {};
-}
-export async function loadSettings(): Promise<Settings> {
-  const configDir = resolve(process.env.XDG_CONFIG_HOME || `${process.env.HOME}/.config`, "ctx");
-  const configPath = process.env.OMNIBAR_CONFIG || resolve(configDir, "omnibar-prototype.toml");
-  if (!await Bun.file(configPath).exists()) {
-    await mkdir(resolve(configPath, ".."), { recursive: true });
-    await Bun.write(configPath, '#:schema https://raw.githubusercontent.com/byteowlz/ctx/main/examples/omnibar-prototype/config.schema.json\n# Local preview adapter; never put credentials in git.\nendpoint = "http://127.0.0.1:3033/jev/v1/systemone"\nmodel = "jev-latest"\n# eavs_profile = "an-existing-authorized-profile"\n# listener_token = ""\n# virtual_key = ""\n');
-  }
-  const config = await readToml(configPath);
-  const eavsPath = process.env.OMNIBAR_EAVS_CONFIG || resolve(process.env.XDG_CONFIG_HOME || `${process.env.HOME}/.config`, "eavs/config.toml");
-  const needsListener = !process.env.OMNIBAR_EAVS_TOKEN && !config.listener_token && !process.env.EAVS_AUTH_TOKEN;
+export async function loadSettings(env: NodeJS.ProcessEnv = process.env, cwd = process.cwd()): Promise<Settings> {
+  const config = await loadEavsConfig(env, cwd);
+  const eavsPath = env.OMNIBAR_EAVS_CONFIG || resolve(configBase(env), "eavs/config.toml");
+  const needsListener = !config.listener_token && !env.EAVS_AUTH_TOKEN;
   const eavs = needsListener ? await readToml(eavsPath) : {};
-  const profile = process.env.OMNIBAR_EAVS_PROFILE || String(config.eavs_profile || "");
+  const profile = config.profile || "";
   let profileKey = "";
-  if (profile && !process.env.OMNIBAR_EAVS_KEY && !config.virtual_key) {
-    const profileFile = process.env.OMNIBAR_MODELS_FILE || resolve(process.env.HOME || "", ".pi/agent/models.json");
+  if (profile && !config.virtual_key) {
+    const profileFile = env.OMNIBAR_MODELS_FILE || resolve(env.HOME || env.USERPROFILE || "", ".pi/agent/models.json");
     const profiles = await Bun.file(profileFile).json();
     profileKey = profiles.providers?.[profile]?.apiKey || "";
     if (!profileKey) throw new Error("The explicitly selected local EAVS profile is unavailable");
   }
-  const host = process.env.OMNIBAR_HOST || "127.0.0.1";
-  const port = Number(process.env.OMNIBAR_PORT || 4784);
+  const host = env.OMNIBAR_HOST || "127.0.0.1";
+  const port = Number(env.OMNIBAR_PORT || 4784);
   if (host !== "127.0.0.1" || !Number.isInteger(port) || port < 1024 || port > 65535) throw new Error("Native prototype must bind IPv4 loopback on a non-privileged port");
   const settings: Settings = {
-    origin: `http://${host}:${port}`, reviewKey: process.env.OMNIBAR_REVIEW_KEY || randomBytes(24).toString("hex"),
-    endpoint: process.env.OMNIBAR_EAVS_URL || String(config.endpoint || "http://127.0.0.1:3033/jev/v1/systemone"),
-    model: process.env.OMNIBAR_EAVS_MODEL || String(config.model || "jev-latest"),
-    listenerToken: process.env.OMNIBAR_EAVS_TOKEN || String(config.listener_token || "") || process.env.EAVS_AUTH_TOKEN || eavs.server?.auth_token || eavs.keys?.master_key || "",
-    virtualKey: process.env.OMNIBAR_EAVS_KEY || String(config.virtual_key || "") || profileKey,
+    origin: `http://${host}:${port}`, reviewKey: env.OMNIBAR_REVIEW_KEY || randomBytes(24).toString("hex"),
+    endpoint: config.endpoint || "http://127.0.0.1:3033/jev/v1/systemone",
+    model: config.model || "jev-latest",
+    listenerToken: config.listener_token || env.EAVS_AUTH_TOKEN || eavs.server?.auth_token || eavs.keys?.master_key || "",
+    virtualKey: config.virtual_key || profileKey,
   };
   const endpoint = new URL(settings.endpoint);
   if (endpoint.protocol !== "http:" || endpoint.hostname !== "127.0.0.1" || endpoint.username || endpoint.password) throw new Error("Prototype upstream must be the local EAVS listener");
@@ -157,7 +149,7 @@ export async function publishConnection(settings: Settings) {
 if (import.meta.main) {
   let settings;
   try { settings = await loadSettings(); }
-  catch { console.error("Cannot read the local prototype configuration or explicitly selected EAVS profile. No credentials were printed."); process.exit(1); }
+  catch { console.error("Cannot read ctx/config.toml or the explicitly selected EAVS profile. No credentials were printed."); process.exit(1); }
   const port = new URL(settings.origin).port;
   const server = Bun.serve({ hostname: "127.0.0.1", port: Number(port), idleTimeout: 30, fetch: handler(settings) });
   const descriptor = await publishConnection(settings);

@@ -76,6 +76,36 @@
       },
       "additionalProperties": false
     },
+    "bar": {
+      "type": "object",
+      "description": "Native ctx-bar preferences. Input theme changes remain local to the running app.",
+      "additionalProperties": false,
+      "properties": {
+        "theme": {"enum": ["Lumen Dark", "Lumen Light"], "default": "Lumen Dark"},
+        "design": {"enum": ["underline", "monolith", "lens", "signal", "prompt", "dot-matrix", "corners", "slot", "unframed", "notch"], "default": "dot-matrix"},
+        "presentation": {"enum": ["flat", "branches"], "default": "flat"},
+        "platform": {"enum": ["macos", "windows", "linux", "omarchy"]},
+        "fixture": {"enum": ["desktop", "selection", "audio", "unavailable"], "default": "desktop"},
+        "auto_select_first": {"type": "boolean", "default": false},
+        "timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 30, "default": 3},
+        "debounce_ms": {"type": "integer", "minimum": 100, "maximum": 2000, "default": 220},
+        "request_timeout_seconds": {"type": "integer", "minimum": 1, "maximum": 30, "default": 15},
+        "width": {"type": "number", "minimum": 480, "maximum": 1200, "default": 680},
+        "height": {"type": "number", "minimum": 240, "maximum": 900, "default": 520, "description": "Maximum expansion height; idle height is design geometry (56 or 64)."}
+      }
+    },
+    "eavs": {
+      "type": "object",
+      "description": "Jev routing via the local EAVS listener (or a loopback SSH tunnel). Credentials stay backend-only.",
+      "additionalProperties": false,
+      "properties": {
+        "endpoint": {"type": "string", "pattern": "^http://127\\.0\\.0\\.1(?::[0-9]+)?/", "default": "http://127.0.0.1:3033/jev/v1/systemone"},
+        "model": {"type": "string", "minLength": 1, "default": "jev-latest"},
+        "profile": {"type": "string", "description": "Existing authorized local EAVS credential profile; does not choose the provider."},
+        "listener_token": {"type": "string", "writeOnly": true},
+        "virtual_key": {"type": "string", "writeOnly": true}
+      }
+    },
     "ocr": {
       "type": "object",
       "description": "OCR backend configuration for bundle image OCR.",

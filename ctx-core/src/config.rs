@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
+use std::io::Write as _;
 use std::path::{Path, PathBuf};
 
 use config::{Config, Environment, File};
@@ -226,11 +227,51 @@ fn ensure_default_config(path: &Path, directories: &AppDirectories) -> Result<()
         })?;
     }
 
-    let content = default_config_toml(directories);
-    fs::write(path, content).map_err(|source| ConfigError::WriteDefault {
+    let content = initial_config_content(path, directories)?;
+    let mut options = fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt as _;
+        options.mode(0o600);
+    }
+    match options.open(path) {
+        Ok(mut file) => file.write_all(content.as_bytes()),
+        Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
+        Err(error) => Err(error),
+    }
+    .map_err(|source| ConfigError::WriteDefault {
         path: path.to_path_buf(),
         source,
     })
+}
+
+fn initial_config_content(
+    path: &Path,
+    directories: &AppDirectories,
+) -> Result<String, ConfigError> {
+    #[cfg(target_os = "macos")]
+    if let Some(base) = dirs::config_dir() {
+        let app = directories.config_dir.file_name().unwrap_or_default();
+        let legacy = base.join(app).join("config.toml");
+        let canonical = std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .map(|home| home.join(".config").join(app).join("config.toml"));
+        if canonical.as_deref() == Some(path) && legacy != path && legacy.exists() {
+            let text = fs::read_to_string(&legacy).map_err(|source| ConfigError::WriteDefault {
+                path: legacy.clone(),
+                source,
+            })?;
+            toml::from_str::<toml::Table>(&text).map_err(|_| ConfigError::WriteDefault {
+                path: legacy,
+                source: std::io::Error::other("Invalid legacy ctx configuration"),
+            })?;
+            return Ok(text);
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = path;
+    Ok(default_config_toml(directories))
 }
 
 fn resolve_output_paths(
@@ -377,6 +418,18 @@ command = "{ocr_command}"
 auto_crops = {ocr_auto_crops}
 # Extra args inserted before the image path, e.g. []
 args = []
+
+# Native UI and Jev routing share this file; uncomment sections as needed.
+# [bar]
+# design = "dot-matrix"
+# theme = "Lumen Dark"
+# presentation = "flat"
+#
+# [eavs]
+# endpoint = "http://127.0.0.1:3033/jev/v1/systemone"
+# model = "jev-latest"
+# profile = "an-existing-authorized-eavs-profile"
+# Listener auth is read from the existing private EAVS configuration.
 "#,
         include_clipboard = default_include_clipboard(),
         include_screenshots = default_include_screenshots(),
@@ -463,7 +516,8 @@ fn default_schema_url() -> String {
 /// Save configuration values back to the global config.toml.
 ///
 /// Writes the editor schema as a `#:schema` comment, followed by capture,
-/// providers, output, and OCR sections. Existing comments are not preserved.
+/// providers, output, and OCR sections. Other tables are retained; existing
+/// comments are not preserved.
 pub fn save_config(app_name: &str, cfg: &AppConfig) -> Result<(), ConfigError> {
     let config_path = cfg.directories.config_dir.join("config.toml");
 
@@ -480,7 +534,28 @@ pub fn save_config(app_name: &str, cfg: &AppConfig) -> Result<(), ConfigError> {
         ocr: cfg.ocr.clone(),
     };
 
-    let content = toml::to_string_pretty(&file_config).map_err(|e| ConfigError::WriteDefault {
+    // Preserve other ctx consumers' tables, not their environment/CLI overrides.
+    let mut shared: toml::Table = if config_path.exists() {
+        let text =
+            fs::read_to_string(&config_path).map_err(|source| ConfigError::WriteDefault {
+                path: config_path.clone(),
+                source,
+            })?;
+        toml::from_str(&text).map_err(|_| ConfigError::WriteDefault {
+            path: config_path.clone(),
+            source: std::io::Error::other("Invalid shared ctx configuration; file was not changed"),
+        })?
+    } else {
+        toml::Table::new()
+    };
+    let owned = toml::Value::try_from(&file_config).map_err(|e| ConfigError::WriteDefault {
+        path: config_path.clone(),
+        source: std::io::Error::other(e.to_string()),
+    })?;
+    if let toml::Value::Table(owned) = owned {
+        shared.extend(owned);
+    }
+    let content = toml::to_string_pretty(&shared).map_err(|e| ConfigError::WriteDefault {
         path: config_path.clone(),
         source: std::io::Error::other(e.to_string()),
     })?;
@@ -600,13 +675,24 @@ mod tests {
 
         // Exercise the application's parser without changing process environment or cwd.
         let saved: FileConfig = Config::builder()
-            .add_source(File::from(path))
+            .add_source(File::from(path.clone()))
             .build()?
             .try_deserialize()?;
         let output = resolve_output_paths(&saved.output, &cfg.directories)?;
         assert_eq!(output.capture_dir, cfg.output.capture_dir);
         assert_eq!(output.state_file, cfg.output.state_file);
         assert_eq!(output.bundle_dir, cfg.output.bundle_dir);
+
+        let extra = "\n[bar]\ndesign = 'corners'\n[eavs]\nmodel = 'jev-latest'\nvirtual_key = 'synthetic'\n[future]\nenabled = true\n";
+        fs::write(&path, format!("{content}{extra}"))?;
+        save_config(default_app_name(), &cfg)?;
+        let saved: toml::Value = toml::from_str(&fs::read_to_string(&path)?)?;
+        assert_eq!(saved["bar"]["design"].as_str(), Some("corners"));
+        assert_eq!(saved["eavs"]["virtual_key"].as_str(), Some("synthetic"));
+        assert_eq!(saved["future"]["enabled"].as_bool(), Some(true));
+        fs::write(&path, "invalid = [")?;
+        assert!(save_config(default_app_name(), &cfg).is_err());
+        assert_eq!(fs::read_to_string(path)?, "invalid = [");
         Ok(())
     }
 
@@ -661,6 +747,32 @@ mod tests {
         let bundle_dir = cfg.directories.data_dir.join("bundles");
         assert_eq!(cfg.output.bundle_dir, bundle_dir);
         assert!(cfg.output.bundle_dir.exists(), "bundle dir created");
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_shared_config_migrates_platform_legacy_without_deleting_it() {
+        let _lock = env_lock().lock().unwrap();
+        let temp = tempfile::tempdir().unwrap();
+        let home = temp.path();
+        let _guard = EnvGuard::set(&[
+            ("HOME", home),
+            ("XDG_CONFIG_HOME", &home.join(".config")),
+            ("XDG_DATA_HOME", &home.join("data")),
+            ("XDG_STATE_HOME", &home.join("state")),
+        ]);
+        let legacy = home.join("Library/Application Support/ctx/config.toml");
+        fs::create_dir_all(legacy.parent().unwrap()).unwrap();
+        let original = "# keep legacy\n[capture]\nimage_quality = 42\n[bar]\ndesign = 'corners'\n";
+        fs::write(&legacy, original).unwrap();
+        let cfg = load(default_app_name()).unwrap();
+        assert_eq!(cfg.directories.config_dir, home.join(".config/ctx"));
+        assert_eq!(cfg.capture.image_quality, 42);
+        assert_eq!(
+            fs::read_to_string(home.join(".config/ctx/config.toml")).unwrap(),
+            original
+        );
+        assert_eq!(fs::read_to_string(legacy).unwrap(), original);
     }
 
     #[test]

@@ -96,10 +96,10 @@ run *args:
 
 # Verify native build/tests and local adapter without launching a window
 omnibar-check:
-    bun test examples/omnibar-prototype/prototype.test.ts
+    bun test examples/omnibar-prototype
     just --working-directory examples/omnibar-gpui --justfile examples/omnibar-gpui/justfile check-all
 
-# Run the loopback adapter with an explicitly selected existing EAVS profile
+# Run the loopback adapter using ctx/config.toml [eavs]; optional legacy profile override
 omnibar-server profile="":
     OMNIBAR_EAVS_PROFILE="$1" bun examples/omnibar-prototype/server.ts
 

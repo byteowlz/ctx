@@ -1,5 +1,7 @@
-#:schema ./omnibar-gpui.schema.json
-# Explorer only: no actions execute. Timer selects the FIRST row, not a confidence threshold.
+#:schema https://raw.githubusercontent.com/byteowlz/schemas/refs/heads/main/ctx/ctx.config.schema.json
+# Add this section to ctx/config.toml. No actions execute.
+# Timer selects the FIRST row, not a confidence threshold.
+[bar]
 theme = "Lumen Dark"
 # Native design ID; input command `ctx theme dot` selects dot-matrix locally.
 design = "dot-matrix"

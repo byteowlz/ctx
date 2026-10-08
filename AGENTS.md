@@ -50,9 +50,14 @@ commits, and pushes to the separate shared schemas repository.
 - No emojis in code, comments, or commit messages.
 - Config uses the `config` crate. Precedence: CLI flags, explicit CLI config file,
   `CTX__...` environment variables, local `./ctx.toml`, global config file.
-- Paths honor XDG config/data/state variables. Platform directory defaults are
-  used when unset (macOS uses platform config/data directories; see
-  `ctx-core/src/directories.rs`). First load creates a commented config.
+- ctx, ctx-bar `[bar]`, and Jev routing `[eavs]` share
+  `$XDG_CONFIG_HOME/ctx/config.toml`, with `~/.config/ctx/config.toml` fallback on
+  Unix including macOS. Do not introduce a separate bar/prototype config file.
+  Startup migrates missing tables from old files without deleting them; existing
+  shared tables win. Core config saves must retain other consumers' tables.
+- Data/state paths retain their existing XDG/platform defaults. Windows core
+  config currently uses APPDATA; native alignment there remains a separate gate.
+  See `ctx-core/src/directories.rs`. First load creates a commented config.
 - Editor metadata in TOML is a `#:schema` comment, never an application-visible
   `$schema` setting. `save_config` rewrites values/comments rather than editing
   the original file in place. JSON Schema documents still use `$schema`.

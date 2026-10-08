@@ -67,8 +67,9 @@ fn home_dir() -> Option<PathBuf> {
 fn config_base_dir() -> Option<PathBuf> {
     env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
-        .or_else(dirs::config_dir)
+        .filter(|path| path.is_absolute())
         .or_else(|| home_dir().map(|home| home.join(".config")))
+        .or_else(dirs::config_dir)
 }
 
 #[cfg(target_os = "windows")]

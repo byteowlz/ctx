@@ -11,7 +11,7 @@ fn default_toml_matches_typed_defaults_and_schema() {
         ))
         .build()
         .unwrap()
-        .try_deserialize()
+        .get("bar")
         .unwrap();
     cfg.validate().unwrap();
     let values = serde_json::to_value(&cfg).unwrap();
@@ -19,6 +19,11 @@ fn default_toml_matches_typed_defaults_and_schema() {
     let schema: serde_json::Value =
         serde_json::from_str(include_str!("../../../examples/omnibar-gpui.schema.json")).unwrap();
     for (key, value) in values.as_object().unwrap() {
+        let shared_schema: serde_json::Value = serde_json::from_str(CONFIG_SCHEMA).unwrap();
+        assert_eq!(
+            shared_schema["properties"]["bar"]["properties"][key], schema["properties"][key],
+            "shared schema {key}"
+        );
         if key != "platform" {
             // Build-OS default is intentionally not fixed in the schema.
             let schema_default = &schema["properties"][key]["default"];
@@ -145,19 +150,19 @@ fn environment_and_cli_design_precedence_without_process_global_mutation() {
             with_config.extend(args);
             assert!(load_or_create(with_config.into_iter().map(String::from)).is_err());
         }
-        assert!(!dir.join("ctx/omnibar-gpui.toml").exists());
+        assert!(!dir.join("ctx/config.toml").exists());
         return;
     }
     let dir = std::env::temp_dir().join(format!("ctx-bar-theme-config-{}", std::process::id()));
     fs::create_dir_all(&dir).unwrap();
     fs::write(
         dir.join("global.toml"),
-        "design = 'underline'\npresentation = 'flat'\n",
+        "[capture]\nimage_quality = 42\n[bar]\ndesign = 'underline'\npresentation = 'flat'\n",
     )
     .unwrap();
     fs::write(
         dir.join("local.toml"),
-        "design = 'lens'\npresentation = 'flat'\n",
+        "[bar]\ndesign = 'lens'\npresentation = 'flat'\n",
     )
     .unwrap();
     fs::write(
@@ -167,7 +172,9 @@ fn environment_and_cli_design_precedence_without_process_global_mutation() {
     .unwrap();
     let mut command = std::process::Command::new(std::env::current_exe().unwrap());
     for (key, _) in std::env::vars_os() {
-        if key.to_string_lossy().starts_with("CTX_BAR__") {
+        if key.to_string_lossy().starts_with("CTX_BAR__")
+            || key.to_string_lossy().starts_with("CTX__BAR__")
+        {
             command.env_remove(key);
         }
     }
@@ -175,8 +182,9 @@ fn environment_and_cli_design_precedence_without_process_global_mutation() {
         .args(["--exact", "config::design_tests::environment_and_cli_design_precedence_without_process_global_mutation", "--nocapture"])
         .env(CHILD_DIR, &dir)
         .env("XDG_CONFIG_HOME", &dir)
-        .env("CTX_BAR__DESIGN", "slot")
+        .env("CTX_BAR__DESIGN", "corners")
         .env("CTX_BAR__PRESENTATION", "branches")
+        .env("CTX__BAR__DESIGN", "slot")
         .output().unwrap();
     fs::remove_dir_all(&dir).unwrap();
     assert!(
