@@ -9,7 +9,9 @@ use anyhow::{Context as _, Result, bail};
 use reqwest::blocking::Client;
 use serde::Deserialize;
 
-use crate::model::{Catalog, Request, Suggestions, validate};
+use crate::model::{
+    Catalog, Item, LocalSuggestions, Request, Suggestions, validate, validate_local,
+};
 
 const ORIGIN: &str = "http://127.0.0.1:4784";
 const MAX_RESPONSE: u64 = 64 * 1024;
@@ -111,15 +113,21 @@ impl Proxy {
         }
         Ok(catalog)
     }
-    pub fn suggest(&self, request: &Request, catalog: &Catalog) -> Result<Suggestions> {
+    fn post<T: serde::de::DeserializeOwned>(&self, route: &str, request: &Request) -> Result<T> {
         if request.query.trim().is_empty() || request.query.chars().count() > 512 {
             bail!("Enter 1–512 characters")
         }
-        let result = self.response(
-            self.client
-                .post(format!("{ORIGIN}/api/suggest"))
-                .json(request),
-        )?;
+        self.response(self.client.post(format!("{ORIGIN}{route}")).json(request))
+    }
+    pub fn retrieve(&self, request: &Request, catalog: &Catalog) -> Result<Vec<Item>> {
+        if !catalog.retrieval_enabled {
+            bail!("Local retrieval disabled")
+        }
+        let response: LocalSuggestions = self.post("/api/retrieve", request)?;
+        validate_local(response, request, catalog)
+    }
+    pub fn suggest(&self, request: &Request, catalog: &Catalog) -> Result<Suggestions> {
+        let result = self.post("/api/suggest", request)?;
         validate(&result, request, catalog)?;
         Ok(result)
     }

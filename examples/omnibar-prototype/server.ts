@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 import { mkdir, open, rename, rm } from "node:fs/promises";
 import { branches, candidates, fixtures, items, payload, platforms, suggestions, type Platform, type ContextFixture, type Presentation } from "./decision";
 import { configBase, loadEavsConfig, readToml } from "./config";
+import { loadRetrievalConfig } from "./retrieval-config";
+import { EvokeWorker, type Retriever } from "./retrieval-worker";
 
 export type Settings = {
   origin: string; reviewKey: string;
@@ -40,6 +42,31 @@ async function readBounded(message: Request | Response, limit: number, signal: A
     return Buffer.concat(chunks).toString();
   } finally { signal.removeEventListener("abort", onAbort); reader.releaseLock(); }
 }
+async function readInput(request: Request, signal: AbortSignal) {
+  if (!request.headers.get("content-type")?.startsWith("application/json")) throw new Error("content_type");
+  const input = JSON.parse(await readBounded(request, 4096, signal));
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("invalid_input");
+  const { query, platform, fixture, presentation = "flat", node = "root" } = input;
+  if (typeof query !== "string" || !query.trim() || Array.from(query).length > 512 ||
+      typeof platform !== "string" || !platforms.includes(platform as Platform) ||
+      typeof fixture !== "string" || !Object.hasOwn(fixtures, fixture) ||
+      !["flat", "branches"].includes(presentation) || typeof node !== "string") throw new Error("invalid_input");
+  return { query, platform: platform as Platform, fixture: fixture as ContextFixture,
+    presentation: presentation as Presentation, node,
+    offered: candidates(platform as Platform, fixture as ContextFixture, presentation as Presentation, node) };
+}
+async function retrieve(request: Request, retriever: Retriever) {
+  const abort = new AbortController(), timeout = setTimeout(() => abort.abort(), 3000);
+  let input;
+  try { input = await readInput(request, abort.signal); }
+  catch { return json({ error: "Use a bounded query and declared platform/context/branch" }, 400); }
+  finally { clearTimeout(timeout); }
+  try {
+    if (request.signal.aborted) return json({ error: "Retrieval canceled" }, 408);
+    const result = await retriever.search(input.query, input.offered);
+    return json(result);
+  } catch { return json({ error: "Local retrieval unavailable; Jev remains available" }, 503); }
+}
 async function decide(request: Request, settings: Settings, upstream: typeof fetch, now: number) {
   const abort = new AbortController();
   const onCancel = () => abort.abort();
@@ -48,23 +75,9 @@ async function decide(request: Request, settings: Settings, upstream: typeof fet
   let timeout = setTimeout(() => abort.abort(), 3000);
   try {
     let input;
-    try {
-      if (!request.headers.get("content-type")?.startsWith("application/json")) throw new Error("content_type");
-      input = JSON.parse(await readBounded(request, 4096, abort.signal));
-    } catch { return json({ error: "Use a JSON request of at most 4 KB" }, 400); }
-    if (!input || typeof input !== "object" || Array.isArray(input)) return json({ error: "Use a JSON request object" }, 400);
-    const { query, platform, fixture, presentation = "flat", node = "root" } = input as {
-      query?: unknown; platform?: unknown; fixture?: unknown; presentation?: unknown; node?: unknown;
-    };
-    if (typeof query !== "string" || !query.trim() || Array.from(query).length > 512 ||
-        typeof platform !== "string" || !platforms.includes(platform as Platform) ||
-        typeof fixture !== "string" || !Object.hasOwn(fixtures, fixture) ||
-        (presentation !== "flat" && presentation !== "branches") || typeof node !== "string") {
-      return json({ error: "Choose a platform/fixture and enter 1–512 characters" }, 400);
-    }
-    let offered;
-    try { offered = candidates(platform as Platform, fixture as ContextFixture, presentation as Presentation, node); }
-    catch { return json({ error: "Choose a declared branch; depth is limited to root plus one child level" }, 400); }
+    try { input = await readInput(request, abort.signal); }
+    catch { return json({ error: "Use a bounded query and declared platform/context/branch" }, 400); }
+    const { query, platform, fixture, presentation, node, offered } = input;
     clearTimeout(timeout); timeout = setTimeout(() => abort.abort(), 15_000);
     const res = await upstream(settings.endpoint, {
       method: "POST", signal: abort.signal, redirect: "error",
@@ -82,22 +95,37 @@ async function decide(request: Request, settings: Settings, upstream: typeof fet
   finally { clearTimeout(timeout); request.signal.removeEventListener("abort", onCancel); }
 }
 
-export function handler(settings: Settings, upstream: typeof fetch = fetch) {
+function localHandler(retriever?: Retriever) {
+  let active = 0;
+  let requests: number[] = [];
+  return async (request: Request, now: number) => {
+    if (!retriever?.enabled) return json({ error: "Local retrieval disabled" }, 503);
+    requests = requests.filter(time => now - time < 60_000);
+    if (active >= 2 || requests.length >= 600) return json({ error: "Local retrieval request limit" }, 429);
+    requests.push(now); active++;
+    try { return await retrieve(request, retriever); }
+    finally { active--; }
+  };
+}
+export function handler(settings: Settings, upstream: typeof fetch = fetch, retriever?: Retriever) {
+  const localRequest = localHandler(retriever);
   let active = 0;
   let requests: number[] = [];
   return async (request: Request) => {
     const url = new URL(request.url);
     if (url.origin !== settings.origin) return json({ error: "Unexpected host" }, 403);
     if (url.pathname === "/api/catalog" && request.method === "GET") {
-      return json({ platforms, items, branches, ready: Boolean(settings.virtualKey && settings.listenerToken), fixtureOnly: true, model: "Jev via EAVS" });
+      return json({ platforms, items, branches, retrievalEnabled: retriever?.enabled ?? false, ready: Boolean(settings.virtualKey && settings.listenerToken), fixtureOnly: true, model: "Jev via EAVS" });
     }
-    if (url.pathname !== "/api/suggest") return json({ error: "Not found" }, 404);
+    const local = url.pathname === "/api/retrieve";
+    if (url.pathname !== "/api/suggest" && !local) return json({ error: "Not found" }, 404);
     if (request.method !== "POST") return json({ error: "Use POST" }, 405);
     if (request.headers.get("origin") !== settings.origin || !matchesKey(request.headers.get("x-prototype-key"), settings.reviewKey)) {
       return json({ error: "The private local prototype connection is required" }, 403);
     }
-    if (!settings.virtualKey || !settings.listenerToken) return json({ error: "EAVS credentials unavailable" }, 503);
     const now = Date.now();
+    if (local) return localRequest(request, now);
+    if (!settings.virtualKey || !settings.listenerToken) return json({ error: "EAVS credentials unavailable" }, 503);
     requests = requests.filter(time => now - time < 60_000);
     if (active >= 2 || requests.length >= 12) return json({ error: "Request limit reached; wait a moment" }, 429);
     requests.push(now); active++;
@@ -150,12 +178,17 @@ if (import.meta.main) {
   let settings;
   try { settings = await loadSettings(); }
   catch { console.error("Cannot read ctx/config.toml or the explicitly selected EAVS profile. No credentials were printed."); process.exit(1); }
+  let retrievalConfig;
+  try { retrievalConfig = await loadRetrievalConfig(); }
+  catch { console.error("Invalid [retrieval] settings in ctx/config.toml. No settings were printed."); process.exit(1); }
+  const retriever = new EvokeWorker(retrievalConfig);
   const port = new URL(settings.origin).port;
-  const server = Bun.serve({ hostname: "127.0.0.1", port: Number(port), idleTimeout: 30, fetch: handler(settings) });
+  const server = Bun.serve({ hostname: "127.0.0.1", port: Number(port), idleTimeout: 30, fetch: handler(settings, fetch, retriever) });
   const descriptor = await publishConnection(settings);
   console.log(`Native ctx adapter: ${settings.origin}; EAVS ${settings.virtualKey && settings.listenerToken ? "configured" : "credentials unavailable"}`);
   console.log("Synthetic context only. Selections do not execute actions. Connection credentials are in the private local state descriptor, not browser assets.");
   const stop = async () => {
+    retriever.close();
     server.stop();
     if (await Bun.file(descriptor).exists() && (await Bun.file(descriptor).json()).reviewKey === settings.reviewKey) await rm(descriptor, { force: true });
     process.exit(0);

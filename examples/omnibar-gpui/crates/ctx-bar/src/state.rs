@@ -61,6 +61,9 @@ pub struct State {
     pub timeout_enabled: bool,
     pub timer: Option<TimerTicket>,
     pub focused: bool,
+    pub provisional: bool,
+    pub local_note: Option<String>,
+    intervened: bool,
     timer_serial: u64,
 }
 
@@ -83,6 +86,9 @@ impl State {
             timeout_enabled,
             timer: None,
             focused: true,
+            provisional: false,
+            local_note: None,
+            intervened: false,
             timer_serial: 0,
         }
     }
@@ -115,11 +121,22 @@ impl State {
         self.receipt = None;
         self.selected = 0;
         self.source.clear();
+        self.provisional = false;
+        self.local_note = None;
+        self.intervened = false;
         self.status = if self.query.trim().is_empty() || is_local_or_theme_prefix(&self.query) {
             Status::Overview
         } else {
             Status::Loading
         };
+    }
+    /// Native submit/IME may emit Change without changing text. Do not reopen a preview.
+    pub fn input_change(&mut self, query: String) -> bool {
+        if self.query == query {
+            return false;
+        }
+        self.edit(query);
+        true
     }
     pub fn edit(&mut self, query: String) {
         self.query = query;
@@ -162,14 +179,65 @@ impl State {
             self.cancel_timer()
         }
     }
+    /// Provisional local rows leave the remote request loading and never arm a timer.
+    pub fn complete_local(&mut self, generation: u64, result: Result<Vec<Item>, String>) -> bool {
+        if generation != self.generation || self.remote_request().is_none() || self.intervened {
+            return false;
+        }
+        self.cancel_timer();
+        match result {
+            Ok(items) => {
+                if items.iter().any(|item| item.probability.is_some()) {
+                    return false;
+                }
+                self.items = items;
+                self.selected = 0;
+                self.provisional = true;
+                self.source = "Local Evoke".into();
+                self.local_note = Some("Local · Jev pending · F2: all".into());
+            }
+            Err(_) => self.local_note = Some("Local unavailable · F2: all".into()),
+        }
+        true
+    }
+    /// Explicit catalog browsing is not an inferred answer and cancels pending decisions.
+    pub fn browse(&mut self, mut items: Vec<Item>) -> bool {
+        if self.query.trim().is_empty() || is_local_or_theme_prefix(&self.query) {
+            return false;
+        }
+        self.invalidate();
+        for item in &mut items {
+            item.probability = None;
+        }
+        self.items = items;
+        self.status = Status::Ready;
+        self.provisional = true;
+        self.source = "Catalog browse".into();
+        self.local_note = Some("Catalog · preview only".into());
+        self.intervened = true;
+        true
+    }
     pub fn complete(&mut self, generation: u64, result: Result<Suggestions, String>) -> bool {
         if generation != self.generation || self.status != Status::Loading {
             return false;
         }
         self.cancel_timer();
+        self.provisional = false;
+        self.local_note = None;
+        let selected_id = self.items.get(self.selected).map(|item| item.id.clone());
+        self.items.clear();
+        self.selected = 0;
+        self.source.clear();
         match result {
             Ok(response) => {
                 self.items = response.items;
+                if self.intervened {
+                    self.selected = self
+                        .items
+                        .iter()
+                        .position(|item| Some(&item.id) == selected_id.as_ref())
+                        .unwrap_or(0);
+                }
                 self.source = response.source;
                 self.latency_ms = response.latency_ms;
                 self.status = if self.items.is_empty() {
@@ -177,7 +245,11 @@ impl State {
                 } else {
                     Status::Ready
                 };
-                if self.timeout_enabled && self.focused && !self.items.is_empty() {
+                if self.timeout_enabled
+                    && self.focused
+                    && !self.items.is_empty()
+                    && !self.intervened
+                {
                     self.timer = Some(TimerTicket {
                         generation,
                         serial: self.timer_serial,
@@ -190,6 +262,7 @@ impl State {
         true
     }
     pub fn navigate(&mut self, delta: isize) {
+        self.intervened = true;
         self.cancel_timer();
         if self.items.is_empty() {
             return;
@@ -197,9 +270,15 @@ impl State {
         self.selected =
             (self.selected as isize + delta).rem_euclid(self.items.len() as isize) as usize;
     }
+    pub fn choose_current(&mut self, generation: u64, index: usize, id: &str) -> Option<Selection> {
+        if generation != self.generation || self.items.get(index).is_none_or(|item| item.id != id) {
+            return None;
+        }
+        self.choose(index)
+    }
     pub fn choose(&mut self, index: usize) -> Option<Selection> {
         self.cancel_timer();
-        if self.status != Status::Ready {
+        if self.status != Status::Ready && !(self.status == Status::Loading && self.provisional) {
             return None;
         }
         let item = self.items.get(index)?.clone();
@@ -222,6 +301,8 @@ impl State {
                 request: self.request(),
                 source: self.source.clone(),
             });
+            self.provisional = false;
+            self.local_note = None;
             self.status = Status::Preview(format!(
                 "Selected {} / {}: {} — preview only; nothing executed.",
                 item.tool, item.interface, item.label

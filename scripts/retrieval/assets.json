@@ -1,0 +1,11 @@
+{
+  "source": "fda0e480329150d47e60735ad80ad90c41f01b09",
+  "model": "4ef29e090fd5a8480cc0830132d8011ac68dd71b",
+  "files": {
+    "config.json": "c82d13490aa7919a83915f810cb16f614cb2737121ff98cee7f428ee8c851ea9",
+    "tokenizer.json": "33465117406b9007673e8ba283f7f1383d9b5094df947481af60eec94ed7d7bd",
+    "granite-embedding-30m-sparse-L64-fp16.mlpackage/Data/com.apple.CoreML/model.mlmodel": "1910f036d332ab96ad0152fb89634a02de44a956192d8775389c893cb8224ff9",
+    "granite-embedding-30m-sparse-L64-fp16.mlpackage/Data/com.apple.CoreML/weights/weight.bin": "6dea4b191d4ddeb2804e4474048b36de09ce3ff8a999164ca470796dc27ebe78",
+    "granite-embedding-30m-sparse-L64-fp16.mlpackage/Manifest.json": "01754dbd180d03a7c6917991996fc2fb43d730a56c87eb0f3dd3cc1852ec958f"
+  }
+}

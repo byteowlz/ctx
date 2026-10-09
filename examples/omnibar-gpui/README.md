@@ -60,6 +60,9 @@ Generation/timer tickets reject stale completions. Config precedence is CLI >
 `--config` file > `CTX__BAR__...` environment (old `CTX_BAR__...` alias retained)
 > local `ctx.toml` > global `$XDG_CONFIG_HOME/ctx/config.toml` (`~/.config` fallback).
 Native settings live in `[bar]`; `[eavs]` in the same file configures the backend.
+Optional `[retrieval]` enables local CPU Evoke candidates while Jev is pending;
+F2 browses the full offered scope, Enter previews only. No local probability or
+timer, no filtering of Jev's choices. See [setup and proof limits](../../docs/local-retrieval.md).
 First launch adds only a missing bar table/schema, preserving other settings and
 comments. A prior `omnibar-gpui.toml` is a one-time read-only migration source;
 existing shared `[bar]` wins. Explicit legacy flat native files still load. `height` is maximum

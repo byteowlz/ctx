@@ -71,10 +71,12 @@ pub struct Catalog {
     pub items: Vec<Item>,
     #[serde(default)]
     pub branches: Vec<Item>,
+    #[serde(default, rename = "retrievalEnabled")]
+    pub retrieval_enabled: bool,
 }
 
 impl Catalog {
-    fn candidates(&self, request: &Request) -> Result<Vec<&Item>> {
+    pub fn candidates(&self, request: &Request) -> Result<Vec<&Item>> {
         let available: Vec<_> = self
             .items
             .iter()
@@ -147,6 +149,50 @@ pub struct Suggestions {
     pub items: Vec<Item>,
     pub source: String,
     pub latency_ms: f64,
+}
+
+/// Local retrieval ranks declarations, never produces decision probabilities.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalSuggestions {
+    pub ids: Vec<String>,
+    pub source: String,
+    pub latency_ms: f64,
+    pub truncated: bool,
+}
+
+pub fn validate_local(
+    response: LocalSuggestions,
+    request: &Request,
+    catalog: &Catalog,
+) -> Result<Vec<Item>> {
+    if response.source != "Local Evoke"
+        || response.truncated
+        || response.ids.len() > 5
+        || !response.latency_ms.is_finite()
+        || response.latency_ms < 0.0
+    {
+        bail!("Local retrieval unavailable or outside its token budget")
+    }
+    let offered = catalog.candidates(request)?;
+    let mut seen = HashSet::new();
+    response
+        .ids
+        .into_iter()
+        .map(|id| {
+            if !seen.insert(id.clone()) {
+                bail!("Duplicate local candidate")
+            }
+            let expected = offered
+                .iter()
+                .copied()
+                .find(|item| item.id == id)
+                .ok_or_else(|| anyhow::anyhow!("Unoffered local candidate"))?;
+            let mut item = expected.clone();
+            item.probability = None;
+            Ok(item)
+        })
+        .collect()
 }
 
 /// Validate against prototype fixtures, never treat model confidence as authorization.

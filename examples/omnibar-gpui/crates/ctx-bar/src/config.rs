@@ -176,7 +176,7 @@ fn bar_layer(path: &Path, required: bool, legacy_flat: bool) -> Result<config::C
     let bar = match document.get("bar") {
         Some(bar) => bar.clone(),
         None if legacy_flat
-            && !["capture", "providers", "output", "ocr", "eavs"]
+            && !["capture", "providers", "output", "ocr", "eavs", "retrieval"]
                 .iter()
                 .any(|key| document.get(key).is_some()) =>
         {

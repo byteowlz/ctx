@@ -17,10 +17,14 @@ pub enum Scene {
     Preview,
     Long,
     Unicode,
+    Retrieval,
+    Catalog,
+    RetrievalUnavailable,
+    RetrievalRefusal,
 }
 
 impl Scene {
-    pub const ALL: [Self; 11] = [
+    pub const ALL: [Self; 15] = [
         Self::Empty,
         Self::Local,
         Self::Tools,
@@ -32,13 +36,30 @@ impl Scene {
         Self::Preview,
         Self::Long,
         Self::Unicode,
+        Self::Retrieval,
+        Self::Catalog,
+        Self::RetrievalUnavailable,
+        Self::RetrievalRefusal,
     ];
 
     pub fn id(self) -> &'static str {
         // Closed fixture metadata, in discriminant order; no product-role logic.
         const IDS: [&str; Scene::ALL.len()] = [
-            "empty", "local", "tools", "branch", "child", "loading", "error", "no-match",
-            "preview", "long", "unicode",
+            "empty",
+            "local",
+            "tools",
+            "branch",
+            "child",
+            "loading",
+            "error",
+            "no-match",
+            "preview",
+            "long",
+            "unicode",
+            "retrieval",
+            "catalog",
+            "retrieval-unavailable",
+            "retrieval-refusal",
         ];
         IDS[self as usize]
     }
@@ -55,6 +76,9 @@ impl Scene {
 pub(super) fn populate(state: &mut State, catalog: &Catalog, scene: Scene) {
     state.presentation = Presentation::Flat;
     state.edit(scene.query().into());
+    if populate_retrieval(state, catalog, scene) {
+        return;
+    }
     if matches!(scene, Scene::Empty | Scene::Local | Scene::Loading) {
         return;
     }
@@ -125,6 +149,61 @@ pub(super) fn populate(state: &mut State, catalog: &Catalog, scene: Scene) {
     }
 }
 
+fn populate_retrieval(state: &mut State, catalog: &Catalog, scene: Scene) -> bool {
+    let Ok(offered) = catalog.candidates(&state.request()) else {
+        return false;
+    };
+    let items = offered.into_iter().cloned().collect::<Vec<_>>();
+    match scene {
+        Scene::Retrieval => {
+            state.complete_local(state.generation, Ok(items.into_iter().take(5).collect()));
+        }
+        Scene::Catalog => {
+            state.browse(items);
+        }
+        Scene::RetrievalUnavailable => {
+            state.complete_local(state.generation, Err("Synthetic unavailable".into()));
+        }
+        Scene::RetrievalRefusal => {
+            state.complete_local(state.generation, Ok(items.into_iter().take(5).collect()));
+            state.complete(
+                state.generation,
+                Ok(Suggestions {
+                    items: vec![],
+                    source: "synthetic-native-retrieval-refusal-not-Jev".into(),
+                    latency_ms: 0.0,
+                }),
+            );
+        }
+        _ => return false,
+    }
+    true
+}
+
+#[cfg(test)]
+fn assert_retrieval_scene(state: &State, scene: Scene) {
+    use ctx_bar::state::Status;
+    match scene {
+        Scene::Retrieval => {
+            assert_eq!(state.status, Status::Loading);
+            assert_eq!(state.items.len(), 5);
+        }
+        Scene::Catalog => {
+            assert_eq!(state.status, Status::Ready);
+            assert!(state.items.len() > 5);
+        }
+        Scene::RetrievalUnavailable => {
+            assert_eq!(state.status, Status::Loading);
+            assert!(state.local_note.is_some());
+        }
+        Scene::RetrievalRefusal => {
+            assert_eq!(state.status, Status::NoMatch);
+            assert!(state.items.is_empty());
+        }
+        _ => unreachable!("not a retrieval fixture"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -135,8 +214,21 @@ mod tests {
     #[test]
     fn fixture_discriminants_and_ids_cover_the_closed_scene_table() {
         let expected = [
-            "empty", "local", "tools", "branch", "child", "loading", "error", "no-match",
-            "preview", "long", "unicode",
+            "empty",
+            "local",
+            "tools",
+            "branch",
+            "child",
+            "loading",
+            "error",
+            "no-match",
+            "preview",
+            "long",
+            "unicode",
+            "retrieval",
+            "catalog",
+            "retrieval-unavailable",
+            "retrieval-refusal",
         ];
         for (index, scene) in Scene::ALL.into_iter().enumerate() {
             assert_eq!(scene as usize, index);
@@ -185,6 +277,7 @@ mod tests {
                 Scene::Loading => assert_eq!(status_role(&state.status), Role::Status),
                 Scene::NoMatch => assert_eq!(state.status, Status::NoMatch),
                 Scene::Empty => assert_eq!(state.status, Status::Overview),
+                _ => assert_retrieval_scene(&state, scene),
             }
         }
     }

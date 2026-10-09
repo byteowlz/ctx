@@ -35,6 +35,11 @@ model = "jev-latest"
 profile = "your-existing-authorized-eavs-profile"
 ```
 
+Optional `[retrieval]` in this same file enables the installed local CPU Evoke
+worker. `/api/retrieve` shares the private Origin/key boundary but has separate
+rate/concurrency limits; no provider credentials reach the helper. Jev's offered
+catalog and refusal remain unchanged. See [installation/behavior](../../docs/local-retrieval.md).
+
 No second user configuration file is needed. Startup adds only a missing `[eavs]`
 table, retaining other settings/comments and old files. The previous
 `omnibar-prototype.toml` is a one-time read-only migration source (`eavs_profile`

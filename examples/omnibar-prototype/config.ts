@@ -13,7 +13,7 @@ export async function readToml(path: string): Promise<Record<string, any>> {
   return await Bun.file(path).exists() ? Bun.TOML.parse(await Bun.file(path).text()) : {};
 }
 function section(document: Record<string, any>, legacy = false): EavsConfig {
-  const shared = ["bar", "capture", "providers", "output", "ocr"].some(key => Object.hasOwn(document, key));
+  const shared = ["bar", "capture", "providers", "output", "ocr", "retrieval"].some(key => Object.hasOwn(document, key));
   const value = document.eavs ?? (legacy && !shared ? document : {});
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("EAVS settings must be a table");
   const config = { ...value };

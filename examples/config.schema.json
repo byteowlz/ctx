@@ -76,6 +76,17 @@
       },
       "additionalProperties": false
     },
+    "retrieval": {
+      "type": "object",
+      "description": "Optional local recall worker in the ctx adapter; no decisions or authorization. Explicitly install pinned assets first.",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {"type": "boolean", "default": false},
+        "backend": {"enum": ["cpu", "ane"], "default": "cpu"},
+        "worker_path": {"type": "string", "description": "Absolute installed executable path; defaults to XDG cache ctx/retrieval-runtime/worker."},
+        "model_dir": {"type": "string", "description": "Absolute pinned model directory; defaults to XDG cache ctx/retrieval-probe/model."}
+      }
+    },
     "bar": {
       "type": "object",
       "description": "Native ctx-bar preferences. Input theme changes remain local to the running app.",

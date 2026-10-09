@@ -55,6 +55,12 @@ commits, and pushes to the separate shared schemas repository.
   Unix including macOS. Do not introduce a separate bar/prototype config file.
   Startup migrates missing tables from old files without deleting them; existing
   shared tables win. Core config saves must retain other consumers' tables.
+- Optional `[retrieval]` belongs to the adapter in the same ctx configuration.
+  Install its pinned assets explicitly with `just install-retrieval`; never
+  infer/download on the GPUI input/render thread. Local sparse candidates are
+  uncalibrated preview-only recall; they must not hard-filter Jev, arm timers or
+  replace refusal/authorization. F2 browses the full offered scope explicitly.
+  Keep model/derived index replaceable and out of ctx-core. See docs/local-retrieval.md.
 - Data/state paths retain their existing XDG/platform defaults. Windows core
   config currently uses APPDATA; native alignment there remains a separate gate.
   See `ctx-core/src/directories.rs`. First load creates a commented config.

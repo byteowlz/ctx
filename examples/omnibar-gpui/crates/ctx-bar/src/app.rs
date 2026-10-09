@@ -20,6 +20,9 @@ use ctx_bar_design::{BarDesign, theme_choices};
 
 use crate::presentation;
 
+#[path = "local_retrieval.rs"]
+mod local_retrieval;
+
 #[path = "surfaces.rs"]
 mod surfaces;
 use surfaces::{Frame, Role};
@@ -37,6 +40,8 @@ pub struct Bar {
     catalog_ready: bool,
     connection: String,
     busy: bool,
+    local_busy: bool,
+    local_generation: Option<u64>,
     remaining: u64,
     height: f32,
     review: bool,
@@ -64,10 +69,13 @@ impl Bar {
             catalog: fixture_catalog().unwrap_or(Catalog {
                 items: vec![],
                 branches: vec![],
+                retrieval_enabled: false,
             }),
             catalog_ready: false,
             connection: "Start the local omnibar adapter, then edit to retry.".into(),
             busy: false,
+            local_busy: false,
+            local_generation: None,
             remaining: 0,
             height,
             review,
@@ -92,7 +100,9 @@ impl Bar {
                 InputEvent::Change => {
                     #[cfg(feature = "native-review")]
                     presentation::diagnose(cx, |d| d.changes += 1);
-                    this.state.edit(input.read(cx).value().to_string());
+                    if !this.state.input_change(input.read(cx).value().to_string()) {
+                        return;
+                    }
                     this.local_themes = theme_choices(&this.state.query);
                     this.scroll.scroll_to_item(0);
                     #[cfg(feature = "native-review")]
@@ -195,6 +205,7 @@ impl Bar {
             cx.notify();
             return;
         }
+        self.schedule_local(cx);
         let generation = self.state.generation;
         let delay = if debounce { self.config.debounce_ms } else { 0 };
         cx.spawn(async move |this, cx| {
@@ -303,6 +314,17 @@ impl Bar {
             self.selection(selection, cx)
         }
     }
+    fn choose_candidate(
+        &mut self,
+        generation: u64,
+        index: usize,
+        id: &str,
+        cx: &mut Context<Self>,
+    ) {
+        if let Some(selection) = self.state.choose_current(generation, index, id) {
+            self.selection(selection, cx);
+        }
+    }
     fn back(&mut self, cx: &mut Context<Self>) {
         if self.state.back() {
             self.scroll.scroll_to_item(0);
@@ -328,6 +350,7 @@ impl Bar {
             "escape" => {
                 self.escape_input(window, cx);
             }
+            "f2" if self.catalog.retrieval_enabled => self.browse_all(cx),
             _ => return,
         }
         window.prevent_default();
@@ -337,7 +360,9 @@ impl Bar {
     fn navigate(&mut self, delta: isize) -> bool {
         let count = match &self.local_themes {
             Some(choices) => choices.len(),
-            None if self.state.status == Status::Ready => self.state.items.len(),
+            None if self.state.status == Status::Ready || self.state.provisional => {
+                self.state.items.len()
+            }
             _ => return false,
         };
         if count == 0 {
@@ -376,9 +401,14 @@ impl Bar {
         if self.state.timer.is_some() {
             return format!("First preview in {}s · nothing executes", self.remaining);
         }
+        if let Some(note) = &self.state.local_note {
+            return note.clone();
+        }
         match &self.state.status {
+            Status::Ready if self.catalog.retrieval_enabled => "Jev · F2: all".into(),
             Status::Overview | Status::Ready => String::new(),
             Status::Loading => "Asking Jev…".into(),
+            Status::NoMatch if self.catalog.retrieval_enabled => "No Jev match · F2: all".into(),
             Status::NoMatch => "No matching interface. Edit the request to retry.".into(),
             Status::Error(error) | Status::Preview(error) => error.clone(),
         }
@@ -426,16 +456,23 @@ impl Bar {
             return;
         };
         self.review_scene(design, scene.query(), window, cx);
+        self.catalog.retrieval_enabled = matches!(
+            scene,
+            surface_review::Scene::Retrieval
+                | surface_review::Scene::Catalog
+                | surface_review::Scene::RetrievalUnavailable
+                | surface_review::Scene::RetrievalRefusal
+        );
         surface_review::populate(&mut self.state, &self.catalog, scene);
         cx.notify();
     }
 
-    /// Explicit synthetic review seam for first-party input dispatch. Ordinary
-    /// runs never expose a handle through this hook; no transport or capture.
+    /// Feature-only input seam for hidden synthetic review or explicit transport proofs.
+    /// Obtaining the handle does not enable fixture routing; normal builds omit it.
     #[cfg(feature = "native-review")]
     #[allow(dead_code)] // Consumed by the separately compiled hidden-native example.
     pub fn review_input(&self) -> Option<Entity<InputState>> {
-        self.review.then(|| self.input.clone())
+        Some(self.input.clone())
     }
 
     #[cfg(feature = "native-review")]
@@ -447,6 +484,10 @@ impl Bar {
             "selected": self.state.selected, "node": self.state.node,
             "routable": self.state.remote_request().is_some(),
             "timer": self.state.timer.is_some(), "generation": self.state.generation,
+            "status": format!("{:?}", self.state.status), "source": self.state.source,
+            "provisional": self.state.provisional, "ids": self.state.items.iter().map(|item| &item.id).collect::<Vec<_>>(),
+            "retrieval_enabled": self.catalog.retrieval_enabled,
+            "receipt_source": self.state.receipt.as_ref().map(|receipt| &receipt.source),
             "input_diagnostics": cx.try_global::<presentation::InputDiagnostics>(),
             "surface_diagnostics": cx.try_global::<surfaces::Diagnostics>(),
         })
@@ -489,7 +530,7 @@ impl Render for Bar {
         let message = self.status_text();
         let count = self.local_themes.as_ref().map_or_else(
             || {
-                if self.state.status == Status::Ready {
+                if self.state.status == Status::Ready || self.state.provisional {
                     self.state.items.len()
                 } else {
                     0
@@ -636,14 +677,16 @@ impl Bar {
             }
         } else {
             for (index, item) in self.state.items.iter().enumerate() {
+                let generation = self.state.generation;
+                let id = item.id.clone();
                 list = list.child(
                     surface
                         .row(index == self.state.selected)
                         .id(SharedString::from(format!("suggestion-{index}")))
                         .cursor_pointer()
-                        .on_click(
-                            cx.listener(move |this, _, window, cx| this.choose(index, window, cx)),
-                        )
+                        .on_click(cx.listener(move |this, _, _, cx| {
+                            this.choose_candidate(generation, index, &id, cx);
+                        }))
                         .child(
                             Icon::new(icon(&item.icon))
                                 .size(px(18.))

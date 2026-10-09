@@ -53,3 +53,8 @@ args = []
 # model = "jev-latest"
 # profile = "an-existing-authorized-eavs-profile"
 # Listener auth is read from the existing private EAVS configuration.
+#
+# Optional local recall (macOS Apple Silicon); install with just install-retrieval.
+# [retrieval]
+# enabled = false
+# backend = "cpu"

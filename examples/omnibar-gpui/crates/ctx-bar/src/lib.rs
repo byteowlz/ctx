@@ -5,3 +5,6 @@ pub mod layout;
 pub mod model;
 pub mod proxy;
 pub mod state;
+
+#[cfg(test)]
+mod retrieval_tests;

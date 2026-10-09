@@ -429,6 +429,10 @@ args = []
 # endpoint = "http://127.0.0.1:3033/jev/v1/systemone"
 # model = "jev-latest"
 # profile = "an-existing-authorized-eavs-profile"
+# Optional local recall; install assets explicitly with just install-retrieval.
+# [retrieval]
+# enabled = false
+# backend = "cpu"
 # Listener auth is read from the existing private EAVS configuration.
 "#,
         include_clipboard = default_include_clipboard(),
@@ -683,12 +687,13 @@ mod tests {
         assert_eq!(output.state_file, cfg.output.state_file);
         assert_eq!(output.bundle_dir, cfg.output.bundle_dir);
 
-        let extra = "\n[bar]\ndesign = 'corners'\n[eavs]\nmodel = 'jev-latest'\nvirtual_key = 'synthetic'\n[future]\nenabled = true\n";
+        let extra = "\n[bar]\ndesign = 'corners'\n[eavs]\nmodel = 'jev-latest'\nvirtual_key = 'synthetic'\n[retrieval]\nenabled = true\nbackend = 'cpu'\n[future]\nenabled = true\n";
         fs::write(&path, format!("{content}{extra}"))?;
         save_config(default_app_name(), &cfg)?;
         let saved: toml::Value = toml::from_str(&fs::read_to_string(&path)?)?;
         assert_eq!(saved["bar"]["design"].as_str(), Some("corners"));
         assert_eq!(saved["eavs"]["virtual_key"].as_str(), Some("synthetic"));
+        assert_eq!(saved["retrieval"]["enabled"].as_bool(), Some(true));
         assert_eq!(saved["future"]["enabled"].as_bool(), Some(true));
         fs::write(&path, "invalid = [")?;
         assert!(save_config(default_app_name(), &cfg).is_err());

@@ -103,6 +103,14 @@ omnibar-check:
 benchmark-retrieval output="":
     bash scripts/retrieval/run.sh {{quote(output)}}
 
+# Explicit pinned macOS helper/model install; no download during typing or startup.
+install-retrieval:
+    bash scripts/retrieval/install.sh
+
+# Real installed CPU helper checks (synthetic only; no download, window or Jev).
+test-retrieval-runtime:
+    CTX_TEST_RETRIEVAL=true bun test examples/omnibar-prototype/retrieval-runtime.test.ts
+
 # Fast no-model fixture checks, available on every platform.
 validate-retrieval-fixtures:
     bun test scripts/retrieval/fixtures.test.ts
