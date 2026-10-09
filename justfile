@@ -59,7 +59,7 @@ test-all:
     cargo test --workspace --all-features --no-fail-fast
 
 # Comprehensive local baseline (YAML tooling/CI are outside this check)
-check-all: check fmt-check clippy test-all validate-examples check-repo-hygiene
+check-all: check fmt-check clippy test-all validate-examples check-repo-hygiene validate-retrieval-fixtures
 
 # Archive clone-local legacy Beads integration; preserve trx and unrelated hooks
 purge-beads:
@@ -98,6 +98,14 @@ run *args:
 omnibar-check:
     bun test examples/omnibar-prototype
     just --working-directory examples/omnibar-gpui --justfile examples/omnibar-gpui/justfile check-all
+
+# Synthetic on-device retrieval experiment; downloads pinned public assets to cache.
+benchmark-retrieval output="":
+    bash scripts/retrieval/run.sh {{quote(output)}}
+
+# Fast no-model fixture checks, available on every platform.
+validate-retrieval-fixtures:
+    bun test scripts/retrieval/fixtures.test.ts
 
 # Run the loopback adapter using ctx/config.toml [eavs]; optional legacy profile override
 omnibar-server profile="":

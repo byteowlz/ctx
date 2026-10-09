@@ -1,0 +1,6210 @@
+{
+  "backend_requested" : "ane",
+  "compute_units_not_placement_proof" : true,
+  "corpora" : [
+    {
+      "index_construction_ms" : 0.53100000000000003,
+      "latency_ms" : {
+        "bm25_end_to_end" : {
+          "max" : 0.03125,
+          "median" : 0.012167000000000001,
+          "min" : 0.0060410000000000004,
+          "p95" : 0.017959000000000003
+        },
+        "eligibility" : {
+          "max" : 0.010416,
+          "median" : 0.0019580000000000001,
+          "min" : 0.0011670000000000001,
+          "p95" : 0.002833
+        },
+        "encode_with_transform" : {
+          "max" : 3.2667920000000001,
+          "median" : 2.6735000000000002,
+          "min" : 2.070792,
+          "p95" : 2.984791
+        },
+        "hybrid_end_to_end" : {
+          "max" : 3.4647099999999997,
+          "median" : 2.900957,
+          "min" : 2.2706649999999997,
+          "p95" : 3.2091259999999995
+        },
+        "prediction" : {
+          "max" : 3.1967080000000001,
+          "median" : 2.588333,
+          "min" : 1.9982500000000001,
+          "p95" : 2.8929580000000001
+        },
+        "sparse_end_to_end" : {
+          "max" : 3.4551259999999999,
+          "median" : 2.8837919999999997,
+          "min" : 2.2612899999999998,
+          "p95" : 3.1934589999999998
+        },
+        "sparse_search" : {
+          "max" : 0.046959000000000001,
+          "median" : 0.026374999999999999,
+          "min" : 0.010375000000000001,
+          "p95" : 0.039165999999999999
+        },
+        "tokenize" : {
+          "max" : 0.24216699999999999,
+          "median" : 0.170125,
+          "min" : 0.135625,
+          "p95" : 0.208375
+        }
+      },
+      "prefixes" : [
+        {
+          "end_to_end_ms" : 3.061375,
+          "text" : "l",
+          "top5" : [
+            "tasks.add",
+            "display.night",
+            "appearance.open",
+            "dictation.start",
+            "display.open"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.7795000000000001,
+          "text" : "li",
+          "top5" : [
+            "tasks.add",
+            "dictation.start",
+            "display.night",
+            "appearance.open",
+            "display.open"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.6745420000000002,
+          "text" : "lig",
+          "top5" : [
+            "tasks.add",
+            "dictation.start",
+            "display.night",
+            "sound.output",
+            "memory.search"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.7156250000000002,
+          "text" : "light",
+          "top5" : [
+            "appearance.light",
+            "display.night",
+            "display.brightness",
+            "appearance.dark",
+            "appearance.open"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.858625,
+          "text" : "light m",
+          "top5" : [
+            "display.night",
+            "appearance.light",
+            "display.brightness",
+            "appearance.dark",
+            "system.power"
+          ]
+        },
+        {
+          "end_to_end_ms" : 3.005792,
+          "text" : "light mode",
+          "top5" : [
+            "appearance.light",
+            "appearance.dark",
+            "display.brightness",
+            "display.night",
+            "system.power"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.805917,
+          "text" : "m",
+          "top5" : [
+            "memory.search",
+            "sound.input",
+            "dictation.start",
+            "appearance.open",
+            "display.open"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.677333,
+          "text" : "mi",
+          "top5" : [
+            "memory.search",
+            "sound.input",
+            "network.bluetooth",
+            "appearance.open",
+            "display.open"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.5200420000000001,
+          "text" : "mic",
+          "top5" : [
+            "sound.input",
+            "memory.search",
+            "sound.volume",
+            "appearance.open",
+            "oqto.open"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.7753749999999999,
+          "text" : "microphone",
+          "top5" : [
+            "sound.input",
+            "sound.output",
+            "network.bluetooth",
+            "sound.volume",
+            "network.wifi"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.6167919999999998,
+          "text" : "s",
+          "top5" : [
+            "appearance.open",
+            "sound.volume",
+            "system.lock",
+            "dictation.start",
+            "display.open"
+          ]
+        },
+        {
+          "end_to_end_ms" : 3.0072920000000001,
+          "text" : "sc",
+          "top5" : [
+            "screenshot.capture",
+            "appearance.open",
+            "clipboard.open",
+            "dictation.start",
+            "display.open"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.9579170000000001,
+          "text" : "screen",
+          "top5" : [
+            "system.lock",
+            "display.night",
+            "screenshot.capture",
+            "display.brightness",
+            "display.open"
+          ]
+        },
+        {
+          "end_to_end_ms" : 3.184625,
+          "text" : "screen brighter",
+          "top5" : [
+            "display.brightness",
+            "display.night",
+            "appearance.light",
+            "appearance.dark",
+            "display.open"
+          ]
+        }
+      ],
+      "quality" : {
+        "bm25" : {
+          "mrr" : 0.75737833594976456,
+          "no_match_nonempty_shortlists" : 6,
+          "no_match_queries" : 8,
+          "queries" : 84,
+          "recall_at_1" : 0.70238095238095233,
+          "recall_at_5" : 0.8571428571428571
+        },
+        "bm25.literal" : {
+          "mrr" : 1,
+          "no_match_nonempty_shortlists" : 0,
+          "no_match_queries" : 0,
+          "queries" : 28,
+          "recall_at_1" : 1,
+          "recall_at_5" : 1
+        },
+        "bm25.no-match" : {
+          "mrr" : 0,
+          "no_match_nonempty_shortlists" : 6,
+          "no_match_queries" : 8,
+          "queries" : 0,
+          "recall_at_1" : 0,
+          "recall_at_5" : 0
+        },
+        "bm25.paraphrase" : {
+          "mrr" : 0.63606750392464673,
+          "no_match_nonempty_shortlists" : 0,
+          "no_match_queries" : 0,
+          "queries" : 56,
+          "recall_at_1" : 0.5535714285714286,
+          "recall_at_5" : 0.7857142857142857
+        },
+        "hybrid_rrf60" : {
+          "mrr" : 0.8833672163504096,
+          "no_match_nonempty_shortlists" : 8,
+          "no_match_queries" : 8,
+          "queries" : 84,
+          "recall_at_1" : 0.83333333333333337,
+          "recall_at_5" : 0.94047619047619047
+        },
+        "hybrid_rrf60.literal" : {
+          "mrr" : 1,
+          "no_match_nonempty_shortlists" : 0,
+          "no_match_queries" : 0,
+          "queries" : 28,
+          "recall_at_1" : 1,
+          "recall_at_5" : 1
+        },
+        "hybrid_rrf60.no-match" : {
+          "mrr" : 0,
+          "no_match_nonempty_shortlists" : 8,
+          "no_match_queries" : 8,
+          "queries" : 0,
+          "recall_at_1" : 0,
+          "recall_at_5" : 0
+        },
+        "hybrid_rrf60.paraphrase" : {
+          "mrr" : 0.8250508245256144,
+          "no_match_nonempty_shortlists" : 0,
+          "no_match_queries" : 0,
+          "queries" : 56,
+          "recall_at_1" : 0.75,
+          "recall_at_5" : 0.9107142857142857
+        },
+        "sparse" : {
+          "mrr" : 0.96230158730158744,
+          "no_match_nonempty_shortlists" : 8,
+          "no_match_queries" : 8,
+          "queries" : 84,
+          "recall_at_1" : 0.9285714285714286,
+          "recall_at_5" : 1
+        },
+        "sparse.literal" : {
+          "mrr" : 1,
+          "no_match_nonempty_shortlists" : 0,
+          "no_match_queries" : 0,
+          "queries" : 28,
+          "recall_at_1" : 1,
+          "recall_at_5" : 1
+        },
+        "sparse.no-match" : {
+          "mrr" : 0,
+          "no_match_nonempty_shortlists" : 8,
+          "no_match_queries" : 8,
+          "queries" : 0,
+          "recall_at_1" : 0,
+          "recall_at_5" : 0
+        },
+        "sparse.paraphrase" : {
+          "mrr" : 0.94345238095238082,
+          "no_match_nonempty_shortlists" : 0,
+          "no_match_queries" : 0,
+          "queries" : 56,
+          "recall_at_1" : 0.8928571428571429,
+          "recall_at_5" : 1
+        }
+      },
+      "queries" : [
+        {
+          "group" : "literal",
+          "id" : "appearance.light.0",
+          "query" : "Switch to light mode",
+          "relevant" : [
+            "appearance.light"
+          ],
+          "results" : {
+            "bm25" : [
+              "appearance.light",
+              "appearance.dark",
+              "display.night",
+              "dictation.start"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.light",
+              "appearance.dark",
+              "display.night",
+              "dictation.start",
+              "display.brightness"
+            ],
+            "sparse" : [
+              "appearance.light",
+              "appearance.dark",
+              "display.brightness",
+              "display.night",
+              "system.power"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "appearance.light.1",
+          "query" : "make the operating system use a pale theme",
+          "relevant" : [
+            "appearance.light"
+          ],
+          "results" : {
+            "bm25" : [
+              "appearance.light",
+              "appearance.dark",
+              "appearance.open",
+              "screenshot.capture",
+              "tasks.add"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.light",
+              "appearance.dark",
+              "appearance.open",
+              "screenshot.capture",
+              "system.settings"
+            ],
+            "sparse" : [
+              "appearance.dark",
+              "appearance.light",
+              "appearance.open",
+              "system.settings",
+              "display.brightness"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "appearance.light.2",
+          "query" : "use a bright desktop appearance",
+          "relevant" : [
+            "appearance.light"
+          ],
+          "results" : {
+            "bm25" : [
+              "appearance.light",
+              "appearance.dark",
+              "screenshot.capture",
+              "appearance.open",
+              "system.lock"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.light",
+              "appearance.open",
+              "appearance.dark",
+              "screenshot.capture",
+              "system.lock"
+            ],
+            "sparse" : [
+              "appearance.open",
+              "appearance.light",
+              "appearance.dark",
+              "display.brightness",
+              "display.night"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "appearance.dark.0",
+          "query" : "Switch to dark mode",
+          "relevant" : [
+            "appearance.dark"
+          ],
+          "results" : {
+            "bm25" : [
+              "appearance.dark",
+              "appearance.light",
+              "dictation.start"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.dark",
+              "appearance.light",
+              "dictation.start",
+              "display.night",
+              "display.brightness"
+            ],
+            "sparse" : [
+              "appearance.dark",
+              "appearance.light",
+              "display.night",
+              "display.brightness",
+              "system.settings"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "appearance.dark.1",
+          "query" : "make the operating system use a dark theme",
+          "relevant" : [
+            "appearance.dark"
+          ],
+          "results" : {
+            "bm25" : [
+              "appearance.dark",
+              "appearance.light",
+              "appearance.open",
+              "screenshot.capture",
+              "tasks.add"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.dark",
+              "appearance.light",
+              "appearance.open",
+              "screenshot.capture",
+              "display.brightness"
+            ],
+            "sparse" : [
+              "appearance.dark",
+              "appearance.light",
+              "appearance.open",
+              "display.night",
+              "display.brightness"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "appearance.dark.2",
+          "query" : "give the desktop a black appearance",
+          "relevant" : [
+            "appearance.dark"
+          ],
+          "results" : {
+            "bm25" : [
+              "screenshot.capture",
+              "system.lock",
+              "appearance.light",
+              "appearance.dark",
+              "appearance.open"
+            ],
+            "hybrid_rrf60" : [
+              "screenshot.capture",
+              "system.lock",
+              "appearance.open",
+              "appearance.dark",
+              "appearance.light"
+            ],
+            "sparse" : [
+              "appearance.open",
+              "appearance.dark",
+              "system.lock",
+              "screenshot.capture",
+              "appearance.light"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "appearance.open.0",
+          "query" : "Open appearance settings",
+          "relevant" : [
+            "appearance.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "appearance.open",
+              "system.settings",
+              "appearance.light",
+              "appearance.dark",
+              "system.power"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.open",
+              "appearance.light",
+              "system.settings",
+              "appearance.dark",
+              "display.open"
+            ],
+            "sparse" : [
+              "appearance.open",
+              "display.open",
+              "appearance.light",
+              "appearance.dark",
+              "system.settings"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "appearance.open.1",
+          "query" : "where can I change the desktop wallpaper",
+          "relevant" : [
+            "appearance.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "screenshot.capture",
+              "appearance.open",
+              "display.night",
+              "files.open"
+            ],
+            "hybrid_rrf60" : [
+              "system.lock",
+              "appearance.open",
+              "screenshot.capture",
+              "display.night",
+              "system.settings"
+            ],
+            "sparse" : [
+              "appearance.open",
+              "system.lock",
+              "screenshot.capture",
+              "system.settings",
+              "appearance.light"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "appearance.open.2",
+          "query" : "show the controls for desktop colors",
+          "relevant" : [
+            "appearance.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "display.night",
+              "screenshot.capture",
+              "display.brightness",
+              "sound.volume"
+            ],
+            "hybrid_rrf60" : [
+              "display.night",
+              "display.brightness",
+              "screenshot.capture",
+              "appearance.open",
+              "system.lock"
+            ],
+            "sparse" : [
+              "appearance.open",
+              "display.night",
+              "display.brightness",
+              "screenshot.capture",
+              "appearance.dark"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "theme.pick.0",
+          "query" : "Choose an Omarchy theme",
+          "relevant" : [
+            "theme.pick"
+          ],
+          "results" : {
+            "bm25" : [
+              "theme.pick",
+              "appearance.light",
+              "appearance.dark",
+              "sound.output",
+              "appearance.open"
+            ],
+            "hybrid_rrf60" : [
+              "theme.pick",
+              "appearance.light",
+              "appearance.dark",
+              "appearance.open",
+              "sound.output"
+            ],
+            "sparse" : [
+              "theme.pick",
+              "appearance.dark",
+              "appearance.light",
+              "appearance.open",
+              "memory.search"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "theme.pick.1",
+          "query" : "browse the looks installed in Omarchy",
+          "relevant" : [
+            "theme.pick"
+          ],
+          "results" : {
+            "bm25" : [
+              "theme.pick",
+              "appearance.light",
+              "appearance.dark",
+              "system.lock",
+              "files.open"
+            ],
+            "hybrid_rrf60" : [
+              "theme.pick",
+              "appearance.light",
+              "appearance.dark",
+              "files.open",
+              "oqto.open"
+            ],
+            "sparse" : [
+              "theme.pick",
+              "appearance.light",
+              "appearance.dark",
+              "appearance.open",
+              "screenshot.capture"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "theme.pick.2",
+          "query" : "pick another Omarchy color scheme",
+          "relevant" : [
+            "theme.pick"
+          ],
+          "results" : {
+            "bm25" : [
+              "theme.pick",
+              "appearance.open",
+              "sound.output",
+              "appearance.light",
+              "appearance.dark"
+            ],
+            "hybrid_rrf60" : [
+              "theme.pick",
+              "appearance.open",
+              "appearance.dark",
+              "appearance.light",
+              "sound.output"
+            ],
+            "sparse" : [
+              "theme.pick",
+              "appearance.dark",
+              "appearance.light",
+              "appearance.open",
+              "display.night"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "sound.volume.0",
+          "query" : "Adjust volume",
+          "relevant" : [
+            "sound.volume"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.volume",
+              "display.brightness",
+              "display.night"
+            ],
+            "hybrid_rrf60" : [
+              "sound.volume",
+              "display.brightness",
+              "display.night",
+              "display.open",
+              "system.settings"
+            ],
+            "sparse" : [
+              "sound.volume",
+              "display.night",
+              "display.brightness",
+              "display.open",
+              "system.settings"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "sound.volume.1",
+          "query" : "my computer is too loud",
+          "relevant" : [
+            "sound.volume"
+          ],
+          "results" : {
+            "bm25" : [
+
+            ],
+            "hybrid_rrf60" : [
+              "sound.output",
+              "sound.volume",
+              "system.power",
+              "appearance.dark",
+              "sound.input"
+            ],
+            "sparse" : [
+              "sound.output",
+              "sound.volume",
+              "system.power",
+              "appearance.dark",
+              "sound.input"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "sound.volume.2",
+          "query" : "silence the speakers",
+          "relevant" : [
+            "sound.volume"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.output",
+              "system.lock",
+              "files.open",
+              "oqto.open",
+              "display.brightness"
+            ],
+            "hybrid_rrf60" : [
+              "sound.output",
+              "dictation.start",
+              "display.brightness",
+              "appearance.light",
+              "oqto.open"
+            ],
+            "sparse" : [
+              "sound.output",
+              "sound.volume",
+              "sound.input",
+              "dictation.start",
+              "network.bluetooth"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "sound.output.0",
+          "query" : "Choose audio output",
+          "relevant" : [
+            "sound.output"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.output",
+              "sound.volume",
+              "network.wifi",
+              "sound.input",
+              "dictation.start"
+            ],
+            "hybrid_rrf60" : [
+              "sound.output",
+              "sound.volume",
+              "sound.input",
+              "network.wifi",
+              "dictation.start"
+            ],
+            "sparse" : [
+              "sound.output",
+              "sound.input",
+              "sound.volume",
+              "network.bluetooth",
+              "dictation.start"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "sound.output.1",
+          "query" : "send computer sound to my headset instead",
+          "relevant" : [
+            "sound.output"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.output",
+              "sound.volume",
+              "sound.input",
+              "dictation.start",
+              "appearance.light"
+            ],
+            "hybrid_rrf60" : [
+              "sound.output",
+              "sound.input",
+              "sound.volume",
+              "dictation.start",
+              "appearance.light"
+            ],
+            "sparse" : [
+              "sound.output",
+              "sound.input",
+              "network.bluetooth",
+              "sound.volume",
+              "dictation.start"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "sound.output.2",
+          "query" : "change which speaker plays computer audio",
+          "relevant" : [
+            "sound.output"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.output"
+            ],
+            "hybrid_rrf60" : [
+              "sound.output",
+              "sound.input",
+              "sound.volume",
+              "network.bluetooth",
+              "dictation.start"
+            ],
+            "sparse" : [
+              "sound.output",
+              "sound.input",
+              "sound.volume",
+              "network.bluetooth",
+              "dictation.start"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "sound.input.0",
+          "query" : "Choose microphone input",
+          "relevant" : [
+            "sound.input"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.input",
+              "sound.output",
+              "tasks.add",
+              "network.wifi",
+              "dictation.start"
+            ],
+            "hybrid_rrf60" : [
+              "sound.input",
+              "sound.output",
+              "dictation.start",
+              "tasks.add",
+              "network.wifi"
+            ],
+            "sparse" : [
+              "sound.input",
+              "sound.output",
+              "sound.volume",
+              "dictation.start",
+              "network.bluetooth"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "sound.input.1",
+          "query" : "my recording uses the wrong microphone",
+          "relevant" : [
+            "sound.input"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.input",
+              "system.lock",
+              "files.open",
+              "oqto.open",
+              "display.brightness"
+            ],
+            "hybrid_rrf60" : [
+              "sound.input",
+              "dictation.start",
+              "appearance.light",
+              "screenshot.capture",
+              "display.brightness"
+            ],
+            "sparse" : [
+              "sound.input",
+              "sound.volume",
+              "sound.output",
+              "network.bluetooth",
+              "dictation.start"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "sound.input.2",
+          "query" : "change which device captures my voice",
+          "relevant" : [
+            "sound.input"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.output"
+            ],
+            "hybrid_rrf60" : [
+              "sound.output",
+              "sound.input",
+              "sound.volume",
+              "network.bluetooth",
+              "dictation.start"
+            ],
+            "sparse" : [
+              "sound.input",
+              "sound.output",
+              "sound.volume",
+              "network.bluetooth",
+              "dictation.start"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "display.brightness.0",
+          "query" : "Adjust brightness",
+          "relevant" : [
+            "display.brightness"
+          ],
+          "results" : {
+            "bm25" : [
+              "display.brightness",
+              "sound.volume",
+              "display.night"
+            ],
+            "hybrid_rrf60" : [
+              "display.brightness",
+              "display.night",
+              "sound.volume",
+              "appearance.light",
+              "appearance.dark"
+            ],
+            "sparse" : [
+              "display.brightness",
+              "display.night",
+              "appearance.light",
+              "appearance.dark",
+              "sound.volume"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "display.brightness.1",
+          "query" : "the monitor is too dim",
+          "relevant" : [
+            "display.brightness"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "files.open",
+              "oqto.open",
+              "display.brightness",
+              "system.settings"
+            ],
+            "hybrid_rrf60" : [
+              "display.brightness",
+              "system.lock",
+              "appearance.dark",
+              "appearance.light",
+              "system.settings"
+            ],
+            "sparse" : [
+              "display.brightness",
+              "display.open",
+              "appearance.dark",
+              "display.night",
+              "appearance.light"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "display.brightness.2",
+          "query" : "make the screen brighter",
+          "relevant" : [
+            "display.brightness"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "display.night",
+              "files.open",
+              "oqto.open",
+              "display.brightness"
+            ],
+            "hybrid_rrf60" : [
+              "display.night",
+              "display.brightness",
+              "system.lock",
+              "appearance.light",
+              "appearance.dark"
+            ],
+            "sparse" : [
+              "display.brightness",
+              "display.night",
+              "appearance.light",
+              "appearance.dark",
+              "display.open"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "display.open.0",
+          "query" : "Open display settings",
+          "relevant" : [
+            "display.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "display.open",
+              "display.brightness",
+              "system.settings",
+              "display.night",
+              "system.power"
+            ],
+            "hybrid_rrf60" : [
+              "display.open",
+              "display.brightness",
+              "system.settings",
+              "display.night",
+              "appearance.open"
+            ],
+            "sparse" : [
+              "display.open",
+              "display.brightness",
+              "appearance.open",
+              "display.night",
+              "system.settings"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "display.open.1",
+          "query" : "the letters on my monitor are too small",
+          "relevant" : [
+            "display.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "notifications.focus",
+              "clipboard.open",
+              "system.lock",
+              "files.open",
+              "oqto.open"
+            ],
+            "hybrid_rrf60" : [
+              "display.brightness",
+              "notifications.focus",
+              "system.settings",
+              "system.lock",
+              "appearance.dark"
+            ],
+            "sparse" : [
+              "display.open",
+              "display.brightness",
+              "appearance.dark",
+              "display.night",
+              "system.settings"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "display.open.2",
+          "query" : "arrange my two monitors side by side",
+          "relevant" : [
+            "display.open"
+          ],
+          "results" : {
+            "bm25" : [
+
+            ],
+            "hybrid_rrf60" : [
+              "display.open",
+              "display.brightness",
+              "display.night",
+              "appearance.dark",
+              "appearance.light"
+            ],
+            "sparse" : [
+              "display.open",
+              "display.brightness",
+              "display.night",
+              "appearance.dark",
+              "appearance.light"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "display.night.0",
+          "query" : "Adjust night light",
+          "relevant" : [
+            "display.night"
+          ],
+          "results" : {
+            "bm25" : [
+              "display.night",
+              "appearance.light",
+              "sound.volume",
+              "display.brightness"
+            ],
+            "hybrid_rrf60" : [
+              "display.night",
+              "appearance.light",
+              "display.brightness",
+              "sound.volume",
+              "appearance.dark"
+            ],
+            "sparse" : [
+              "display.night",
+              "display.brightness",
+              "appearance.light",
+              "appearance.dark",
+              "sound.volume"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "display.night.1",
+          "query" : "reduce the blue light from my screen tonight",
+          "relevant" : [
+            "display.night"
+          ],
+          "results" : {
+            "bm25" : [
+              "display.night",
+              "system.lock",
+              "appearance.light",
+              "files.open",
+              "oqto.open"
+            ],
+            "hybrid_rrf60" : [
+              "display.night",
+              "appearance.light",
+              "display.brightness",
+              "system.lock",
+              "appearance.dark"
+            ],
+            "sparse" : [
+              "display.night",
+              "appearance.light",
+              "display.brightness",
+              "appearance.dark",
+              "system.power"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "display.night.2",
+          "query" : "give the screen a warmer tint",
+          "relevant" : [
+            "display.night"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "screenshot.capture",
+              "tasks.add",
+              "display.night",
+              "memory.search"
+            ],
+            "hybrid_rrf60" : [
+              "display.night",
+              "system.lock",
+              "screenshot.capture",
+              "display.brightness",
+              "appearance.dark"
+            ],
+            "sparse" : [
+              "display.night",
+              "display.brightness",
+              "appearance.dark",
+              "appearance.light",
+              "display.open"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "notifications.focus.0",
+          "query" : "Turn on Do Not Disturb",
+          "relevant" : [
+            "notifications.focus"
+          ],
+          "results" : {
+            "bm25" : [
+              "notifications.focus",
+              "dictation.start",
+              "clipboard.open"
+            ],
+            "hybrid_rrf60" : [
+              "notifications.focus",
+              "dictation.start",
+              "clipboard.open",
+              "tasks.add",
+              "appearance.light"
+            ],
+            "sparse" : [
+              "notifications.focus",
+              "tasks.add",
+              "appearance.light",
+              "dictation.start",
+              "system.power"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "notifications.focus.1",
+          "query" : "stop notifications while I concentrate",
+          "relevant" : [
+            "notifications.focus"
+          ],
+          "results" : {
+            "bm25" : [
+              "notifications.focus"
+            ],
+            "hybrid_rrf60" : [
+              "notifications.focus",
+              "system.lock",
+              "tasks.add",
+              "system.settings",
+              "appearance.light"
+            ],
+            "sparse" : [
+              "notifications.focus",
+              "system.lock",
+              "tasks.add",
+              "system.settings",
+              "appearance.light"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "notifications.focus.2",
+          "query" : "I do not want interruptions",
+          "relevant" : [
+            "notifications.focus"
+          ],
+          "results" : {
+            "bm25" : [
+              "notifications.focus"
+            ],
+            "hybrid_rrf60" : [
+              "notifications.focus",
+              "system.lock",
+              "system.power",
+              "system.settings",
+              "tasks.add"
+            ],
+            "sparse" : [
+              "notifications.focus",
+              "system.lock",
+              "system.power",
+              "system.settings",
+              "tasks.add"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "network.wifi.0",
+          "query" : "Choose a Wi-Fi network",
+          "relevant" : [
+            "network.wifi"
+          ],
+          "results" : {
+            "bm25" : [
+              "network.wifi",
+              "network.vpn",
+              "sound.output",
+              "sound.input",
+              "memory.search"
+            ],
+            "hybrid_rrf60" : [
+              "network.wifi",
+              "network.vpn",
+              "sound.output",
+              "sound.input",
+              "memory.search"
+            ],
+            "sparse" : [
+              "network.wifi",
+              "network.vpn",
+              "network.bluetooth",
+              "sound.output",
+              "sound.input"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "network.wifi.1",
+          "query" : "join another wireless connection",
+          "relevant" : [
+            "network.wifi"
+          ],
+          "results" : {
+            "bm25" : [
+              "network.wifi",
+              "sound.output"
+            ],
+            "hybrid_rrf60" : [
+              "network.wifi",
+              "sound.output",
+              "network.bluetooth",
+              "network.vpn",
+              "oqto.open"
+            ],
+            "sparse" : [
+              "network.wifi",
+              "network.bluetooth",
+              "network.vpn",
+              "sound.output",
+              "oqto.open"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "network.wifi.2",
+          "query" : "choose the router for this computer",
+          "relevant" : [
+            "network.wifi"
+          ],
+          "results" : {
+            "bm25" : [
+              "dictation.start",
+              "sound.output",
+              "network.wifi",
+              "sound.input",
+              "system.lock"
+            ],
+            "hybrid_rrf60" : [
+              "network.wifi",
+              "sound.output",
+              "system.settings",
+              "sound.input",
+              "display.brightness"
+            ],
+            "sparse" : [
+              "network.wifi",
+              "network.vpn",
+              "network.bluetooth",
+              "sound.output",
+              "system.power"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "network.bluetooth.0",
+          "query" : "Open Bluetooth devices",
+          "relevant" : [
+            "network.bluetooth"
+          ],
+          "results" : {
+            "bm25" : [
+              "network.bluetooth",
+              "oqto.open",
+              "system.power",
+              "system.settings",
+              "files.open"
+            ],
+            "hybrid_rrf60" : [
+              "network.bluetooth",
+              "system.power",
+              "network.wifi",
+              "system.settings",
+              "sound.input"
+            ],
+            "sparse" : [
+              "network.bluetooth",
+              "network.wifi",
+              "sound.input",
+              "system.power",
+              "display.brightness"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "network.bluetooth.1",
+          "query" : "pair a wireless mouse",
+          "relevant" : [
+            "network.bluetooth"
+          ],
+          "results" : {
+            "bm25" : [
+              "network.wifi",
+              "network.bluetooth",
+              "memory.search",
+              "screenshot.capture",
+              "tasks.add"
+            ],
+            "hybrid_rrf60" : [
+              "network.wifi",
+              "network.bluetooth",
+              "screenshot.capture",
+              "memory.search",
+              "tasks.add"
+            ],
+            "sparse" : [
+              "network.bluetooth",
+              "network.wifi",
+              "sound.output",
+              "display.brightness",
+              "sound.input"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "network.bluetooth.2",
+          "query" : "connect a new Bluetooth headset",
+          "relevant" : [
+            "network.bluetooth"
+          ],
+          "results" : {
+            "bm25" : [
+              "network.bluetooth",
+              "memory.search",
+              "screenshot.capture",
+              "tasks.add",
+              "network.wifi"
+            ],
+            "hybrid_rrf60" : [
+              "network.bluetooth",
+              "network.wifi",
+              "memory.search",
+              "screenshot.capture",
+              "tasks.add"
+            ],
+            "sparse" : [
+              "network.bluetooth",
+              "sound.output",
+              "network.wifi",
+              "sound.input",
+              "sound.volume"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "network.vpn.0",
+          "query" : "Open VPN settings",
+          "relevant" : [
+            "network.vpn"
+          ],
+          "results" : {
+            "bm25" : [
+              "network.vpn",
+              "system.settings",
+              "system.power",
+              "appearance.open",
+              "display.open"
+            ],
+            "hybrid_rrf60" : [
+              "network.vpn",
+              "system.settings",
+              "display.open",
+              "appearance.open",
+              "system.power"
+            ],
+            "sparse" : [
+              "network.vpn",
+              "system.settings",
+              "display.open",
+              "appearance.open",
+              "clipboard.open"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "network.vpn.1",
+          "query" : "show my configured encrypted network tunnel",
+          "relevant" : [
+            "network.vpn"
+          ],
+          "results" : {
+            "bm25" : [
+              "network.vpn",
+              "network.wifi",
+              "files.open"
+            ],
+            "hybrid_rrf60" : [
+              "network.vpn",
+              "network.wifi",
+              "files.open",
+              "system.settings",
+              "screenshot.capture"
+            ],
+            "sparse" : [
+              "network.vpn",
+              "system.settings",
+              "network.wifi",
+              "files.open",
+              "screenshot.capture"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "network.vpn.2",
+          "query" : "inspect my virtual private network connection",
+          "relevant" : [
+            "network.vpn"
+          ],
+          "results" : {
+            "bm25" : [
+              "network.vpn",
+              "network.wifi"
+            ],
+            "hybrid_rrf60" : [
+              "network.vpn",
+              "network.wifi",
+              "system.settings",
+              "network.bluetooth",
+              "system.power"
+            ],
+            "sparse" : [
+              "network.vpn",
+              "network.wifi",
+              "system.settings",
+              "network.bluetooth",
+              "system.power"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "system.settings.0",
+          "query" : "Open system settings",
+          "relevant" : [
+            "system.settings"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.settings",
+              "system.power",
+              "network.vpn",
+              "appearance.open",
+              "display.open"
+            ],
+            "hybrid_rrf60" : [
+              "system.settings",
+              "appearance.open",
+              "system.power",
+              "display.open",
+              "clipboard.open"
+            ],
+            "sparse" : [
+              "system.settings",
+              "appearance.open",
+              "display.open",
+              "system.power",
+              "clipboard.open"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "system.settings.1",
+          "query" : "show the computer preferences",
+          "relevant" : [
+            "system.settings"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "files.open",
+              "oqto.open",
+              "display.brightness",
+              "system.settings"
+            ],
+            "hybrid_rrf60" : [
+              "display.brightness",
+              "system.settings",
+              "system.lock",
+              "files.open",
+              "appearance.light"
+            ],
+            "sparse" : [
+              "display.brightness",
+              "appearance.open",
+              "system.settings",
+              "display.open",
+              "memory.search"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "system.settings.2",
+          "query" : "where are the operating system configuration controls",
+          "relevant" : [
+            "system.settings"
+          ],
+          "results" : {
+            "bm25" : [
+              "display.night",
+              "appearance.light",
+              "appearance.dark",
+              "display.brightness",
+              "sound.volume"
+            ],
+            "hybrid_rrf60" : [
+              "display.night",
+              "appearance.light",
+              "appearance.open",
+              "appearance.dark",
+              "display.brightness"
+            ],
+            "sparse" : [
+              "system.settings",
+              "appearance.open",
+              "clipboard.open",
+              "system.power",
+              "display.brightness"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "system.lock.0",
+          "query" : "Lock the screen",
+          "relevant" : [
+            "system.lock"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "display.night",
+              "files.open",
+              "oqto.open",
+              "display.brightness"
+            ],
+            "hybrid_rrf60" : [
+              "system.lock",
+              "display.night",
+              "display.brightness",
+              "system.settings",
+              "screenshot.capture"
+            ],
+            "sparse" : [
+              "system.lock",
+              "display.brightness",
+              "notifications.focus",
+              "display.night",
+              "system.power"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "system.lock.1",
+          "query" : "secure my desktop while I step away",
+          "relevant" : [
+            "system.lock"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "screenshot.capture"
+            ],
+            "hybrid_rrf60" : [
+              "system.lock",
+              "screenshot.capture",
+              "system.power",
+              "system.settings",
+              "appearance.open"
+            ],
+            "sparse" : [
+              "system.lock",
+              "screenshot.capture",
+              "system.power",
+              "system.settings",
+              "appearance.open"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "system.lock.2",
+          "query" : "require a password before anyone can use this session",
+          "relevant" : [
+            "system.lock"
+          ],
+          "results" : {
+            "bm25" : [
+              "history.search",
+              "system.lock",
+              "appearance.light",
+              "appearance.dark",
+              "memory.search"
+            ],
+            "hybrid_rrf60" : [
+              "system.lock",
+              "history.search",
+              "appearance.dark",
+              "network.wifi",
+              "tasks.add"
+            ],
+            "sparse" : [
+              "system.lock",
+              "history.search",
+              "system.settings",
+              "network.vpn",
+              "oqto.open"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "system.power.0",
+          "query" : "Open power settings",
+          "relevant" : [
+            "system.power"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.power",
+              "system.settings",
+              "network.vpn",
+              "appearance.open",
+              "display.open"
+            ],
+            "hybrid_rrf60" : [
+              "system.power",
+              "system.settings",
+              "appearance.open",
+              "network.vpn",
+              "display.open"
+            ],
+            "sparse" : [
+              "system.power",
+              "system.settings",
+              "appearance.open",
+              "display.open",
+              "clipboard.open"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "system.power.1",
+          "query" : "keep the computer awake longer",
+          "relevant" : [
+            "system.power"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "files.open",
+              "oqto.open",
+              "display.brightness",
+              "system.settings"
+            ],
+            "hybrid_rrf60" : [
+              "system.lock",
+              "display.brightness",
+              "system.settings",
+              "files.open",
+              "appearance.dark"
+            ],
+            "sparse" : [
+              "system.power",
+              "system.lock",
+              "display.brightness",
+              "display.night",
+              "notifications.focus"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "system.power.2",
+          "query" : "change the computer energy saving options",
+          "relevant" : [
+            "system.power"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.power",
+              "system.lock",
+              "files.open",
+              "oqto.open",
+              "display.brightness"
+            ],
+            "hybrid_rrf60" : [
+              "system.power",
+              "display.brightness",
+              "system.lock",
+              "files.open",
+              "system.settings"
+            ],
+            "sparse" : [
+              "system.power",
+              "display.brightness",
+              "appearance.light",
+              "system.settings",
+              "appearance.dark"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "files.open.0",
+          "query" : "Open the file browser",
+          "relevant" : [
+            "files.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "files.open",
+              "oqto.open",
+              "system.settings",
+              "display.brightness",
+              "system.lock"
+            ],
+            "hybrid_rrf60" : [
+              "files.open",
+              "system.settings",
+              "display.brightness",
+              "screenshot.capture",
+              "system.power"
+            ],
+            "sparse" : [
+              "files.open",
+              "system.settings",
+              "screenshot.capture",
+              "appearance.open",
+              "network.vpn"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "files.open.1",
+          "query" : "browse the folders on my computer",
+          "relevant" : [
+            "files.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "notifications.focus",
+              "clipboard.open",
+              "system.lock",
+              "files.open",
+              "oqto.open"
+            ],
+            "hybrid_rrf60" : [
+              "files.open",
+              "clipboard.open",
+              "system.settings",
+              "screenshot.capture",
+              "oqto.open"
+            ],
+            "sparse" : [
+              "files.open",
+              "screenshot.capture",
+              "system.settings",
+              "network.vpn",
+              "appearance.dark"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "files.open.2",
+          "query" : "show me Finder",
+          "relevant" : [
+            "files.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "files.open"
+            ],
+            "hybrid_rrf60" : [
+              "files.open",
+              "appearance.open",
+              "system.settings",
+              "display.open",
+              "screenshot.capture"
+            ],
+            "sparse" : [
+              "files.open",
+              "appearance.open",
+              "system.settings",
+              "display.open",
+              "screenshot.capture"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "clipboard.open.0",
+          "query" : "Open clipboard controls",
+          "relevant" : [
+            "clipboard.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "clipboard.open",
+              "system.power",
+              "sound.volume",
+              "appearance.open",
+              "sound.input"
+            ],
+            "hybrid_rrf60" : [
+              "clipboard.open",
+              "appearance.open",
+              "system.power",
+              "sound.volume",
+              "notifications.focus"
+            ],
+            "sparse" : [
+              "clipboard.open",
+              "appearance.open",
+              "screenshot.capture",
+              "system.power",
+              "notifications.focus"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "clipboard.open.1",
+          "query" : "see what I copied earlier",
+          "relevant" : [
+            "clipboard.open"
+          ],
+          "results" : {
+            "bm25" : [
+
+            ],
+            "hybrid_rrf60" : [
+              "clipboard.open",
+              "screenshot.capture",
+              "files.open",
+              "history.search",
+              "appearance.open"
+            ],
+            "sparse" : [
+              "clipboard.open",
+              "screenshot.capture",
+              "files.open",
+              "history.search",
+              "appearance.open"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "clipboard.open.2",
+          "query" : "show my paste history",
+          "relevant" : [
+            "clipboard.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "history.search",
+              "clipboard.open"
+            ],
+            "hybrid_rrf60" : [
+              "clipboard.open",
+              "history.search",
+              "screenshot.capture",
+              "files.open",
+              "display.open"
+            ],
+            "sparse" : [
+              "clipboard.open",
+              "history.search",
+              "screenshot.capture",
+              "files.open",
+              "display.open"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "screenshot.capture.0",
+          "query" : "Take a screenshot",
+          "relevant" : [
+            "screenshot.capture"
+          ],
+          "results" : {
+            "bm25" : [
+              "screenshot.capture",
+              "memory.search",
+              "tasks.add",
+              "network.wifi",
+              "issues.search"
+            ],
+            "hybrid_rrf60" : [
+              "screenshot.capture",
+              "tasks.add",
+              "memory.search",
+              "network.wifi",
+              "issues.search"
+            ],
+            "sparse" : [
+              "screenshot.capture",
+              "appearance.open",
+              "display.night",
+              "appearance.light",
+              "display.open"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "screenshot.capture.1",
+          "query" : "save a picture of this window",
+          "relevant" : [
+            "screenshot.capture"
+          ],
+          "results" : {
+            "bm25" : [
+              "screenshot.capture",
+              "memory.search",
+              "tasks.add",
+              "network.wifi",
+              "issues.search"
+            ],
+            "hybrid_rrf60" : [
+              "screenshot.capture",
+              "memory.search",
+              "network.wifi",
+              "tasks.add",
+              "issues.search"
+            ],
+            "sparse" : [
+              "screenshot.capture",
+              "appearance.open",
+              "appearance.light",
+              "display.night",
+              "files.open"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "screenshot.capture.2",
+          "query" : "grab an image of the visible desktop",
+          "relevant" : [
+            "screenshot.capture"
+          ],
+          "results" : {
+            "bm25" : [
+              "screenshot.capture",
+              "system.lock",
+              "appearance.light",
+              "appearance.dark",
+              "files.open"
+            ],
+            "hybrid_rrf60" : [
+              "screenshot.capture",
+              "system.lock",
+              "appearance.light",
+              "files.open",
+              "appearance.dark"
+            ],
+            "sparse" : [
+              "screenshot.capture",
+              "system.lock",
+              "appearance.open",
+              "files.open",
+              "appearance.light"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "selection.speak.0",
+          "query" : "Read the selection aloud",
+          "relevant" : [
+            "selection.speak"
+          ],
+          "results" : {
+            "bm25" : [
+              "selection.speak",
+              "network.wifi",
+              "sound.input",
+              "system.lock",
+              "files.open"
+            ],
+            "hybrid_rrf60" : [
+              "selection.speak",
+              "sound.input",
+              "network.wifi",
+              "dictation.start",
+              "files.open"
+            ],
+            "sparse" : [
+              "selection.speak",
+              "sound.output",
+              "sound.input",
+              "dictation.start",
+              "network.wifi"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "selection.speak.1",
+          "query" : "say the highlighted passage out loud",
+          "relevant" : [
+            "selection.speak"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "files.open",
+              "selection.speak",
+              "oqto.open",
+              "display.brightness"
+            ],
+            "hybrid_rrf60" : [
+              "selection.speak",
+              "dictation.start",
+              "display.brightness",
+              "appearance.light",
+              "oqto.open"
+            ],
+            "sparse" : [
+              "selection.speak",
+              "sound.output",
+              "sound.volume",
+              "dictation.start",
+              "sound.input"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "selection.speak.2",
+          "query" : "listen to the text I selected",
+          "relevant" : [
+            "selection.speak"
+          ],
+          "results" : {
+            "bm25" : [
+              "selection.speak",
+              "dictation.start",
+              "tasks.add",
+              "appearance.light",
+              "appearance.dark"
+            ],
+            "hybrid_rrf60" : [
+              "selection.speak",
+              "dictation.start",
+              "tasks.add",
+              "appearance.light",
+              "oqto.open"
+            ],
+            "sparse" : [
+              "selection.speak",
+              "dictation.start",
+              "tasks.add",
+              "sound.input",
+              "sound.output"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "audio.transcribe.0",
+          "query" : "Transcribe audio",
+          "relevant" : [
+            "audio.transcribe"
+          ],
+          "results" : {
+            "bm25" : [
+              "audio.transcribe",
+              "sound.output"
+            ],
+            "hybrid_rrf60" : [
+              "audio.transcribe",
+              "sound.output",
+              "sound.input",
+              "sound.volume",
+              "dictation.start"
+            ],
+            "sparse" : [
+              "audio.transcribe",
+              "sound.output",
+              "sound.input",
+              "sound.volume",
+              "dictation.start"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "audio.transcribe.1",
+          "query" : "write down the words in this available recording",
+          "relevant" : [
+            "audio.transcribe"
+          ],
+          "results" : {
+            "bm25" : [
+              "audio.transcribe",
+              "display.night",
+              "system.lock",
+              "files.open",
+              "oqto.open"
+            ],
+            "hybrid_rrf60" : [
+              "audio.transcribe",
+              "dictation.start",
+              "display.night",
+              "tasks.add",
+              "screenshot.capture"
+            ],
+            "sparse" : [
+              "audio.transcribe",
+              "sound.output",
+              "dictation.start",
+              "sound.input",
+              "sound.volume"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "audio.transcribe.2",
+          "query" : "convert this audio file into a transcript",
+          "relevant" : [
+            "audio.transcribe"
+          ],
+          "results" : {
+            "bm25" : [
+              "audio.transcribe",
+              "files.open",
+              "dictation.start",
+              "sound.output",
+              "memory.search"
+            ],
+            "hybrid_rrf60" : [
+              "audio.transcribe",
+              "sound.output",
+              "dictation.start",
+              "files.open",
+              "screenshot.capture"
+            ],
+            "sparse" : [
+              "audio.transcribe",
+              "sound.output",
+              "dictation.start",
+              "sound.input",
+              "sound.volume"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "dictation.start.0",
+          "query" : "Start dictation",
+          "relevant" : [
+            "dictation.start"
+          ],
+          "results" : {
+            "bm25" : [
+              "dictation.start"
+            ],
+            "hybrid_rrf60" : [
+              "dictation.start",
+              "tasks.add",
+              "system.settings",
+              "sound.input",
+              "oqto.open"
+            ],
+            "sparse" : [
+              "dictation.start",
+              "tasks.add",
+              "system.settings",
+              "sound.input",
+              "oqto.open"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "dictation.start.1",
+          "query" : "let me speak instead of typing",
+          "relevant" : [
+            "dictation.start"
+          ],
+          "results" : {
+            "bm25" : [
+
+            ],
+            "hybrid_rrf60" : [
+              "dictation.start",
+              "sound.input",
+              "sound.output",
+              "tasks.add",
+              "history.search"
+            ],
+            "sparse" : [
+              "dictation.start",
+              "sound.input",
+              "sound.output",
+              "tasks.add",
+              "history.search"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "dictation.start.2",
+          "query" : "turn my spoken words into typed text",
+          "relevant" : [
+            "dictation.start"
+          ],
+          "results" : {
+            "bm25" : [
+              "dictation.start",
+              "notifications.focus",
+              "tasks.add"
+            ],
+            "hybrid_rrf60" : [
+              "dictation.start",
+              "tasks.add",
+              "notifications.focus",
+              "sound.input",
+              "sound.output"
+            ],
+            "sparse" : [
+              "dictation.start",
+              "sound.input",
+              "sound.output",
+              "tasks.add",
+              "sound.volume"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "oqto.open.0",
+          "query" : "Open Oqto",
+          "relevant" : [
+            "oqto.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "oqto.open",
+              "system.power",
+              "system.settings",
+              "files.open",
+              "network.vpn"
+            ],
+            "hybrid_rrf60" : [
+              "oqto.open",
+              "appearance.open",
+              "files.open",
+              "system.power",
+              "system.settings"
+            ],
+            "sparse" : [
+              "oqto.open",
+              "network.bluetooth",
+              "appearance.open",
+              "clipboard.open",
+              "notifications.focus"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "oqto.open.1",
+          "query" : "take me to my agent workspace",
+          "relevant" : [
+            "oqto.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "oqto.open",
+              "screenshot.capture",
+              "history.search",
+              "dictation.start",
+              "appearance.light"
+            ],
+            "hybrid_rrf60" : [
+              "oqto.open",
+              "screenshot.capture",
+              "history.search",
+              "appearance.light",
+              "appearance.dark"
+            ],
+            "sparse" : [
+              "oqto.open",
+              "history.search",
+              "screenshot.capture",
+              "system.settings",
+              "tasks.add"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "oqto.open.2",
+          "query" : "show the Oqto interface",
+          "relevant" : [
+            "oqto.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "oqto.open",
+              "system.lock",
+              "files.open",
+              "dictation.start",
+              "display.brightness"
+            ],
+            "hybrid_rrf60" : [
+              "oqto.open",
+              "appearance.light",
+              "tasks.add",
+              "appearance.dark",
+              "system.settings"
+            ],
+            "sparse" : [
+              "oqto.open",
+              "appearance.light",
+              "appearance.dark",
+              "tasks.add",
+              "appearance.open"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "tasks.add.0",
+          "query" : "Add a task",
+          "relevant" : [
+            "tasks.add"
+          ],
+          "results" : {
+            "bm25" : [
+              "tasks.add",
+              "issues.search",
+              "memory.search",
+              "screenshot.capture",
+              "network.wifi"
+            ],
+            "hybrid_rrf60" : [
+              "tasks.add",
+              "issues.search",
+              "screenshot.capture",
+              "memory.search",
+              "network.wifi"
+            ],
+            "sparse" : [
+              "tasks.add",
+              "oqto.open",
+              "issues.search",
+              "system.settings",
+              "sound.input"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "tasks.add.1",
+          "query" : "remind me to buy groceries",
+          "relevant" : [
+            "tasks.add"
+          ],
+          "results" : {
+            "bm25" : [
+              "dictation.start",
+              "appearance.light",
+              "appearance.dark"
+            ],
+            "hybrid_rrf60" : [
+              "dictation.start",
+              "appearance.dark",
+              "appearance.light",
+              "tasks.add",
+              "oqto.open"
+            ],
+            "sparse" : [
+              "tasks.add",
+              "oqto.open",
+              "network.wifi",
+              "system.power",
+              "notifications.focus"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "tasks.add.2",
+          "query" : "put review budget on my todo list",
+          "relevant" : [
+            "tasks.add"
+          ],
+          "results" : {
+            "bm25" : [
+              "tasks.add",
+              "notifications.focus",
+              "clipboard.open"
+            ],
+            "hybrid_rrf60" : [
+              "tasks.add",
+              "notifications.focus",
+              "clipboard.open",
+              "oqto.open",
+              "issues.search"
+            ],
+            "sparse" : [
+              "tasks.add",
+              "oqto.open",
+              "issues.search",
+              "notifications.focus",
+              "system.power"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "history.search.0",
+          "query" : "Search past conversations",
+          "relevant" : [
+            "history.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "history.search",
+              "issues.search"
+            ],
+            "hybrid_rrf60" : [
+              "history.search",
+              "issues.search",
+              "dictation.start",
+              "tasks.add",
+              "memory.search"
+            ],
+            "sparse" : [
+              "history.search",
+              "issues.search",
+              "dictation.start",
+              "tasks.add",
+              "memory.search"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "history.search.1",
+          "query" : "find the conversation where we discussed Rust",
+          "relevant" : [
+            "history.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "display.night",
+              "memory.search",
+              "appearance.open",
+              "display.open",
+              "issues.search"
+            ],
+            "hybrid_rrf60" : [
+              "memory.search",
+              "appearance.open",
+              "oqto.open",
+              "display.open",
+              "dictation.start"
+            ],
+            "sparse" : [
+              "history.search",
+              "dictation.start",
+              "oqto.open",
+              "memory.search",
+              "sound.output"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "history.search.2",
+          "query" : "look up a previous agent session",
+          "relevant" : [
+            "history.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "history.search",
+              "system.lock",
+              "oqto.open",
+              "memory.search",
+              "screenshot.capture"
+            ],
+            "hybrid_rrf60" : [
+              "history.search",
+              "system.lock",
+              "oqto.open",
+              "memory.search",
+              "screenshot.capture"
+            ],
+            "sparse" : [
+              "history.search",
+              "oqto.open",
+              "system.lock",
+              "system.settings",
+              "clipboard.open"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "memory.search.0",
+          "query" : "Find a saved memory",
+          "relevant" : [
+            "memory.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "memory.search",
+              "issues.search",
+              "appearance.open",
+              "display.open",
+              "screenshot.capture"
+            ],
+            "hybrid_rrf60" : [
+              "memory.search",
+              "display.open",
+              "appearance.open",
+              "issues.search",
+              "history.search"
+            ],
+            "sparse" : [
+              "memory.search",
+              "files.open",
+              "history.search",
+              "display.open",
+              "clipboard.open"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "memory.search.1",
+          "query" : "what preference did I save about fonts",
+          "relevant" : [
+            "memory.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "memory.search"
+            ],
+            "hybrid_rrf60" : [
+              "memory.search",
+              "display.brightness",
+              "network.wifi",
+              "appearance.open",
+              "sound.output"
+            ],
+            "sparse" : [
+              "memory.search",
+              "display.brightness",
+              "network.wifi",
+              "appearance.open",
+              "sound.output"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "memory.search.2",
+          "query" : "find a remembered operational fact",
+          "relevant" : [
+            "memory.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "memory.search",
+              "issues.search",
+              "appearance.open",
+              "display.open",
+              "screenshot.capture"
+            ],
+            "hybrid_rrf60" : [
+              "memory.search",
+              "appearance.open",
+              "clipboard.open",
+              "display.open",
+              "history.search"
+            ],
+            "sparse" : [
+              "memory.search",
+              "history.search",
+              "clipboard.open",
+              "appearance.open",
+              "oqto.open"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "issues.search.0",
+          "query" : "Search project issues",
+          "relevant" : [
+            "issues.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "issues.search",
+              "history.search"
+            ],
+            "hybrid_rrf60" : [
+              "issues.search",
+              "history.search",
+              "files.open",
+              "memory.search",
+              "oqto.open"
+            ],
+            "sparse" : [
+              "issues.search",
+              "history.search",
+              "files.open",
+              "memory.search",
+              "oqto.open"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "issues.search.1",
+          "query" : "look up the tracked defect for startup",
+          "relevant" : [
+            "issues.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "history.search",
+              "issues.search",
+              "system.lock",
+              "files.open",
+              "oqto.open"
+            ],
+            "hybrid_rrf60" : [
+              "issues.search",
+              "files.open",
+              "history.search",
+              "system.settings",
+              "system.lock"
+            ],
+            "sparse" : [
+              "issues.search",
+              "network.vpn",
+              "system.settings",
+              "files.open",
+              "appearance.dark"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "issues.search.2",
+          "query" : "find an existing feature ticket",
+          "relevant" : [
+            "issues.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "issues.search",
+              "memory.search",
+              "appearance.light",
+              "appearance.dark",
+              "appearance.open"
+            ],
+            "hybrid_rrf60" : [
+              "issues.search",
+              "memory.search",
+              "appearance.open",
+              "display.open",
+              "clipboard.open"
+            ],
+            "sparse" : [
+              "issues.search",
+              "files.open",
+              "memory.search",
+              "history.search",
+              "appearance.open"
+            ]
+          }
+        },
+        {
+          "group" : "no-match",
+          "id" : "none.84",
+          "query" : "order a pizza",
+          "relevant" : [
+
+          ],
+          "results" : {
+            "bm25" : [
+              "memory.search",
+              "screenshot.capture",
+              "tasks.add",
+              "network.wifi",
+              "issues.search"
+            ],
+            "hybrid_rrf60" : [
+              "tasks.add",
+              "memory.search",
+              "network.wifi",
+              "screenshot.capture",
+              "history.search"
+            ],
+            "sparse" : [
+              "display.open",
+              "tasks.add",
+              "oqto.open",
+              "sound.input",
+              "sound.output"
+            ]
+          }
+        },
+        {
+          "group" : "no-match",
+          "id" : "none.85",
+          "query" : "book a flight to Tokyo",
+          "relevant" : [
+
+          ],
+          "results" : {
+            "bm25" : [
+              "dictation.start",
+              "appearance.light",
+              "appearance.dark",
+              "memory.search",
+              "screenshot.capture"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.light",
+              "network.wifi",
+              "memory.search",
+              "dictation.start",
+              "appearance.dark"
+            ],
+            "sparse" : [
+              "appearance.open",
+              "sound.output",
+              "network.wifi",
+              "display.open",
+              "system.power"
+            ]
+          }
+        },
+        {
+          "group" : "no-match",
+          "id" : "none.86",
+          "query" : "diagnose a broken ankle",
+          "relevant" : [
+
+          ],
+          "results" : {
+            "bm25" : [
+              "memory.search",
+              "screenshot.capture",
+              "tasks.add",
+              "network.wifi",
+              "issues.search"
+            ],
+            "hybrid_rrf60" : [
+              "memory.search",
+              "issues.search",
+              "screenshot.capture",
+              "history.search",
+              "network.wifi"
+            ],
+            "sparse" : [
+              "sound.volume",
+              "network.vpn",
+              "notifications.focus",
+              "issues.search",
+              "system.settings"
+            ]
+          }
+        },
+        {
+          "group" : "no-match",
+          "id" : "none.87",
+          "query" : "change my bank account password",
+          "relevant" : [
+
+          ],
+          "results" : {
+            "bm25" : [
+
+            ],
+            "hybrid_rrf60" : [
+              "system.settings",
+              "system.lock",
+              "network.wifi",
+              "oqto.open",
+              "tasks.add"
+            ],
+            "sparse" : [
+              "system.settings",
+              "system.lock",
+              "network.wifi",
+              "oqto.open",
+              "tasks.add"
+            ]
+          }
+        },
+        {
+          "group" : "no-match",
+          "id" : "none.88",
+          "query" : "solve this integral",
+          "relevant" : [
+
+          ],
+          "results" : {
+            "bm25" : [
+
+            ],
+            "hybrid_rrf60" : [
+              "memory.search",
+              "oqto.open",
+              "sound.output",
+              "files.open",
+              "network.wifi"
+            ],
+            "sparse" : [
+              "memory.search",
+              "oqto.open",
+              "sound.output",
+              "files.open",
+              "network.wifi"
+            ]
+          }
+        },
+        {
+          "group" : "no-match",
+          "id" : "none.89",
+          "query" : "translate a novel into Japanese",
+          "relevant" : [
+
+          ],
+          "results" : {
+            "bm25" : [
+              "dictation.start",
+              "memory.search",
+              "screenshot.capture",
+              "tasks.add",
+              "network.wifi"
+            ],
+            "hybrid_rrf60" : [
+              "dictation.start",
+              "screenshot.capture",
+              "network.wifi",
+              "tasks.add",
+              "memory.search"
+            ],
+            "sparse" : [
+              "dictation.start",
+              "sound.output",
+              "appearance.open",
+              "sound.input",
+              "oqto.open"
+            ]
+          }
+        },
+        {
+          "group" : "no-match",
+          "id" : "none.90",
+          "query" : "buy a concert ticket",
+          "relevant" : [
+
+          ],
+          "results" : {
+            "bm25" : [
+              "memory.search",
+              "screenshot.capture",
+              "tasks.add",
+              "network.wifi",
+              "issues.search"
+            ],
+            "hybrid_rrf60" : [
+              "network.wifi",
+              "tasks.add",
+              "memory.search",
+              "screenshot.capture",
+              "sound.input"
+            ],
+            "sparse" : [
+              "sound.input",
+              "sound.output",
+              "sound.volume",
+              "dictation.start",
+              "network.wifi"
+            ]
+          }
+        },
+        {
+          "group" : "no-match",
+          "id" : "none.91",
+          "query" : "forecast tomorrow's weather",
+          "relevant" : [
+
+          ],
+          "results" : {
+            "bm25" : [
+              "system.settings",
+              "tasks.add",
+              "appearance.light",
+              "appearance.dark"
+            ],
+            "hybrid_rrf60" : [
+              "tasks.add",
+              "appearance.dark",
+              "appearance.light",
+              "system.settings",
+              "display.night"
+            ],
+            "sparse" : [
+              "display.night",
+              "system.power",
+              "appearance.dark",
+              "display.brightness",
+              "tasks.add"
+            ]
+          }
+        }
+      ],
+      "size" : 28
+    },
+    {
+      "index_construction_ms" : 6.2812910000000004,
+      "latency_ms" : {
+        "bm25_end_to_end" : {
+          "max" : 0.19950000000000001,
+          "median" : 0.087166999999999994,
+          "min" : 0.030165999999999998,
+          "p95" : 0.169458
+        },
+        "eligibility" : {
+          "max" : 0.044124999999999998,
+          "median" : 0.028542000000000001,
+          "min" : 0.024208,
+          "p95" : 0.035083999999999997
+        },
+        "encode_with_transform" : {
+          "max" : 4.0530419999999996,
+          "median" : 2.776583,
+          "min" : 2.3740410000000001,
+          "p95" : 3.0732919999999999
+        },
+        "hybrid_end_to_end" : {
+          "max" : 4.5694169999999987,
+          "median" : 3.2890410000000001,
+          "min" : 2.813374,
+          "p95" : 3.658166
+        },
+        "prediction" : {
+          "max" : 3.9492500000000001,
+          "median" : 2.6935419999999999,
+          "min" : 2.2993749999999999,
+          "p95" : 2.9811670000000001
+        },
+        "sparse_end_to_end" : {
+          "max" : 4.4940419999999994,
+          "median" : 3.149124,
+          "min" : 2.7422490000000002,
+          "p95" : 3.4750829999999997
+        },
+        "sparse_search" : {
+          "max" : 0.40837499999999999,
+          "median" : 0.168125,
+          "min" : 0.066250000000000003,
+          "p95" : 0.25812499999999999
+        },
+        "tokenize" : {
+          "max" : 0.246917,
+          "median" : 0.172791,
+          "min" : 0.13775000000000001,
+          "p95" : 0.20075000000000001
+        }
+      },
+      "prefixes" : [
+        {
+          "end_to_end_ms" : 2.9961660000000001,
+          "text" : "l",
+          "top5" : [
+            "tasks.add",
+            "fixture.larch.42",
+            "fixture.larch.30",
+            "fixture.larch.6",
+            "fixture.larch.33"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.6207910000000001,
+          "text" : "li",
+          "top5" : [
+            "fixture.larch.42",
+            "tasks.add",
+            "fixture.larch.30",
+            "fixture.larch.6",
+            "fixture.larch.33"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.7607089999999999,
+          "text" : "lig",
+          "top5" : [
+            "tasks.add",
+            "fixture.larch.30",
+            "fixture.larch.42",
+            "fixture.larch.33",
+            "fixture.larch.20"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.5923750000000001,
+          "text" : "light",
+          "top5" : [
+            "appearance.light",
+            "display.night",
+            "display.brightness",
+            "appearance.dark",
+            "fixture.hazel.42"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.641041,
+          "text" : "light m",
+          "top5" : [
+            "display.night",
+            "appearance.light",
+            "display.brightness",
+            "appearance.dark",
+            "fixture.hazel.42"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.7755420000000002,
+          "text" : "light mode",
+          "top5" : [
+            "appearance.light",
+            "appearance.dark",
+            "display.brightness",
+            "display.night",
+            "system.power"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.869875,
+          "text" : "m",
+          "top5" : [
+            "memory.search",
+            "sound.input",
+            "dictation.start",
+            "appearance.open",
+            "fixture.grove.49"
+          ]
+        },
+        {
+          "end_to_end_ms" : 3.258,
+          "text" : "mi",
+          "top5" : [
+            "memory.search",
+            "sound.input",
+            "fixture.iris.51",
+            "fixture.iris.30",
+            "fixture.iris.42"
+          ]
+        },
+        {
+          "end_to_end_ms" : 3.2570830000000002,
+          "text" : "mic",
+          "top5" : [
+            "sound.input",
+            "memory.search",
+            "sound.volume",
+            "fixture.iris.43",
+            "fixture.iris.39"
+          ]
+        },
+        {
+          "end_to_end_ms" : 3.150792,
+          "text" : "microphone",
+          "top5" : [
+            "sound.input",
+            "sound.output",
+            "network.bluetooth",
+            "sound.volume",
+            "network.wifi"
+          ]
+        },
+        {
+          "end_to_end_ms" : 3.0415420000000002,
+          "text" : "s",
+          "top5" : [
+            "fixture.iris.30",
+            "fixture.quartz.6",
+            "fixture.coral.30",
+            "fixture.grove.15",
+            "fixture.harbor.18"
+          ]
+        },
+        {
+          "end_to_end_ms" : 2.8680829999999999,
+          "text" : "sc",
+          "top5" : [
+            "fixture.coral.42",
+            "fixture.coral.30",
+            "fixture.coral.18",
+            "fixture.cedar.30",
+            "fixture.cedar.18"
+          ]
+        },
+        {
+          "end_to_end_ms" : 3.1701250000000001,
+          "text" : "screen",
+          "top5" : [
+            "system.lock",
+            "display.night",
+            "screenshot.capture",
+            "display.brightness",
+            "display.open"
+          ]
+        },
+        {
+          "end_to_end_ms" : 3.214458,
+          "text" : "screen brighter",
+          "top5" : [
+            "display.brightness",
+            "display.night",
+            "appearance.light",
+            "appearance.dark",
+            "display.open"
+          ]
+        }
+      ],
+      "quality" : {
+        "bm25" : {
+          "mrr" : 0.74065691419928936,
+          "no_match_nonempty_shortlists" : 7,
+          "no_match_queries" : 8,
+          "queries" : 84,
+          "recall_at_1" : 0.70238095238095233,
+          "recall_at_5" : 0.77380952380952384
+        },
+        "bm25.literal" : {
+          "mrr" : 1,
+          "no_match_nonempty_shortlists" : 0,
+          "no_match_queries" : 0,
+          "queries" : 28,
+          "recall_at_1" : 1,
+          "recall_at_5" : 1
+        },
+        "bm25.no-match" : {
+          "mrr" : 0,
+          "no_match_nonempty_shortlists" : 7,
+          "no_match_queries" : 8,
+          "queries" : 0,
+          "recall_at_1" : 0,
+          "recall_at_5" : 0
+        },
+        "bm25.paraphrase" : {
+          "mrr" : 0.61098537129893415,
+          "no_match_nonempty_shortlists" : 0,
+          "no_match_queries" : 0,
+          "queries" : 56,
+          "recall_at_1" : 0.5535714285714286,
+          "recall_at_5" : 0.6607142857142857
+        },
+        "hybrid_rrf60" : {
+          "mrr" : 0.81442133315723553,
+          "no_match_nonempty_shortlists" : 8,
+          "no_match_queries" : 8,
+          "queries" : 84,
+          "recall_at_1" : 0.77380952380952384,
+          "recall_at_5" : 0.83333333333333337
+        },
+        "hybrid_rrf60.literal" : {
+          "mrr" : 1,
+          "no_match_nonempty_shortlists" : 0,
+          "no_match_queries" : 0,
+          "queries" : 28,
+          "recall_at_1" : 1,
+          "recall_at_5" : 1
+        },
+        "hybrid_rrf60.no-match" : {
+          "mrr" : 0,
+          "no_match_nonempty_shortlists" : 8,
+          "no_match_queries" : 8,
+          "queries" : 0,
+          "recall_at_1" : 0,
+          "recall_at_5" : 0
+        },
+        "hybrid_rrf60.paraphrase" : {
+          "mrr" : 0.72163199973585324,
+          "no_match_nonempty_shortlists" : 0,
+          "no_match_queries" : 0,
+          "queries" : 56,
+          "recall_at_1" : 0.6607142857142857,
+          "recall_at_5" : 0.75
+        },
+        "sparse" : {
+          "mrr" : 0.93327546695484898,
+          "no_match_nonempty_shortlists" : 8,
+          "no_match_queries" : 8,
+          "queries" : 84,
+          "recall_at_1" : 0.8928571428571429,
+          "recall_at_5" : 0.97619047619047616
+        },
+        "sparse.literal" : {
+          "mrr" : 1,
+          "no_match_nonempty_shortlists" : 0,
+          "no_match_queries" : 0,
+          "queries" : 28,
+          "recall_at_1" : 1,
+          "recall_at_5" : 1
+        },
+        "sparse.no-match" : {
+          "mrr" : 0,
+          "no_match_nonempty_shortlists" : 8,
+          "no_match_queries" : 8,
+          "queries" : 0,
+          "recall_at_1" : 0,
+          "recall_at_5" : 0
+        },
+        "sparse.paraphrase" : {
+          "mrr" : 0.8999132004322733,
+          "no_match_nonempty_shortlists" : 0,
+          "no_match_queries" : 0,
+          "queries" : 56,
+          "recall_at_1" : 0.8392857142857143,
+          "recall_at_5" : 0.9642857142857143
+        }
+      },
+      "queries" : [
+        {
+          "group" : "literal",
+          "id" : "appearance.light.0",
+          "query" : "Switch to light mode",
+          "relevant" : [
+            "appearance.light"
+          ],
+          "results" : {
+            "bm25" : [
+              "appearance.light",
+              "appearance.dark",
+              "display.night",
+              "fixture.harbor.37",
+              "fixture.quartz.37"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.light",
+              "appearance.dark",
+              "display.night",
+              "fixture.hazel.37",
+              "fixture.amber.37"
+            ],
+            "sparse" : [
+              "appearance.light",
+              "appearance.dark",
+              "display.brightness",
+              "display.night",
+              "system.power"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "appearance.light.1",
+          "query" : "make the operating system use a pale theme",
+          "relevant" : [
+            "appearance.light"
+          ],
+          "results" : {
+            "bm25" : [
+              "appearance.light",
+              "appearance.dark",
+              "appearance.open",
+              "system.settings",
+              "network.wifi"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.light",
+              "appearance.dark",
+              "appearance.open",
+              "fixture.maple.42",
+              "system.settings"
+            ],
+            "sparse" : [
+              "appearance.dark",
+              "appearance.light",
+              "appearance.open",
+              "fixture.elm.42",
+              "fixture.larch.42"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "appearance.light.2",
+          "query" : "use a bright desktop appearance",
+          "relevant" : [
+            "appearance.light"
+          ],
+          "results" : {
+            "bm25" : [
+              "appearance.light",
+              "appearance.dark",
+              "appearance.open",
+              "system.lock",
+              "screenshot.capture"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.light",
+              "appearance.open",
+              "appearance.dark",
+              "system.lock",
+              "screenshot.capture"
+            ],
+            "sparse" : [
+              "appearance.open",
+              "appearance.light",
+              "appearance.dark",
+              "display.brightness",
+              "display.night"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "appearance.dark.0",
+          "query" : "Switch to dark mode",
+          "relevant" : [
+            "appearance.dark"
+          ],
+          "results" : {
+            "bm25" : [
+              "appearance.dark",
+              "appearance.light",
+              "fixture.harbor.37",
+              "fixture.quartz.37",
+              "fixture.cedar.37"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.dark",
+              "appearance.light",
+              "fixture.quartz.37",
+              "fixture.hazel.37",
+              "fixture.amber.37"
+            ],
+            "sparse" : [
+              "appearance.dark",
+              "appearance.light",
+              "display.night",
+              "display.brightness",
+              "system.settings"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "appearance.dark.1",
+          "query" : "make the operating system use a dark theme",
+          "relevant" : [
+            "appearance.dark"
+          ],
+          "results" : {
+            "bm25" : [
+              "appearance.dark",
+              "appearance.light",
+              "appearance.open",
+              "system.settings",
+              "network.wifi"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.dark",
+              "appearance.light",
+              "appearance.open",
+              "system.settings",
+              "fixture.cedar.42"
+            ],
+            "sparse" : [
+              "appearance.dark",
+              "appearance.light",
+              "appearance.open",
+              "fixture.hazel.42",
+              "fixture.iris.42"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "appearance.dark.2",
+          "query" : "give the desktop a black appearance",
+          "relevant" : [
+            "appearance.dark"
+          ],
+          "results" : {
+            "bm25" : [
+              "appearance.open",
+              "appearance.light",
+              "appearance.dark",
+              "system.lock",
+              "screenshot.capture"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.open",
+              "appearance.dark",
+              "appearance.light",
+              "system.lock",
+              "screenshot.capture"
+            ],
+            "sparse" : [
+              "appearance.open",
+              "appearance.dark",
+              "system.lock",
+              "screenshot.capture",
+              "appearance.light"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "appearance.open.0",
+          "query" : "Open appearance settings",
+          "relevant" : [
+            "appearance.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "appearance.open",
+              "system.settings",
+              "system.power",
+              "network.vpn",
+              "display.open"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.open",
+              "display.open",
+              "system.settings",
+              "appearance.light",
+              "appearance.dark"
+            ],
+            "sparse" : [
+              "appearance.open",
+              "display.open",
+              "appearance.light",
+              "appearance.dark",
+              "system.settings"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "appearance.open.1",
+          "query" : "where can I change the desktop wallpaper",
+          "relevant" : [
+            "appearance.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "appearance.open",
+              "system.lock",
+              "display.night",
+              "screenshot.capture",
+              "fixture.harbor.5"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.open",
+              "system.lock",
+              "screenshot.capture",
+              "display.night",
+              "fixture.quartz.5"
+            ],
+            "sparse" : [
+              "appearance.open",
+              "system.lock",
+              "screenshot.capture",
+              "system.settings",
+              "fixture.iris.42"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "appearance.open.2",
+          "query" : "show the controls for desktop colors",
+          "relevant" : [
+            "appearance.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "display.night",
+              "system.lock",
+              "screenshot.capture",
+              "sound.volume",
+              "system.power"
+            ],
+            "hybrid_rrf60" : [
+              "display.night",
+              "appearance.open",
+              "display.brightness",
+              "screenshot.capture",
+              "system.lock"
+            ],
+            "sparse" : [
+              "appearance.open",
+              "display.night",
+              "display.brightness",
+              "fixture.slate.42",
+              "fixture.maple.42"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "theme.pick.0",
+          "query" : "Choose an Omarchy theme",
+          "relevant" : [
+            "theme.pick"
+          ],
+          "results" : {
+            "bm25" : [
+              "theme.pick",
+              "appearance.light",
+              "appearance.dark",
+              "sound.output",
+              "network.wifi"
+            ],
+            "hybrid_rrf60" : [
+              "theme.pick",
+              "appearance.light",
+              "appearance.dark",
+              "fixture.orchid.42",
+              "fixture.harbor.42"
+            ],
+            "sparse" : [
+              "theme.pick",
+              "appearance.dark",
+              "appearance.light",
+              "fixture.larch.42",
+              "fixture.orchid.42"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "theme.pick.1",
+          "query" : "browse the looks installed in Omarchy",
+          "relevant" : [
+            "theme.pick"
+          ],
+          "results" : {
+            "bm25" : [
+              "theme.pick",
+              "appearance.light",
+              "appearance.dark",
+              "fixture.harbor.5",
+              "fixture.quartz.5"
+            ],
+            "hybrid_rrf60" : [
+              "theme.pick",
+              "appearance.light",
+              "appearance.dark",
+              "fixture.larch.42",
+              "fixture.orchid.42"
+            ],
+            "sparse" : [
+              "theme.pick",
+              "appearance.light",
+              "appearance.dark",
+              "appearance.open",
+              "fixture.larch.42"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "theme.pick.2",
+          "query" : "pick another Omarchy color scheme",
+          "relevant" : [
+            "theme.pick"
+          ],
+          "results" : {
+            "bm25" : [
+              "theme.pick",
+              "sound.output",
+              "appearance.light",
+              "appearance.dark",
+              "fixture.harbor.42"
+            ],
+            "hybrid_rrf60" : [
+              "theme.pick",
+              "appearance.dark",
+              "appearance.light",
+              "fixture.orchid.42",
+              "fixture.maple.42"
+            ],
+            "sparse" : [
+              "theme.pick",
+              "appearance.dark",
+              "appearance.light",
+              "fixture.larch.42",
+              "fixture.orchid.42"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "sound.volume.0",
+          "query" : "Adjust volume",
+          "relevant" : [
+            "sound.volume"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.volume",
+              "display.brightness",
+              "display.night"
+            ],
+            "hybrid_rrf60" : [
+              "sound.volume",
+              "display.brightness",
+              "display.night",
+              "display.open",
+              "system.settings"
+            ],
+            "sparse" : [
+              "sound.volume",
+              "display.night",
+              "display.brightness",
+              "display.open",
+              "system.settings"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "sound.volume.1",
+          "query" : "my computer is too loud",
+          "relevant" : [
+            "sound.volume"
+          ],
+          "results" : {
+            "bm25" : [
+
+            ],
+            "hybrid_rrf60" : [
+              "sound.output",
+              "sound.volume",
+              "system.power",
+              "appearance.dark",
+              "sound.input"
+            ],
+            "sparse" : [
+              "sound.output",
+              "sound.volume",
+              "system.power",
+              "appearance.dark",
+              "sound.input"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "sound.volume.2",
+          "query" : "silence the speakers",
+          "relevant" : [
+            "sound.volume"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.output",
+              "system.lock",
+              "fixture.harbor.5",
+              "fixture.quartz.5",
+              "fixture.cedar.5"
+            ],
+            "hybrid_rrf60" : [
+              "sound.output",
+              "fixture.iris.8",
+              "fixture.grove.8",
+              "fixture.harbor.5",
+              "system.lock"
+            ],
+            "sparse" : [
+              "sound.output",
+              "sound.volume",
+              "sound.input",
+              "dictation.start",
+              "network.bluetooth"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "sound.output.0",
+          "query" : "Choose audio output",
+          "relevant" : [
+            "sound.output"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.output",
+              "sound.volume",
+              "network.wifi",
+              "sound.input",
+              "dictation.start"
+            ],
+            "hybrid_rrf60" : [
+              "sound.output",
+              "sound.volume",
+              "sound.input",
+              "network.wifi",
+              "dictation.start"
+            ],
+            "sparse" : [
+              "sound.output",
+              "sound.input",
+              "sound.volume",
+              "network.bluetooth",
+              "dictation.start"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "sound.output.1",
+          "query" : "send computer sound to my headset instead",
+          "relevant" : [
+            "sound.output"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.output",
+              "sound.volume",
+              "sound.input",
+              "fixture.harbor.37",
+              "fixture.quartz.37"
+            ],
+            "hybrid_rrf60" : [
+              "sound.output",
+              "sound.input",
+              "sound.volume",
+              "dictation.start",
+              "appearance.light"
+            ],
+            "sparse" : [
+              "sound.output",
+              "sound.input",
+              "network.bluetooth",
+              "sound.volume",
+              "dictation.start"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "sound.output.2",
+          "query" : "change which speaker plays computer audio",
+          "relevant" : [
+            "sound.output"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.output",
+              "fixture.harbor.5",
+              "fixture.harbor.14",
+              "fixture.quartz.5",
+              "fixture.quartz.14"
+            ],
+            "hybrid_rrf60" : [
+              "sound.output",
+              "fixture.quartz.5",
+              "fixture.quartz.14",
+              "fixture.maple.14",
+              "fixture.harbor.5"
+            ],
+            "sparse" : [
+              "sound.output",
+              "sound.input",
+              "sound.volume",
+              "network.bluetooth",
+              "dictation.start"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "sound.input.0",
+          "query" : "Choose microphone input",
+          "relevant" : [
+            "sound.input"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.input",
+              "sound.output",
+              "network.wifi",
+              "tasks.add",
+              "dictation.start"
+            ],
+            "hybrid_rrf60" : [
+              "sound.input",
+              "sound.output",
+              "network.wifi",
+              "dictation.start",
+              "tasks.add"
+            ],
+            "sparse" : [
+              "sound.input",
+              "sound.output",
+              "sound.volume",
+              "dictation.start",
+              "network.bluetooth"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "sound.input.1",
+          "query" : "my recording uses the wrong microphone",
+          "relevant" : [
+            "sound.input"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.input",
+              "system.lock",
+              "fixture.harbor.5",
+              "fixture.quartz.5",
+              "fixture.cedar.5"
+            ],
+            "hybrid_rrf60" : [
+              "sound.input",
+              "fixture.quartz.5",
+              "fixture.orchid.5",
+              "fixture.maple.5",
+              "fixture.quartz.42"
+            ],
+            "sparse" : [
+              "sound.input",
+              "sound.volume",
+              "sound.output",
+              "network.bluetooth",
+              "dictation.start"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "sound.input.2",
+          "query" : "change which device captures my voice",
+          "relevant" : [
+            "sound.input"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.output",
+              "fixture.harbor.5",
+              "fixture.harbor.14",
+              "fixture.quartz.5",
+              "fixture.quartz.14"
+            ],
+            "hybrid_rrf60" : [
+              "sound.output",
+              "fixture.quartz.14",
+              "fixture.quartz.5",
+              "fixture.maple.14",
+              "fixture.maple.5"
+            ],
+            "sparse" : [
+              "sound.input",
+              "sound.output",
+              "sound.volume",
+              "network.bluetooth",
+              "dictation.start"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "display.brightness.0",
+          "query" : "Adjust brightness",
+          "relevant" : [
+            "display.brightness"
+          ],
+          "results" : {
+            "bm25" : [
+              "display.brightness",
+              "sound.volume",
+              "display.night"
+            ],
+            "hybrid_rrf60" : [
+              "display.brightness",
+              "display.night",
+              "sound.volume",
+              "appearance.light",
+              "appearance.dark"
+            ],
+            "sparse" : [
+              "display.brightness",
+              "display.night",
+              "appearance.light",
+              "appearance.dark",
+              "sound.volume"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "display.brightness.1",
+          "query" : "the monitor is too dim",
+          "relevant" : [
+            "display.brightness"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "fixture.harbor.5",
+              "fixture.quartz.5",
+              "fixture.cedar.5",
+              "fixture.maple.5"
+            ],
+            "hybrid_rrf60" : [
+              "system.lock",
+              "fixture.quartz.42",
+              "fixture.quartz.5",
+              "fixture.harbor.42",
+              "fixture.slate.42"
+            ],
+            "sparse" : [
+              "display.brightness",
+              "display.open",
+              "appearance.dark",
+              "display.night",
+              "appearance.light"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "display.brightness.2",
+          "query" : "make the screen brighter",
+          "relevant" : [
+            "display.brightness"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "display.night",
+              "fixture.harbor.5",
+              "fixture.quartz.5",
+              "fixture.cedar.5"
+            ],
+            "hybrid_rrf60" : [
+              "display.night",
+              "system.lock",
+              "fixture.quartz.42",
+              "fixture.slate.42",
+              "fixture.coral.42"
+            ],
+            "sparse" : [
+              "display.brightness",
+              "display.night",
+              "appearance.light",
+              "appearance.dark",
+              "display.open"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "display.open.0",
+          "query" : "Open display settings",
+          "relevant" : [
+            "display.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "display.open",
+              "display.brightness",
+              "system.settings",
+              "system.power",
+              "display.night"
+            ],
+            "hybrid_rrf60" : [
+              "display.open",
+              "display.brightness",
+              "system.settings",
+              "display.night",
+              "appearance.open"
+            ],
+            "sparse" : [
+              "display.open",
+              "display.brightness",
+              "appearance.open",
+              "display.night",
+              "system.settings"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "display.open.1",
+          "query" : "the letters on my monitor are too small",
+          "relevant" : [
+            "display.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "fixture.harbor.5",
+              "fixture.quartz.5",
+              "fixture.cedar.5",
+              "fixture.maple.5",
+              "fixture.orchid.5"
+            ],
+            "hybrid_rrf60" : [
+              "fixture.maple.42",
+              "fixture.iris.42",
+              "fixture.quartz.42",
+              "fixture.slate.5",
+              "fixture.slate.42"
+            ],
+            "sparse" : [
+              "display.open",
+              "display.brightness",
+              "appearance.dark",
+              "display.night",
+              "system.settings"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "display.open.2",
+          "query" : "arrange my two monitors side by side",
+          "relevant" : [
+            "display.open"
+          ],
+          "results" : {
+            "bm25" : [
+
+            ],
+            "hybrid_rrf60" : [
+              "display.open",
+              "display.brightness",
+              "display.night",
+              "appearance.dark",
+              "fixture.iris.44"
+            ],
+            "sparse" : [
+              "display.open",
+              "display.brightness",
+              "display.night",
+              "appearance.dark",
+              "fixture.iris.44"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "display.night.0",
+          "query" : "Adjust night light",
+          "relevant" : [
+            "display.night"
+          ],
+          "results" : {
+            "bm25" : [
+              "display.night",
+              "appearance.light",
+              "sound.volume",
+              "display.brightness"
+            ],
+            "hybrid_rrf60" : [
+              "display.night",
+              "appearance.light",
+              "display.brightness",
+              "sound.volume",
+              "appearance.dark"
+            ],
+            "sparse" : [
+              "display.night",
+              "display.brightness",
+              "appearance.light",
+              "appearance.dark",
+              "sound.volume"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "display.night.1",
+          "query" : "reduce the blue light from my screen tonight",
+          "relevant" : [
+            "display.night"
+          ],
+          "results" : {
+            "bm25" : [
+              "display.night",
+              "appearance.light",
+              "system.lock",
+              "fixture.harbor.5",
+              "fixture.quartz.5"
+            ],
+            "hybrid_rrf60" : [
+              "display.night",
+              "appearance.light",
+              "system.lock",
+              "fixture.quartz.42",
+              "fixture.harbor.42"
+            ],
+            "sparse" : [
+              "display.night",
+              "appearance.light",
+              "display.brightness",
+              "appearance.dark",
+              "system.power"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "display.night.2",
+          "query" : "give the screen a warmer tint",
+          "relevant" : [
+            "display.night"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "display.night",
+              "memory.search",
+              "screenshot.capture",
+              "tasks.add"
+            ],
+            "hybrid_rrf60" : [
+              "display.night",
+              "system.lock",
+              "screenshot.capture",
+              "tasks.add",
+              "fixture.quartz.40"
+            ],
+            "sparse" : [
+              "display.night",
+              "display.brightness",
+              "appearance.dark",
+              "appearance.light",
+              "fixture.flint.42"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "notifications.focus.0",
+          "query" : "Turn on Do Not Disturb",
+          "relevant" : [
+            "notifications.focus"
+          ],
+          "results" : {
+            "bm25" : [
+              "notifications.focus",
+              "dictation.start",
+              "fixture.harbor.4",
+              "fixture.harbor.8",
+              "fixture.harbor.10"
+            ],
+            "hybrid_rrf60" : [
+              "notifications.focus",
+              "dictation.start",
+              "fixture.quartz.8",
+              "fixture.harbor.8",
+              "fixture.maple.8"
+            ],
+            "sparse" : [
+              "notifications.focus",
+              "tasks.add",
+              "appearance.light",
+              "fixture.hazel.33",
+              "dictation.start"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "notifications.focus.1",
+          "query" : "stop notifications while I concentrate",
+          "relevant" : [
+            "notifications.focus"
+          ],
+          "results" : {
+            "bm25" : [
+              "fixture.harbor.43",
+              "fixture.quartz.43",
+              "fixture.cedar.43",
+              "fixture.maple.43",
+              "fixture.orchid.43"
+            ],
+            "hybrid_rrf60" : [
+              "fixture.quartz.43",
+              "fixture.maple.43",
+              "fixture.orchid.43",
+              "fixture.elm.43",
+              "fixture.cedar.43"
+            ],
+            "sparse" : [
+              "notifications.focus",
+              "fixture.quartz.43",
+              "fixture.maple.43",
+              "fixture.elm.43",
+              "fixture.hazel.43"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "notifications.focus.2",
+          "query" : "I do not want interruptions",
+          "relevant" : [
+            "notifications.focus"
+          ],
+          "results" : {
+            "bm25" : [
+              "notifications.focus"
+            ],
+            "hybrid_rrf60" : [
+              "notifications.focus",
+              "system.lock",
+              "fixture.coral.7",
+              "fixture.quartz.33",
+              "fixture.grove.7"
+            ],
+            "sparse" : [
+              "notifications.focus",
+              "system.lock",
+              "fixture.coral.7",
+              "fixture.quartz.33",
+              "fixture.grove.7"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "network.wifi.0",
+          "query" : "Choose a Wi-Fi network",
+          "relevant" : [
+            "network.wifi"
+          ],
+          "results" : {
+            "bm25" : [
+              "network.wifi",
+              "sound.output",
+              "network.vpn",
+              "sound.input",
+              "dictation.start"
+            ],
+            "hybrid_rrf60" : [
+              "network.wifi",
+              "network.vpn",
+              "sound.output",
+              "sound.input",
+              "memory.search"
+            ],
+            "sparse" : [
+              "network.wifi",
+              "network.vpn",
+              "network.bluetooth",
+              "sound.output",
+              "sound.input"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "network.wifi.1",
+          "query" : "join another wireless connection",
+          "relevant" : [
+            "network.wifi"
+          ],
+          "results" : {
+            "bm25" : [
+              "network.wifi",
+              "sound.output",
+              "fixture.harbor.28",
+              "fixture.quartz.28",
+              "fixture.cedar.28"
+            ],
+            "hybrid_rrf60" : [
+              "network.wifi",
+              "sound.output",
+              "fixture.maple.28",
+              "fixture.slate.28",
+              "fixture.quartz.28"
+            ],
+            "sparse" : [
+              "network.wifi",
+              "network.bluetooth",
+              "network.vpn",
+              "sound.output",
+              "fixture.birch.15"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "network.wifi.2",
+          "query" : "choose the router for this computer",
+          "relevant" : [
+            "network.wifi"
+          ],
+          "results" : {
+            "bm25" : [
+              "sound.output",
+              "network.wifi",
+              "sound.input",
+              "dictation.start",
+              "system.lock"
+            ],
+            "hybrid_rrf60" : [
+              "network.wifi",
+              "sound.output",
+              "sound.input",
+              "system.lock",
+              "files.open"
+            ],
+            "sparse" : [
+              "network.wifi",
+              "network.vpn",
+              "network.bluetooth",
+              "sound.output",
+              "system.power"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "network.bluetooth.0",
+          "query" : "Open Bluetooth devices",
+          "relevant" : [
+            "network.bluetooth"
+          ],
+          "results" : {
+            "bm25" : [
+              "network.bluetooth",
+              "oqto.open",
+              "system.power",
+              "system.settings",
+              "files.open"
+            ],
+            "hybrid_rrf60" : [
+              "network.bluetooth",
+              "system.power",
+              "network.wifi",
+              "system.settings",
+              "sound.input"
+            ],
+            "sparse" : [
+              "network.bluetooth",
+              "network.wifi",
+              "sound.input",
+              "system.power",
+              "display.brightness"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "network.bluetooth.1",
+          "query" : "pair a wireless mouse",
+          "relevant" : [
+            "network.bluetooth"
+          ],
+          "results" : {
+            "bm25" : [
+              "network.wifi",
+              "network.bluetooth",
+              "memory.search",
+              "screenshot.capture",
+              "tasks.add"
+            ],
+            "hybrid_rrf60" : [
+              "network.wifi",
+              "network.bluetooth",
+              "screenshot.capture",
+              "tasks.add",
+              "memory.search"
+            ],
+            "sparse" : [
+              "network.bluetooth",
+              "network.wifi",
+              "sound.output",
+              "display.brightness",
+              "sound.input"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "network.bluetooth.2",
+          "query" : "connect a new Bluetooth headset",
+          "relevant" : [
+            "network.bluetooth"
+          ],
+          "results" : {
+            "bm25" : [
+              "network.bluetooth",
+              "memory.search",
+              "screenshot.capture",
+              "tasks.add",
+              "fixture.harbor.3"
+            ],
+            "hybrid_rrf60" : [
+              "network.bluetooth",
+              "screenshot.capture",
+              "memory.search",
+              "fixture.harbor.19",
+              "tasks.add"
+            ],
+            "sparse" : [
+              "network.bluetooth",
+              "sound.output",
+              "network.wifi",
+              "sound.input",
+              "sound.volume"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "network.vpn.0",
+          "query" : "Open VPN settings",
+          "relevant" : [
+            "network.vpn"
+          ],
+          "results" : {
+            "bm25" : [
+              "network.vpn",
+              "system.settings",
+              "system.power",
+              "appearance.open",
+              "display.open"
+            ],
+            "hybrid_rrf60" : [
+              "network.vpn",
+              "system.settings",
+              "display.open",
+              "appearance.open",
+              "system.power"
+            ],
+            "sparse" : [
+              "network.vpn",
+              "system.settings",
+              "display.open",
+              "appearance.open",
+              "clipboard.open"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "network.vpn.1",
+          "query" : "show my configured encrypted network tunnel",
+          "relevant" : [
+            "network.vpn"
+          ],
+          "results" : {
+            "bm25" : [
+              "network.vpn",
+              "network.wifi",
+              "files.open"
+            ],
+            "hybrid_rrf60" : [
+              "network.vpn",
+              "network.wifi",
+              "files.open",
+              "system.settings",
+              "fixture.slate.28"
+            ],
+            "sparse" : [
+              "network.vpn",
+              "system.settings",
+              "network.wifi",
+              "fixture.slate.28",
+              "fixture.maple.28"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "network.vpn.2",
+          "query" : "inspect my virtual private network connection",
+          "relevant" : [
+            "network.vpn"
+          ],
+          "results" : {
+            "bm25" : [
+              "network.wifi",
+              "network.vpn",
+              "fixture.harbor.28",
+              "fixture.quartz.28",
+              "fixture.cedar.28"
+            ],
+            "hybrid_rrf60" : [
+              "network.wifi",
+              "network.vpn",
+              "fixture.maple.28",
+              "fixture.quartz.28",
+              "fixture.slate.28"
+            ],
+            "sparse" : [
+              "network.vpn",
+              "network.wifi",
+              "fixture.maple.28",
+              "fixture.coral.28",
+              "fixture.slate.28"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "system.settings.0",
+          "query" : "Open system settings",
+          "relevant" : [
+            "system.settings"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.settings",
+              "system.power",
+              "network.vpn",
+              "appearance.open",
+              "display.open"
+            ],
+            "hybrid_rrf60" : [
+              "system.settings",
+              "appearance.open",
+              "system.power",
+              "display.open",
+              "clipboard.open"
+            ],
+            "sparse" : [
+              "system.settings",
+              "appearance.open",
+              "display.open",
+              "system.power",
+              "clipboard.open"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "system.settings.1",
+          "query" : "show the computer preferences",
+          "relevant" : [
+            "system.settings"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "fixture.harbor.5",
+              "fixture.quartz.5",
+              "fixture.cedar.5",
+              "fixture.maple.5"
+            ],
+            "hybrid_rrf60" : [
+              "system.lock",
+              "files.open",
+              "fixture.harbor.42",
+              "fixture.maple.42",
+              "fixture.slate.42"
+            ],
+            "sparse" : [
+              "display.brightness",
+              "appearance.open",
+              "system.settings",
+              "display.open",
+              "memory.search"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "system.settings.2",
+          "query" : "where are the operating system configuration controls",
+          "relevant" : [
+            "system.settings"
+          ],
+          "results" : {
+            "bm25" : [
+              "display.night",
+              "appearance.light",
+              "appearance.dark",
+              "sound.volume",
+              "system.power"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.open",
+              "display.night",
+              "appearance.light",
+              "appearance.dark",
+              "system.power"
+            ],
+            "sparse" : [
+              "system.settings",
+              "appearance.open",
+              "clipboard.open",
+              "system.power",
+              "display.brightness"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "system.lock.0",
+          "query" : "Lock the screen",
+          "relevant" : [
+            "system.lock"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "display.night",
+              "fixture.harbor.5",
+              "fixture.quartz.5",
+              "fixture.cedar.5"
+            ],
+            "hybrid_rrf60" : [
+              "system.lock",
+              "display.night",
+              "fixture.quartz.5",
+              "fixture.quartz.42",
+              "fixture.slate.42"
+            ],
+            "sparse" : [
+              "system.lock",
+              "display.brightness",
+              "notifications.focus",
+              "display.night",
+              "system.power"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "system.lock.1",
+          "query" : "secure my desktop while I step away",
+          "relevant" : [
+            "system.lock"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "screenshot.capture"
+            ],
+            "hybrid_rrf60" : [
+              "system.lock",
+              "screenshot.capture",
+              "system.power",
+              "system.settings",
+              "appearance.open"
+            ],
+            "sparse" : [
+              "system.lock",
+              "screenshot.capture",
+              "system.power",
+              "system.settings",
+              "appearance.open"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "system.lock.2",
+          "query" : "require a password before anyone can use this session",
+          "relevant" : [
+            "system.lock"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "history.search",
+              "appearance.light",
+              "appearance.dark",
+              "memory.search"
+            ],
+            "hybrid_rrf60" : [
+              "system.lock",
+              "history.search",
+              "tasks.add",
+              "appearance.dark",
+              "screenshot.capture"
+            ],
+            "sparse" : [
+              "system.lock",
+              "history.search",
+              "fixture.iris.30",
+              "fixture.quartz.29",
+              "system.settings"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "system.power.0",
+          "query" : "Open power settings",
+          "relevant" : [
+            "system.power"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.power",
+              "system.settings",
+              "network.vpn",
+              "appearance.open",
+              "display.open"
+            ],
+            "hybrid_rrf60" : [
+              "system.power",
+              "system.settings",
+              "appearance.open",
+              "network.vpn",
+              "display.open"
+            ],
+            "sparse" : [
+              "system.power",
+              "system.settings",
+              "appearance.open",
+              "display.open",
+              "clipboard.open"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "system.power.1",
+          "query" : "keep the computer awake longer",
+          "relevant" : [
+            "system.power"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "fixture.harbor.5",
+              "fixture.quartz.5",
+              "fixture.cedar.5",
+              "fixture.maple.5"
+            ],
+            "hybrid_rrf60" : [
+              "system.lock",
+              "fixture.quartz.5",
+              "files.open",
+              "fixture.maple.5",
+              "fixture.quartz.8"
+            ],
+            "sparse" : [
+              "system.power",
+              "system.lock",
+              "display.brightness",
+              "display.night",
+              "fixture.quartz.44"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "system.power.2",
+          "query" : "change the computer energy saving options",
+          "relevant" : [
+            "system.power"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.power",
+              "fixture.harbor.5",
+              "fixture.quartz.5",
+              "fixture.cedar.5",
+              "fixture.maple.5"
+            ],
+            "hybrid_rrf60" : [
+              "system.power",
+              "fixture.quartz.5",
+              "fixture.maple.5",
+              "fixture.orchid.5",
+              "fixture.hazel.5"
+            ],
+            "sparse" : [
+              "system.power",
+              "display.brightness",
+              "appearance.light",
+              "system.settings",
+              "appearance.dark"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "files.open.0",
+          "query" : "Open the file browser",
+          "relevant" : [
+            "files.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "files.open",
+              "oqto.open",
+              "system.power",
+              "system.settings",
+              "network.vpn"
+            ],
+            "hybrid_rrf60" : [
+              "files.open",
+              "system.settings",
+              "system.power",
+              "network.vpn",
+              "appearance.open"
+            ],
+            "sparse" : [
+              "files.open",
+              "system.settings",
+              "screenshot.capture",
+              "appearance.open",
+              "network.vpn"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "files.open.1",
+          "query" : "browse the folders on my computer",
+          "relevant" : [
+            "files.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "fixture.harbor.5",
+              "fixture.quartz.5",
+              "fixture.cedar.5",
+              "fixture.maple.5",
+              "fixture.orchid.5"
+            ],
+            "hybrid_rrf60" : [
+              "fixture.hazel.42",
+              "fixture.iris.18",
+              "fixture.quartz.5",
+              "fixture.maple.5",
+              "fixture.maple.42"
+            ],
+            "sparse" : [
+              "files.open",
+              "screenshot.capture",
+              "system.settings",
+              "network.vpn",
+              "appearance.dark"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "files.open.2",
+          "query" : "show me Finder",
+          "relevant" : [
+            "files.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "files.open"
+            ],
+            "hybrid_rrf60" : [
+              "files.open",
+              "appearance.open",
+              "system.settings",
+              "display.open",
+              "screenshot.capture"
+            ],
+            "sparse" : [
+              "files.open",
+              "appearance.open",
+              "system.settings",
+              "display.open",
+              "screenshot.capture"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "clipboard.open.0",
+          "query" : "Open clipboard controls",
+          "relevant" : [
+            "clipboard.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "clipboard.open",
+              "system.power",
+              "sound.volume",
+              "appearance.open",
+              "sound.input"
+            ],
+            "hybrid_rrf60" : [
+              "clipboard.open",
+              "appearance.open",
+              "system.power",
+              "sound.volume",
+              "notifications.focus"
+            ],
+            "sparse" : [
+              "clipboard.open",
+              "appearance.open",
+              "screenshot.capture",
+              "system.power",
+              "notifications.focus"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "clipboard.open.1",
+          "query" : "see what I copied earlier",
+          "relevant" : [
+            "clipboard.open"
+          ],
+          "results" : {
+            "bm25" : [
+
+            ],
+            "hybrid_rrf60" : [
+              "clipboard.open",
+              "fixture.iris.15",
+              "screenshot.capture",
+              "fixture.grove.15",
+              "fixture.birch.15"
+            ],
+            "sparse" : [
+              "clipboard.open",
+              "fixture.iris.15",
+              "screenshot.capture",
+              "fixture.grove.15",
+              "fixture.birch.15"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "clipboard.open.2",
+          "query" : "show my paste history",
+          "relevant" : [
+            "clipboard.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "fixture.harbor.16",
+              "fixture.quartz.16",
+              "fixture.cedar.16",
+              "fixture.maple.16",
+              "fixture.orchid.16"
+            ],
+            "hybrid_rrf60" : [
+              "fixture.quartz.16",
+              "fixture.maple.16",
+              "fixture.orchid.16",
+              "fixture.slate.16",
+              "fixture.hazel.16"
+            ],
+            "sparse" : [
+              "clipboard.open",
+              "fixture.quartz.16",
+              "fixture.maple.16",
+              "fixture.hazel.16",
+              "fixture.orchid.16"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "screenshot.capture.0",
+          "query" : "Take a screenshot",
+          "relevant" : [
+            "screenshot.capture"
+          ],
+          "results" : {
+            "bm25" : [
+              "screenshot.capture",
+              "memory.search",
+              "tasks.add",
+              "fixture.harbor.3",
+              "fixture.harbor.6"
+            ],
+            "hybrid_rrf60" : [
+              "screenshot.capture",
+              "fixture.harbor.39",
+              "fixture.quartz.39",
+              "fixture.harbor.36",
+              "fixture.cedar.39"
+            ],
+            "sparse" : [
+              "screenshot.capture",
+              "fixture.grove.39",
+              "fixture.hazel.39",
+              "fixture.maple.39",
+              "fixture.birch.39"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "screenshot.capture.1",
+          "query" : "save a picture of this window",
+          "relevant" : [
+            "screenshot.capture"
+          ],
+          "results" : {
+            "bm25" : [
+              "screenshot.capture",
+              "memory.search",
+              "tasks.add",
+              "fixture.harbor.3",
+              "fixture.harbor.6"
+            ],
+            "hybrid_rrf60" : [
+              "screenshot.capture",
+              "memory.search",
+              "fixture.quartz.39",
+              "fixture.harbor.39",
+              "fixture.maple.39"
+            ],
+            "sparse" : [
+              "screenshot.capture",
+              "fixture.maple.39",
+              "appearance.open",
+              "fixture.quartz.39",
+              "fixture.orchid.39"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "screenshot.capture.2",
+          "query" : "grab an image of the visible desktop",
+          "relevant" : [
+            "screenshot.capture"
+          ],
+          "results" : {
+            "bm25" : [
+              "screenshot.capture",
+              "system.lock",
+              "fixture.harbor.37",
+              "fixture.quartz.37",
+              "fixture.cedar.37"
+            ],
+            "hybrid_rrf60" : [
+              "screenshot.capture",
+              "system.lock",
+              "fixture.harbor.37",
+              "fixture.quartz.37",
+              "fixture.maple.37"
+            ],
+            "sparse" : [
+              "screenshot.capture",
+              "system.lock",
+              "appearance.open",
+              "files.open",
+              "appearance.light"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "selection.speak.0",
+          "query" : "Read the selection aloud",
+          "relevant" : [
+            "selection.speak"
+          ],
+          "results" : {
+            "bm25" : [
+              "selection.speak",
+              "network.wifi",
+              "sound.input",
+              "system.lock",
+              "fixture.harbor.5"
+            ],
+            "hybrid_rrf60" : [
+              "selection.speak",
+              "sound.input",
+              "network.wifi",
+              "oqto.open",
+              "files.open"
+            ],
+            "sparse" : [
+              "selection.speak",
+              "sound.output",
+              "sound.input",
+              "dictation.start",
+              "network.wifi"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "selection.speak.1",
+          "query" : "say the highlighted passage out loud",
+          "relevant" : [
+            "selection.speak"
+          ],
+          "results" : {
+            "bm25" : [
+              "system.lock",
+              "fixture.harbor.5",
+              "fixture.quartz.5",
+              "fixture.cedar.5",
+              "fixture.maple.5"
+            ],
+            "hybrid_rrf60" : [
+              "selection.speak",
+              "fixture.birch.42",
+              "fixture.grove.42",
+              "fixture.dune.42",
+              "fixture.hazel.42"
+            ],
+            "sparse" : [
+              "selection.speak",
+              "sound.output",
+              "sound.volume",
+              "dictation.start",
+              "sound.input"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "selection.speak.2",
+          "query" : "listen to the text I selected",
+          "relevant" : [
+            "selection.speak"
+          ],
+          "results" : {
+            "bm25" : [
+              "selection.speak",
+              "dictation.start",
+              "tasks.add",
+              "fixture.harbor.37",
+              "fixture.quartz.37"
+            ],
+            "hybrid_rrf60" : [
+              "selection.speak",
+              "dictation.start",
+              "tasks.add",
+              "appearance.light",
+              "appearance.dark"
+            ],
+            "sparse" : [
+              "selection.speak",
+              "dictation.start",
+              "tasks.add",
+              "sound.input",
+              "sound.output"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "audio.transcribe.0",
+          "query" : "Transcribe audio",
+          "relevant" : [
+            "audio.transcribe"
+          ],
+          "results" : {
+            "bm25" : [
+              "audio.transcribe",
+              "sound.output"
+            ],
+            "hybrid_rrf60" : [
+              "audio.transcribe",
+              "sound.output",
+              "sound.input",
+              "sound.volume",
+              "dictation.start"
+            ],
+            "sparse" : [
+              "audio.transcribe",
+              "sound.output",
+              "sound.input",
+              "sound.volume",
+              "dictation.start"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "audio.transcribe.1",
+          "query" : "write down the words in this available recording",
+          "relevant" : [
+            "audio.transcribe"
+          ],
+          "results" : {
+            "bm25" : [
+              "audio.transcribe",
+              "fixture.harbor.9",
+              "fixture.quartz.9",
+              "fixture.cedar.9",
+              "fixture.maple.9"
+            ],
+            "hybrid_rrf60" : [
+              "audio.transcribe",
+              "fixture.maple.9",
+              "fixture.orchid.9",
+              "fixture.quartz.9",
+              "fixture.amber.9"
+            ],
+            "sparse" : [
+              "audio.transcribe",
+              "sound.output",
+              "dictation.start",
+              "sound.input",
+              "sound.volume"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "audio.transcribe.2",
+          "query" : "convert this audio file into a transcript",
+          "relevant" : [
+            "audio.transcribe"
+          ],
+          "results" : {
+            "bm25" : [
+              "audio.transcribe",
+              "files.open",
+              "dictation.start",
+              "sound.output",
+              "fixture.harbor.37"
+            ],
+            "hybrid_rrf60" : [
+              "audio.transcribe",
+              "sound.output",
+              "dictation.start",
+              "files.open",
+              "fixture.birch.37"
+            ],
+            "sparse" : [
+              "audio.transcribe",
+              "sound.output",
+              "dictation.start",
+              "sound.input",
+              "sound.volume"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "dictation.start.0",
+          "query" : "Start dictation",
+          "relevant" : [
+            "dictation.start"
+          ],
+          "results" : {
+            "bm25" : [
+              "dictation.start"
+            ],
+            "hybrid_rrf60" : [
+              "dictation.start",
+              "tasks.add",
+              "fixture.juniper.21",
+              "system.settings",
+              "fixture.coral.21"
+            ],
+            "sparse" : [
+              "dictation.start",
+              "tasks.add",
+              "fixture.juniper.21",
+              "system.settings",
+              "fixture.coral.21"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "dictation.start.1",
+          "query" : "let me speak instead of typing",
+          "relevant" : [
+            "dictation.start"
+          ],
+          "results" : {
+            "bm25" : [
+
+            ],
+            "hybrid_rrf60" : [
+              "dictation.start",
+              "sound.input",
+              "sound.output",
+              "tasks.add",
+              "history.search"
+            ],
+            "sparse" : [
+              "dictation.start",
+              "sound.input",
+              "sound.output",
+              "tasks.add",
+              "history.search"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "dictation.start.2",
+          "query" : "turn my spoken words into typed text",
+          "relevant" : [
+            "dictation.start"
+          ],
+          "results" : {
+            "bm25" : [
+              "dictation.start",
+              "notifications.focus",
+              "tasks.add"
+            ],
+            "hybrid_rrf60" : [
+              "dictation.start",
+              "tasks.add",
+              "notifications.focus",
+              "sound.input",
+              "sound.output"
+            ],
+            "sparse" : [
+              "dictation.start",
+              "sound.input",
+              "sound.output",
+              "tasks.add",
+              "sound.volume"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "oqto.open.0",
+          "query" : "Open Oqto",
+          "relevant" : [
+            "oqto.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "oqto.open",
+              "system.power",
+              "system.settings",
+              "files.open",
+              "network.vpn"
+            ],
+            "hybrid_rrf60" : [
+              "oqto.open",
+              "appearance.open",
+              "files.open",
+              "network.bluetooth",
+              "system.power"
+            ],
+            "sparse" : [
+              "oqto.open",
+              "network.bluetooth",
+              "appearance.open",
+              "clipboard.open",
+              "notifications.focus"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "oqto.open.1",
+          "query" : "take me to my agent workspace",
+          "relevant" : [
+            "oqto.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "oqto.open",
+              "history.search",
+              "screenshot.capture",
+              "fixture.harbor.37",
+              "fixture.quartz.37"
+            ],
+            "hybrid_rrf60" : [
+              "oqto.open",
+              "history.search",
+              "fixture.quartz.8",
+              "fixture.maple.30",
+              "fixture.grove.30"
+            ],
+            "sparse" : [
+              "oqto.open",
+              "fixture.grove.30",
+              "fixture.maple.30",
+              "fixture.hazel.30",
+              "fixture.birch.30"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "oqto.open.2",
+          "query" : "show the Oqto interface",
+          "relevant" : [
+            "oqto.open"
+          ],
+          "results" : {
+            "bm25" : [
+              "oqto.open",
+              "dictation.start",
+              "network.vpn",
+              "system.lock",
+              "sound.volume"
+            ],
+            "hybrid_rrf60" : [
+              "oqto.open",
+              "appearance.open",
+              "display.open",
+              "dictation.start",
+              "system.lock"
+            ],
+            "sparse" : [
+              "oqto.open",
+              "appearance.light",
+              "appearance.dark",
+              "tasks.add",
+              "appearance.open"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "tasks.add.0",
+          "query" : "Add a task",
+          "relevant" : [
+            "tasks.add"
+          ],
+          "results" : {
+            "bm25" : [
+              "tasks.add",
+              "issues.search",
+              "memory.search",
+              "screenshot.capture",
+              "fixture.harbor.3"
+            ],
+            "hybrid_rrf60" : [
+              "tasks.add",
+              "issues.search",
+              "fixture.quartz.3",
+              "fixture.quartz.30",
+              "fixture.harbor.30"
+            ],
+            "sparse" : [
+              "tasks.add",
+              "fixture.hazel.30",
+              "fixture.dune.30",
+              "fixture.coral.30",
+              "fixture.maple.30"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "tasks.add.1",
+          "query" : "remind me to buy groceries",
+          "relevant" : [
+            "tasks.add"
+          ],
+          "results" : {
+            "bm25" : [
+              "fixture.harbor.37",
+              "fixture.quartz.37",
+              "fixture.cedar.37",
+              "fixture.maple.37",
+              "fixture.orchid.37"
+            ],
+            "hybrid_rrf60" : [
+              "fixture.quartz.37",
+              "fixture.maple.37",
+              "dictation.start",
+              "fixture.harbor.37",
+              "fixture.birch.3"
+            ],
+            "sparse" : [
+              "fixture.birch.3",
+              "fixture.coral.3",
+              "fixture.hazel.3",
+              "fixture.slate.3",
+              "fixture.orchid.3"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "tasks.add.2",
+          "query" : "put review budget on my todo list",
+          "relevant" : [
+            "tasks.add"
+          ],
+          "results" : {
+            "bm25" : [
+              "tasks.add",
+              "fixture.harbor.4",
+              "fixture.harbor.8",
+              "fixture.harbor.10",
+              "fixture.harbor.22"
+            ],
+            "hybrid_rrf60" : [
+              "tasks.add",
+              "fixture.quartz.34",
+              "fixture.quartz.8",
+              "fixture.quartz.4",
+              "fixture.harbor.4"
+            ],
+            "sparse" : [
+              "tasks.add",
+              "fixture.slate.30",
+              "oqto.open",
+              "fixture.coral.30",
+              "fixture.hazel.30"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "history.search.0",
+          "query" : "Search past conversations",
+          "relevant" : [
+            "history.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "history.search",
+              "issues.search"
+            ],
+            "hybrid_rrf60" : [
+              "history.search",
+              "issues.search",
+              "fixture.larch.9",
+              "fixture.coral.43",
+              "fixture.iris.43"
+            ],
+            "sparse" : [
+              "history.search",
+              "issues.search",
+              "fixture.larch.9",
+              "fixture.coral.43",
+              "fixture.iris.43"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "history.search.1",
+          "query" : "find the conversation where we discussed Rust",
+          "relevant" : [
+            "history.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "display.night",
+              "memory.search",
+              "fixture.harbor.23",
+              "fixture.quartz.23",
+              "fixture.cedar.23"
+            ],
+            "hybrid_rrf60" : [
+              "fixture.slate.9",
+              "fixture.cedar.9",
+              "fixture.birch.9",
+              "fixture.harbor.9",
+              "fixture.dune.9"
+            ],
+            "sparse" : [
+              "fixture.slate.9",
+              "history.search",
+              "fixture.birch.9",
+              "fixture.flint.9",
+              "fixture.dune.9"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "history.search.2",
+          "query" : "look up a previous agent session",
+          "relevant" : [
+            "history.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "history.search",
+              "system.lock",
+              "oqto.open",
+              "memory.search",
+              "screenshot.capture"
+            ],
+            "hybrid_rrf60" : [
+              "history.search",
+              "system.lock",
+              "oqto.open",
+              "memory.search",
+              "screenshot.capture"
+            ],
+            "sparse" : [
+              "history.search",
+              "oqto.open",
+              "system.lock",
+              "system.settings",
+              "fixture.quartz.44"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "memory.search.0",
+          "query" : "Find a saved memory",
+          "relevant" : [
+            "memory.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "memory.search",
+              "issues.search",
+              "fixture.harbor.23",
+              "fixture.quartz.23",
+              "fixture.cedar.23"
+            ],
+            "hybrid_rrf60" : [
+              "memory.search",
+              "fixture.quartz.23",
+              "fixture.slate.23",
+              "fixture.maple.23",
+              "fixture.coral.23"
+            ],
+            "sparse" : [
+              "memory.search",
+              "files.open",
+              "history.search",
+              "fixture.larch.35",
+              "display.open"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "memory.search.1",
+          "query" : "what preference did I save about fonts",
+          "relevant" : [
+            "memory.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "memory.search"
+            ],
+            "hybrid_rrf60" : [
+              "memory.search",
+              "fixture.iris.42",
+              "fixture.coral.42",
+              "fixture.maple.42",
+              "fixture.quartz.42"
+            ],
+            "sparse" : [
+              "memory.search",
+              "fixture.iris.42",
+              "fixture.coral.42",
+              "fixture.maple.42",
+              "fixture.quartz.42"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "memory.search.2",
+          "query" : "find a remembered operational fact",
+          "relevant" : [
+            "memory.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "memory.search",
+              "issues.search",
+              "fixture.harbor.23",
+              "fixture.quartz.23",
+              "fixture.cedar.23"
+            ],
+            "hybrid_rrf60" : [
+              "memory.search",
+              "fixture.cedar.23",
+              "fixture.orchid.9",
+              "fixture.cedar.9",
+              "fixture.quartz.23"
+            ],
+            "sparse" : [
+              "memory.search",
+              "fixture.orchid.9",
+              "fixture.flint.9",
+              "fixture.coral.9",
+              "fixture.amber.9"
+            ]
+          }
+        },
+        {
+          "group" : "literal",
+          "id" : "issues.search.0",
+          "query" : "Search project issues",
+          "relevant" : [
+            "issues.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "issues.search",
+              "history.search",
+              "fixture.harbor.47",
+              "fixture.quartz.47",
+              "fixture.cedar.47"
+            ],
+            "hybrid_rrf60" : [
+              "issues.search",
+              "history.search",
+              "fixture.quartz.47",
+              "fixture.maple.47",
+              "fixture.orchid.13"
+            ],
+            "sparse" : [
+              "issues.search",
+              "history.search",
+              "fixture.iris.18",
+              "fixture.coral.13",
+              "fixture.harbor.18"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "issues.search.1",
+          "query" : "look up the tracked defect for startup",
+          "relevant" : [
+            "issues.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "history.search",
+              "issues.search",
+              "system.lock",
+              "fixture.harbor.5",
+              "fixture.quartz.5"
+            ],
+            "hybrid_rrf60" : [
+              "issues.search",
+              "history.search",
+              "system.lock",
+              "fixture.quartz.18",
+              "files.open"
+            ],
+            "sparse" : [
+              "issues.search",
+              "network.vpn",
+              "system.settings",
+              "files.open",
+              "appearance.dark"
+            ]
+          }
+        },
+        {
+          "group" : "paraphrase",
+          "id" : "issues.search.2",
+          "query" : "find an existing feature ticket",
+          "relevant" : [
+            "issues.search"
+          ],
+          "results" : {
+            "bm25" : [
+              "issues.search",
+              "fixture.harbor.35",
+              "fixture.quartz.35",
+              "fixture.cedar.35",
+              "fixture.maple.35"
+            ],
+            "hybrid_rrf60" : [
+              "fixture.slate.35",
+              "fixture.coral.35",
+              "fixture.quartz.35",
+              "fixture.amber.35",
+              "fixture.flint.35"
+            ],
+            "sparse" : [
+              "fixture.flint.30",
+              "fixture.slate.35",
+              "fixture.amber.30",
+              "fixture.larch.30",
+              "fixture.flint.35"
+            ]
+          }
+        },
+        {
+          "group" : "no-match",
+          "id" : "none.84",
+          "query" : "order a pizza",
+          "relevant" : [
+
+          ],
+          "results" : {
+            "bm25" : [
+              "fixture.harbor.3",
+              "fixture.quartz.3",
+              "fixture.cedar.3",
+              "fixture.maple.3",
+              "fixture.orchid.3"
+            ],
+            "hybrid_rrf60" : [
+              "fixture.quartz.3",
+              "fixture.orchid.3",
+              "fixture.coral.3",
+              "fixture.birch.3",
+              "fixture.maple.3"
+            ],
+            "sparse" : [
+              "fixture.coral.3",
+              "fixture.birch.3",
+              "fixture.hazel.3",
+              "fixture.orchid.3",
+              "fixture.quartz.3"
+            ]
+          }
+        },
+        {
+          "group" : "no-match",
+          "id" : "none.85",
+          "query" : "book a flight to Tokyo",
+          "relevant" : [
+
+          ],
+          "results" : {
+            "bm25" : [
+              "fixture.harbor.37",
+              "fixture.quartz.37",
+              "fixture.cedar.37",
+              "fixture.maple.37",
+              "fixture.orchid.37"
+            ],
+            "hybrid_rrf60" : [
+              "fixture.harbor.30",
+              "fixture.harbor.6",
+              "fixture.cedar.30",
+              "fixture.harbor.32",
+              "fixture.harbor.31"
+            ],
+            "sparse" : [
+              "fixture.coral.30",
+              "fixture.coral.33",
+              "fixture.harbor.30",
+              "fixture.birch.30",
+              "fixture.iris.30"
+            ]
+          }
+        },
+        {
+          "group" : "no-match",
+          "id" : "none.86",
+          "query" : "diagnose a broken ankle",
+          "relevant" : [
+
+          ],
+          "results" : {
+            "bm25" : [
+              "memory.search",
+              "screenshot.capture",
+              "tasks.add",
+              "fixture.harbor.3",
+              "fixture.harbor.6"
+            ],
+            "hybrid_rrf60" : [
+              "fixture.quartz.33",
+              "fixture.maple.33",
+              "memory.search",
+              "fixture.maple.39",
+              "fixture.maple.13"
+            ],
+            "sparse" : [
+              "fixture.maple.33",
+              "fixture.maple.8",
+              "fixture.birch.33",
+              "fixture.maple.39",
+              "fixture.iris.33"
+            ]
+          }
+        },
+        {
+          "group" : "no-match",
+          "id" : "none.87",
+          "query" : "change my bank account password",
+          "relevant" : [
+
+          ],
+          "results" : {
+            "bm25" : [
+              "fixture.harbor.5",
+              "fixture.harbor.14",
+              "fixture.quartz.5",
+              "fixture.quartz.14",
+              "fixture.cedar.5"
+            ],
+            "hybrid_rrf60" : [
+              "fixture.quartz.5",
+              "fixture.orchid.5",
+              "fixture.maple.5",
+              "fixture.harbor.5",
+              "fixture.cedar.5"
+            ],
+            "sparse" : [
+              "fixture.orchid.5",
+              "fixture.iris.5",
+              "fixture.flint.5",
+              "fixture.quartz.5",
+              "fixture.grove.5"
+            ]
+          }
+        },
+        {
+          "group" : "no-match",
+          "id" : "none.88",
+          "query" : "solve this integral",
+          "relevant" : [
+
+          ],
+          "results" : {
+            "bm25" : [
+
+            ],
+            "hybrid_rrf60" : [
+              "fixture.flint.39",
+              "fixture.flint.6",
+              "fixture.flint.8",
+              "fixture.flint.33",
+              "fixture.flint.1"
+            ],
+            "sparse" : [
+              "fixture.flint.39",
+              "fixture.flint.6",
+              "fixture.flint.8",
+              "fixture.flint.33",
+              "fixture.flint.1"
+            ]
+          }
+        },
+        {
+          "group" : "no-match",
+          "id" : "none.89",
+          "query" : "translate a novel into Japanese",
+          "relevant" : [
+
+          ],
+          "results" : {
+            "bm25" : [
+              "dictation.start",
+              "memory.search",
+              "screenshot.capture",
+              "tasks.add",
+              "fixture.harbor.3"
+            ],
+            "hybrid_rrf60" : [
+              "dictation.start",
+              "fixture.harbor.11",
+              "fixture.harbor.19",
+              "fixture.harbor.6",
+              "screenshot.capture"
+            ],
+            "sparse" : [
+              "dictation.start",
+              "sound.output",
+              "fixture.grove.15",
+              "fixture.coral.15",
+              "fixture.iris.15"
+            ]
+          }
+        },
+        {
+          "group" : "no-match",
+          "id" : "none.90",
+          "query" : "buy a concert ticket",
+          "relevant" : [
+
+          ],
+          "results" : {
+            "bm25" : [
+              "fixture.harbor.30",
+              "fixture.harbor.31",
+              "fixture.harbor.32",
+              "fixture.harbor.33",
+              "fixture.quartz.30"
+            ],
+            "hybrid_rrf60" : [
+              "fixture.harbor.30",
+              "fixture.orchid.30",
+              "fixture.quartz.30",
+              "fixture.cedar.30",
+              "fixture.coral.30"
+            ],
+            "sparse" : [
+              "fixture.coral.30",
+              "fixture.orchid.30",
+              "fixture.birch.30",
+              "fixture.slate.34",
+              "fixture.quartz.34"
+            ]
+          }
+        },
+        {
+          "group" : "no-match",
+          "id" : "none.91",
+          "query" : "forecast tomorrow's weather",
+          "relevant" : [
+
+          ],
+          "results" : {
+            "bm25" : [
+              "system.settings",
+              "tasks.add",
+              "appearance.light",
+              "appearance.dark"
+            ],
+            "hybrid_rrf60" : [
+              "appearance.dark",
+              "tasks.add",
+              "appearance.light",
+              "system.settings",
+              "display.night"
+            ],
+            "sparse" : [
+              "display.night",
+              "fixture.coral.6",
+              "fixture.cedar.8",
+              "fixture.cedar.6",
+              "fixture.iris.6"
+            ]
+          }
+        }
+      ],
+      "size" : 1000
+    }
+  ],
+  "document_encoding_1000_ms" : 3110.082958,
+  "documents_truncated" : [
+
+  ],
+  "first_encoding_ms" : 9.8788330000000002,
+  "first_prediction_ms" : 9.5837920000000008,
+  "fixture_sha256" : "f16fa8619ae179e22944bd09bfeded99f0fb827b15442beb1f0960e3b318c6ce",
+  "idle_encoding_ms" : 26.111042000000001,
+  "idle_prediction_ms" : 25.516625000000001,
+  "limits" : [
+    "Synthetic fixtures; frozen labels not real-user ground truth",
+    "No native UI\/physical keyboard\/GPU-present measurement",
+    "Compute units requested, actual operation placement unverified",
+    "Sequential prefix queries, no async stale-query\/cancellation test",
+    "No refusals\/calibration\/authorization supplied by retrieval",
+    "Index build\/compile\/download excluded from warm query latency"
+  ],
+  "model_load_ms" : 1252.7953749999999,
+  "onnx_reference_parity" : {
+    "cases" : 52,
+    "max_relative_l2_error" : 0.026541060153572372,
+    "min_term_overlap" : 0.95833333333333337,
+    "skipped_over64" : 0,
+    "tolerance_overlap" : 0.90000000000000002,
+    "tolerance_relative_l2" : 0.050000000000000003
+  },
+  "tokenizer_parity_cases" : 14
+}

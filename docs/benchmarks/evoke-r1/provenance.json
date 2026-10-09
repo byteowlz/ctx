@@ -1,0 +1,16 @@
+{
+  "fluiduse_revision": "fda0e480329150d47e60735ad80ad90c41f01b09",
+  "fluiduse_pr": "https://github.com/FluidInference/FluidUse/pull/28",
+  "model_revision": "4ef29e090fd5a8480cc0830132d8011ac68dd71b",
+  "model_repository": "FluidInference/granite-embedding-30m-sparse-coreml",
+  "model_license": "Apache-2.0",
+  "fixture_sha256": "f16fa8619ae179e22944bd09bfeded99f0fb827b15442beb1f0960e3b318c6ce",
+  "runner_sha256": "ae7fa43415ce54a3685aa8b089ece021fbba5118845177f4f95afbf095a0e26b",
+  "corpus_sha256": "5250cfc37c06c90287506694a0ef072bb8c4e5ded3a1d174c9b0e19f30f91eeb",
+  "host": {
+    "architecture": "arm64",
+    "platform": "darwin",
+    "hardware": "Apple M2 Ultra",
+    "os": "26.6.2"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "backend_requested" : "gpu",
+  "error" : "Invalid Evoke asset: Invalid sparse embedding for fixture.quartz.0: [3119: inf, 3116: inf, 3123: inf, 3120: inf, 3121: inf, 3122: inf, 3117: inf, 3118: inf]",
+  "status" : "failed"
+}
