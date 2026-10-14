@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ctx preview-only synthetic control catalog",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "status", "branches", "items"],
+  "properties": {
+    "version": {"const": 1},
+    "status": {"const": "prototype-fixtures-not-execution-contracts"},
+    "branches": {"type": "array", "maxItems": 32, "items": {"$ref": "#/$defs/branch"}},
+    "items": {"type": "array", "maxItems": 128, "items": {"$ref": "#/$defs/leaf"}}
+  },
+  "$defs": {
+    "platform": {"enum": ["macos", "windows", "linux", "omarchy"]},
+    "identity": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[a-z][a-z0-9._-]*$"},
+    "text": {"type": "string", "minLength": 1, "maxLength": 1024},
+    "support": {
+      "type": "object", "additionalProperties": false, "minProperties": 1,
+      "properties": {
+        "macos": {"$ref": "#/$defs/text"}, "windows": {"$ref": "#/$defs/text"},
+        "linux": {"$ref": "#/$defs/text"}, "omarchy": {"$ref": "#/$defs/text"}
+      }
+    },
+    "base": {
+      "type": "object", "required": ["id", "tool", "interface", "label", "description", "icon"],
+      "properties": {
+        "id": {"$ref": "#/$defs/identity"}, "tool": {"$ref": "#/$defs/text"},
+        "interface": {"$ref": "#/$defs/text"}, "label": {"$ref": "#/$defs/text"},
+        "description": {"$ref": "#/$defs/text"}, "icon": {"$ref": "#/$defs/identity"},
+        "support": {"$ref": "#/$defs/support"},
+        "platforms": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/platform"}},
+        "requires": {"enum": ["window", "selection", "audio"]}
+      }
+    },
+    "leaf": {
+      "allOf": [{"$ref": "#/$defs/base"}], "unevaluatedProperties": false
+    },
+    "branch": {
+      "allOf": [{"$ref": "#/$defs/base"}], "unevaluatedProperties": false,
+      "required": ["kind", "node", "children"],
+      "properties": {
+        "kind": {"const": "branch"},
+        "node": {"type": "string", "pattern": "^fixture-[a-z]+$"},
+        "children": {"type": "array", "minItems": 1, "maxItems": 128, "uniqueItems": true, "items": {"$ref": "#/$defs/identity"}}
+      }
+    }
+  }
+}

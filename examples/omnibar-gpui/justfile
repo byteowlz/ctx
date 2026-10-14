@@ -28,6 +28,11 @@ benchmark-input *args:
 review-surfaces directory:
     cargo run -p ctx-bar --features native-review --example surface_review -- --review-dir {{quote(directory)}}
 
+# Hidden synthetic list/tree scenes: all ten designs, three path variants,
+# keyboard routing, motion settlement and CPU edit/draw timing; explicit output.
+review-tree directory:
+    cargo run -p ctx-bar --features native-review --example tree_review -- {{quote(directory)}}
+
 # Only a human should launch this focus-taking native window.
 run *args:
     cargo run -p ctx-bar -- {{args}}

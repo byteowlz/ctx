@@ -23,6 +23,28 @@ pub fn layout(design: BarDesign, choices: usize, status: bool, maximum: f32) -> 
     }
 }
 
+/// Rows that get real text this frame. Others are equal-height spacers, so a
+/// large offered scope keeps every index scrollable without spending the
+/// per-frame Dot budget on rows nobody can see. The selected row's neighbours
+/// stay live because keyboard `scroll_to_item` settles after render.
+pub fn live_row(index: usize, selected: usize, offset_y: f32, height: f32) -> bool {
+    let top = (-offset_y / ROW_HEIGHT).floor().max(0.0) as usize;
+    let visible = (height / ROW_HEIGHT).ceil() as usize;
+    let band = top.saturating_sub(1)..=top + visible + 1;
+    band.contains(&index) || index.abs_diff(selected) <= 5
+}
+
+/// Reserve the same path/status/control bands at every tree depth so the
+/// aperture never shifts when a branch or final receipt is disclosed.
+pub fn tree_layout(design: BarDesign, maximum: f32) -> Layout {
+    let bands = design.bar_height() + STATUS_HEIGHT * 3.0;
+    let list_height = (maximum - bands).clamp(64.0, 320.0);
+    Layout {
+        height: bands + list_height,
+        list_height,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -46,6 +68,25 @@ mod tests {
         assert_eq!(loading.height - idle.height, STATUS_HEIGHT);
         assert_eq!(ready.list_height, 3.0 * ROW_HEIGHT);
         assert_eq!(layout(BarDesign::DotMatrix, 0, false, 520.0), idle);
+    }
+
+    #[test]
+    fn large_scopes_render_a_bounded_live_window() {
+        let height = ROW_HEIGHT * 5.0;
+        for (selected, offset) in [
+            (0, 0.0),
+            (40, -40.0 * ROW_HEIGHT),
+            (0, -60.0 * ROW_HEIGHT),
+            (87, -83.0 * ROW_HEIGHT),
+        ] {
+            let live: Vec<_> = (0..88)
+                .filter(|index| live_row(*index, selected, offset, height))
+                .collect();
+            assert!(live.contains(&selected));
+            assert!(live.len() <= 8 + 11, "{selected} {offset}: {}", live.len());
+            let top = (-offset / ROW_HEIGHT) as usize;
+            assert!((top..(top + 5).min(88)).all(|index| live.contains(&index)));
+        }
     }
 
     #[test]

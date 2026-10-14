@@ -54,6 +54,39 @@ Enter previews a suggested interface. Flat is the default; `presentation =
 tree, tool invocation, grants, host capture or microphone recording is added.
 Native explicit editing remains available; no periodic clipboard reads occur.
 
+## List and tree views
+
+Two first-class views share one catalog, routing, retrieval and preview
+contract. `view = "list"` (default) keeps compact rows. `view = "tree"` uses
+branch routing with a stationary centered aperture: nodes and connectors move
+on one coordinate layer, the current choice stays centered, earlier steps sit
+to the left and the final receipt is inert (`Nothing executed`). `tree_variant`
+picks the path treatment: `faint` (earlier choices dimmed), `trail` (only the
+chosen horizontal path) or `crumbs` (contextual breadcrumbs). All three are
+implemented for review; none is a selected winner.
+
+- **F3** switches view without clearing the request; it invalidates the old
+  scope, pending requests and timers. A final preview keeps its receipt.
+- **F4** (or Left in the tree) goes Back to the previous offered scope and
+  selection without a new inference. **F2** browses the full offered scope in
+  either view; the tree shows five nodes around the selection, never filtering.
+- Up/Down follow the tree's visual order. Enter or a second click on the settled
+  selection chooses; nothing is chosen while the layer is still moving or while
+  IME text is marked.
+- In-input commands `ctx view list|tree`, `ctx tree faint|trail|crumbs` and
+  `ctx dwell on|off` apply in memory only, like `ctx theme`.
+- Tree dwell is opt-in (`ctx dwell on` / `auto_select_first`). It arms only after
+  motion settles, for fresh `Jev via EAVS` results with finite probabilities.
+  Edits, navigation, focus loss, view changes and Escape pause it; Space or the
+  Resume control restarts it explicitly. It stops at the final preview. Local
+  recall, F2 browsing, refusals and errors never arm it.
+- Motion is a 220 ms ease-out retargeted from the rendered position. It snaps
+  when `reduce_motion = true` or the platform reports reduced motion.
+
+In the classic list, rows outside the scrolled viewport (and away from the
+selection) render as equal-height spacers, so a 94-entry F2 scope stays fully
+scrollable without exhausting the per-frame Dot budget.
+
 Optional first-row timeout defaults off, independent of confidence. Edits,
 navigation, selection changes, focus loss and local commands cancel it.
 Generation/timer tickets reject stale completions. Config precedence is CLI >
@@ -92,6 +125,18 @@ Review requires the opt-in `native-review` feature; failure exits nonzero.
 Evidence includes actual GPUI scene renders for all ten empty/suggestion states
 at dark 680px and light 480px widths, and GPUI-dispatched Enter switching checks.
 These are **hidden native scenes**, not browser mocks or OS-compositor captures.
+
+`just review-tree /tmp/ctx-tree-proof` renders 384 hidden scenes: all ten
+designs x dark/light x 680/480 px x three variants x root/child/preview/back/
+panned, plus 1200 px and 480 px catalog/loading/error/no-match/Unicode/idle,
+an in-flight pan (aperture fixed, Enter refused until settled), marked-text
+Enter, and deep F2 list browsing to index 60. It runs 240 native keyboard
+checks and writes `timing.json`, which holds synthetic CPU edit+draw time for
+list and tree. That timing is not GPU completion, compositor or physical input
+latency. On the M2 Ultra review host, medians/p95 are 7.4/8.1 ms (Dot list, 3
+rows), 9.2/10.0 ms (Dot tree, 5 nodes), 2.9/3.4 ms (Unframed list) and
+3.6/4.0 ms (Unframed tree). It overrides reduced motion inside the app only, restores it
+afterwards, and never changes OS preferences.
 
 Dot matrix uses the actual OFL font at 11px sampling/3x display with separated
 rounded cells. A complete current native-layout mask is required before covering

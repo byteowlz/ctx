@@ -47,6 +47,9 @@ args = []
 # design = "dot-matrix"
 # theme = "Lumen Dark"
 # presentation = "flat"
+# view = "list" # "tree" uses shallow branch routing; F3 switches while preserving input.
+# tree_variant = "faint" # Also "trail" or "crumbs"; not a selected Studio winner.
+# reduce_motion = false
 #
 # [eavs]
 # endpoint = "http://127.0.0.1:3033/jev/v1/systemone"

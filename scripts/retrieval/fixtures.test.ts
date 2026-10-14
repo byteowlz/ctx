@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { fixtures } from "./fixtures";
-const catalog = await Bun.file(new URL("../../examples/omnibar-prototype/catalog.json", import.meta.url)).json();
+const catalog = await Bun.file(new URL("./benchmark-catalog.json", import.meta.url)).json();
 test("frozen synthetic fixtures have unique IDs, independent labels and exact sizes", () => {
   const a = fixtures(catalog), b = fixtures(catalog);
   expect(a).toEqual(b);

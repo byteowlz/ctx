@@ -1,27 +1,33 @@
 use std::ops::Range;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use gpui_kit::assets::IconName;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::component::input::{InputEvent, InputState};
 use gpui_kit::component::{ActiveTheme as _, Icon};
 use gpui_kit::{
-    AppContext as _, Context, Entity, InteractiveElement as _, IntoElement, KeyDownEvent,
-    ParentElement as _, Render, ScrollHandle, SharedString, StatefulInteractiveElement as _,
-    Styled as _, Subscription, Window, WindowBackgroundAppearance, div, px, size,
+    AppContext as _, Context, Entity, EntityInputHandler as _, FocusHandle,
+    InteractiveElement as _, IntoElement, KeyDownEvent, ParentElement as _, Render, ScrollHandle,
+    SharedString, StatefulInteractiveElement as _, Styled as _, Subscription, Window,
+    WindowBackgroundAppearance, div, px, size,
 };
 
+use ctx_bar::commands::{Action, choices};
 use ctx_bar::config::{Config, descriptor_path};
 use ctx_bar::layout::{INSET, layout};
-use ctx_bar::model::{Catalog, Item, fixture_catalog};
+use ctx_bar::model::{Catalog, Item, Presentation, ViewMode, fixture_catalog};
 use ctx_bar::proxy::Proxy;
-use ctx_bar::state::{Selection, State, Status};
-use ctx_bar_design::{BarDesign, theme_choices};
+use ctx_bar::state::{Selection, State, Status, TimerTicket};
+use ctx_bar::tree::Motion;
+use ctx_bar_design::BarDesign;
 
 use crate::presentation;
 
 #[path = "local_retrieval.rs"]
 mod local_retrieval;
+
+#[path = "tree_view.rs"]
+mod tree_view;
 
 #[path = "surfaces.rs"]
 mod surfaces;
@@ -31,11 +37,18 @@ use surfaces::{Frame, Role};
 #[path = "surface_review.rs"]
 pub mod surface_review;
 
+#[cfg(feature = "native-review")]
+#[path = "tree_review.rs"]
+mod tree_review;
+
 pub struct Bar {
     config: Config,
     input: Entity<InputState>,
     state: State,
-    local_themes: Option<Vec<BarDesign>>,
+    local_choices: Option<Vec<Action>>,
+    tree_focus: FocusHandle,
+    motion: Motion,
+    armed_timer: Option<TimerTicket>,
     catalog: Catalog,
     catalog_ready: bool,
     connection: String,
@@ -59,13 +72,21 @@ impl Bar {
             config.fixture,
             config.auto_select_first && !review,
         );
-        state.presentation = config.presentation;
+        state.presentation = if config.view == ViewMode::Tree {
+            Presentation::Branches
+        } else {
+            config.presentation
+        };
+        state.view = config.view;
         let height = layout(config.design, 0, false, config.height).height;
         let mut bar = Self {
             state,
             config,
             input,
-            local_themes: None,
+            local_choices: None,
+            tree_focus: cx.focus_handle(),
+            motion: Motion::default(),
+            armed_timer: None,
             catalog: fixture_catalog().unwrap_or(Catalog {
                 items: vec![],
                 branches: vec![],
@@ -103,7 +124,8 @@ impl Bar {
                     if !this.state.input_change(input.read(cx).value().to_string()) {
                         return;
                     }
-                    this.local_themes = theme_choices(&this.state.query);
+                    this.local_choices = choices(&this.state.query);
+                    this.motion = Motion::default();
                     this.scroll.scroll_to_item(0);
                     #[cfg(feature = "native-review")]
                     if this.review {
@@ -111,7 +133,11 @@ impl Bar {
                     }
                     this.schedule(true, cx);
                 }
-                InputEvent::PressEnter { .. } => this.choose(this.state.selected, window, cx),
+                InputEvent::PressEnter { .. } => {
+                    if !this.composing(window, cx) {
+                        this.choose(this.state.selected, window, cx);
+                    }
+                }
                 InputEvent::Focus => this.state.focus(window.is_window_active()),
                 InputEvent::Blur => this.state.focus(false),
             }
@@ -123,17 +149,15 @@ impl Bar {
             let range = input.read(cx).selected_range();
             if range != this.last_selection {
                 this.last_selection = range;
-                this.state.cancel_timer();
+                this.state.pause_dwell();
             }
             #[cfg(feature = "native-review")]
             presentation::diagnose(cx, |d| d.observer_repaints += 1);
             cx.notify(); // Repaint native caret/selection pixel ink.
         });
         let activated = cx.observe_window_activation(window, |this, window, cx| {
-            if !window.is_window_active() {
-                this.state.focus(false);
-                cx.notify()
-            }
+            this.state.focus(window.is_window_active());
+            cx.notify()
         });
         vec![changed, selection, activated]
     }
@@ -250,11 +274,23 @@ impl Bar {
         .detach();
     }
 
+    fn timer_work(&mut self) -> Option<(TimerTicket, u64)> {
+        let ticket = self.state.timer.clone()?;
+        if self.armed_timer.as_ref() == Some(&ticket) {
+            return None;
+        }
+        self.armed_timer = Some(ticket.clone());
+        let seconds = if self.state.view == ViewMode::Tree {
+            2
+        } else {
+            self.config.timeout_seconds
+        };
+        Some((ticket, seconds))
+    }
     fn arm_timer(&mut self, cx: &mut Context<Self>) {
-        let Some(ticket) = self.state.timer.clone() else {
+        let Some((ticket, seconds)) = self.timer_work() else {
             return;
         };
-        let seconds = self.config.timeout_seconds;
         self.remaining = seconds;
         cx.spawn(async move |this, cx| {
             for remaining in (0..seconds).rev() {
@@ -292,27 +328,65 @@ impl Bar {
         cx.notify();
     }
     fn choose(&mut self, index: usize, window: &mut Window, cx: &mut Context<Self>) {
-        if let Some(choices) = &self.local_themes {
-            let Some(design) = choices.get(index).copied() else {
-                return;
-            };
-            self.config.design = design;
-            window.set_background_appearance(if design == BarDesign::Lens {
-                WindowBackgroundAppearance::Blurred
-            } else {
-                WindowBackgroundAppearance::Transparent
-            });
-            self.state.escape();
-            self.local_themes = None;
-            self.input.update(cx, |input, cx| {
-                input.set_value("", window, cx);
-                input.focus(window, cx);
-            });
-            self.scroll.scroll_to_item(0);
-            cx.notify();
-        } else if let Some(selection) = self.state.choose(index) {
+        if let Some(action) = self
+            .local_choices
+            .as_ref()
+            .and_then(|choices| choices.get(index))
+            .copied()
+        {
+            self.apply_local(action, window, cx);
+        } else if self.tree_can_choose()
+            && let Some(selection) = self.state.choose(index)
+        {
             self.selection(selection, cx)
         }
+    }
+    fn apply_local(&mut self, action: Action, window: &mut Window, cx: &mut Context<Self>) {
+        match action {
+            Action::Design(design) => {
+                self.config.design = design;
+                window.set_background_appearance(if design == BarDesign::Lens {
+                    WindowBackgroundAppearance::Blurred
+                } else {
+                    WindowBackgroundAppearance::Transparent
+                });
+            }
+            Action::View(view) => {
+                self.config.view = view;
+                self.state.switch_view(view);
+            }
+            Action::Variant(variant) => {
+                self.config.tree_variant = variant;
+                self.config.view = ViewMode::Tree;
+                self.state.switch_view(ViewMode::Tree);
+            }
+            Action::Dwell(enabled) => {
+                self.config.auto_select_first = enabled;
+                self.state.set_timeout(enabled);
+            }
+        }
+        self.state.escape();
+        self.local_choices = None;
+        self.input.update(cx, |input, cx| {
+            input.set_value("", window, cx);
+            input.focus(window, cx);
+        });
+        self.scroll.scroll_to_item(0);
+        cx.notify();
+    }
+    fn tree_can_choose(&self) -> bool {
+        self.state.view != ViewMode::Tree || (self.state.tree_is_settled() && !self.tree_moving())
+    }
+    fn tree_moving(&self) -> bool {
+        self.state.view == ViewMode::Tree && !self.motion.settled(Instant::now())
+    }
+    fn toggle_view(&mut self, cx: &mut Context<Self>) {
+        let view = self.state.view.next();
+        self.state.switch_view(view);
+        self.config.view = view;
+        self.local_choices = choices(&self.state.query);
+        self.scroll.scroll_to_item(0);
+        self.schedule(true, cx);
     }
     fn choose_candidate(
         &mut self,
@@ -321,7 +395,9 @@ impl Bar {
         id: &str,
         cx: &mut Context<Self>,
     ) {
-        if let Some(selection) = self.state.choose_current(generation, index, id) {
+        if self.tree_can_choose()
+            && let Some(selection) = self.state.choose_current(generation, index, id)
+        {
             self.selection(selection, cx);
         }
     }
@@ -332,7 +408,16 @@ impl Bar {
             cx.notify()
         }
     }
+    fn composing(&self, window: &mut Window, cx: &mut Context<Self>) -> bool {
+        self.input.update(cx, |input, cx| {
+            input.marked_text_range(window, cx).is_some()
+        })
+    }
     fn key_down(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        if self.composing(window, cx) {
+            self.state.pause_dwell();
+            return;
+        }
         if event.keystroke.modifiers.shift
             || event.keystroke.modifiers.control
             || event.keystroke.modifiers.alt
@@ -347,18 +432,47 @@ impl Bar {
                     return;
                 }
             }
-            "escape" => {
-                self.escape_input(window, cx);
+            "escape" => self.escape_key(window, cx),
+            "f2" => self.browse_all(cx),
+            "f3" => self.toggle_view(cx),
+            "f4" => self.back(cx),
+            key => {
+                if !self.tree_key(key, window, cx) {
+                    return;
+                }
             }
-            "f2" if self.catalog.retrieval_enabled => self.browse_all(cx),
-            _ => return,
         }
         window.prevent_default();
         cx.stop_propagation();
         cx.notify();
     }
+    fn escape_key(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.tree_active() {
+            self.state.pause_dwell();
+            self.input.update(cx, |input, cx| input.focus(window, cx));
+        } else {
+            self.escape_input(window, cx);
+        }
+    }
+    fn tree_key(&mut self, key: &str, window: &mut Window, cx: &mut Context<Self>) -> bool {
+        if self.state.view != ViewMode::Tree || !self.tree_focus.is_focused(window) {
+            return false;
+        }
+        match key {
+            "left" => self.back(cx),
+            "right" | "enter" => self.choose(self.state.selected, window, cx),
+            "space" => {
+                self.state.focus(window.is_window_active());
+                if self.state.resume_dwell() {
+                    self.arm_timer(cx);
+                }
+            }
+            _ => return false,
+        }
+        true
+    }
     fn navigate(&mut self, delta: isize) -> bool {
-        let count = match &self.local_themes {
+        let count = match &self.local_choices {
             Some(choices) => choices.len(),
             None if self.state.status == Status::Ready || self.state.provisional => {
                 self.state.items.len()
@@ -368,10 +482,14 @@ impl Bar {
         if count == 0 {
             return false;
         }
-        if self.local_themes.is_some() {
-            self.state.cancel_timer();
+        if self.local_choices.is_some() {
+            self.state.pause_dwell();
             self.state.selected =
                 (self.state.selected as isize + delta).rem_euclid(count as isize) as usize;
+        } else if self.state.view == ViewMode::Tree {
+            let next = ctx_bar::tree::neighbor(count, self.state.selected, delta);
+            self.state
+                .navigate(next as isize - self.state.selected as isize);
         } else {
             self.state.navigate(delta);
         }
@@ -380,20 +498,20 @@ impl Bar {
     }
 
     fn escape_input(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if self.state.node != "root" {
+        if self.state.history_len() > 0 || self.state.node != "root" {
             self.back(cx);
             return;
         }
         self.state.escape();
-        self.local_themes = None;
+        self.local_choices = None;
         self.input
             .update(cx, |input, cx| input.set_value("", window, cx));
     }
 
     fn status_text(&self) -> String {
-        if let Some(choices) = &self.local_themes {
+        if let Some(choices) = &self.local_choices {
             return if choices.is_empty() {
-                "No design matches. Type ctx theme to see all ten.".into()
+                "No local choice matches. Use ctx theme, ctx view, ctx tree or ctx dwell.".into()
             } else {
                 String::new()
             };
@@ -405,7 +523,11 @@ impl Bar {
             return note.clone();
         }
         match &self.state.status {
-            Status::Ready if self.catalog.retrieval_enabled => "Jev · F2: all".into(),
+            Status::Ready if self.review => "Synthetic preview · F2: all".into(),
+            Status::Ready if self.state.view == ViewMode::Tree && self.state.timeout_enabled => {
+                "Jev · F2: all · dwell paused · Resume".into()
+            }
+            Status::Ready if self.catalog_ready => "Jev · F2: all".into(),
             Status::Overview | Status::Ready => String::new(),
             Status::Loading => "Asking Jev…".into(),
             Status::NoMatch if self.catalog.retrieval_enabled => "No Jev match · F2: all".into(),
@@ -431,7 +553,7 @@ impl Bar {
         self.input
             .update(cx, |input, cx| input.set_value(query, window, cx));
         self.state.edit(query.into());
-        self.local_themes = theme_choices(query);
+        self.local_choices = choices(query);
         self.complete_review();
         cx.notify();
     }
@@ -477,11 +599,24 @@ impl Bar {
 
     #[cfg(feature = "native-review")]
     pub fn review_snapshot(&self, cx: &gpui_kit::App) -> serde_json::Value {
+        let tree = self.tree_active().then(|| {
+            let top = self.config.design.bar_height() + 64.0;
+            let viewport = self.height - top - 32.0;
+            let plan = ctx_bar::tree::Plan::new(&self.state, self.config.tree_variant, self.config.width, viewport);
+            let selected = plan.selected_center().map(|position| [position.x, position.y + top]);
+            serde_json::json!({"viewport_top":top,"viewport_height":viewport,"center":[plan.center.x,plan.center.y + top],"selected_center":selected,"node_width":plan.node_width,"current_width":plan.current_width,"depth":plan.depth,"visible_current":plan.nodes.iter().filter(|node| !node.prior).count(),"prior_nodes":plan.nodes.iter().filter(|node| node.prior).count(),"edges":plan.edges.len()})
+        });
         serde_json::json!({
+            "tree": tree,
             "design": self.config.design.id(), "query": self.state.query,
             "input_empty": self.state.query.is_empty() && self.input.read(cx).value().is_empty(),
-            "local_choices": self.local_themes.as_ref().map(Vec::len),
-            "selected": self.state.selected, "node": self.state.node,
+            "local_choices": self.local_choices.as_ref().map(Vec::len),
+            "view": self.state.view, "tree_variant": self.config.tree_variant,
+            "tree_moving": self.tree_moving(), "tree_settled": self.state.tree_is_settled(),
+            "catalog_count": self.catalog.candidates(&self.state.request()).map_or(0, |items| items.len()),
+            "chosen_label": self.state.items.get(self.state.selected).map(|item| &item.label),
+            "selected": self.state.selected, "node": self.state.node, "presentation": self.state.presentation,
+            "receipt": self.state.receipt.as_ref().map(|receipt| serde_json::json!({"item":receipt.item,"request":receipt.request,"source":receipt.source})),
             "routable": self.state.remote_request().is_some(),
             "timer": self.state.timer.is_some(), "generation": self.state.generation,
             "status": format!("{:?}", self.state.status), "source": self.state.source,
@@ -495,17 +630,26 @@ impl Bar {
 
     #[cfg(feature = "native-review")]
     fn complete_review(&mut self) {
-        if !self.state.query.is_empty() && self.local_themes.is_none() {
-            let items = self
-                .catalog
-                .items
-                .iter()
-                .filter(|item| {
-                    ["appearance.light", "system.settings", "appearance.dark"]
-                        .contains(&item.id.as_str())
-                })
-                .cloned()
-                .collect();
+        if !self.state.query.is_empty() && self.local_choices.is_none() {
+            let items = if self.state.presentation == Presentation::Branches {
+                self.catalog
+                    .candidates(&self.state.request())
+                    .unwrap_or_default()
+                    .into_iter()
+                    .take(5)
+                    .cloned()
+                    .collect()
+            } else {
+                self.catalog
+                    .items
+                    .iter()
+                    .filter(|item| {
+                        ["appearance.light", "system.settings", "appearance.dark"]
+                            .contains(&item.id.as_str())
+                    })
+                    .cloned()
+                    .collect()
+            };
             self.state.complete(
                 self.state.generation,
                 Ok(ctx_bar::model::Suggestions {
@@ -528,7 +672,7 @@ impl Render for Bar {
         let theme = cx.theme().clone();
         let surface = Frame::new(self.config.design, theme.color_tokens(), !theme.is_dark());
         let message = self.status_text();
-        let count = self.local_themes.as_ref().map_or_else(
+        let count = self.local_choices.as_ref().map_or_else(
             || {
                 if self.state.status == Status::Ready || self.state.provisional {
                     self.state.items.len()
@@ -538,18 +682,9 @@ impl Render for Bar {
             },
             Vec::len,
         );
-        let breadcrumb_height = if self.state.breadcrumb.is_some() {
-            ctx_bar::layout::STATUS_HEIGHT
-        } else {
-            0.0
-        };
-        let mut geometry = layout(
-            self.config.design,
-            count,
-            !message.is_empty(),
-            self.config.height - breadcrumb_height,
-        );
-        geometry.height += breadcrumb_height;
+        let tree_active = self.tree_active();
+        let preview_controls = !tree_active && self.state.receipt.is_some();
+        let geometry = self.frame_layout(count, !message.is_empty());
         if (self.height - geometry.height).abs() > 0.5 {
             self.height = geometry.height;
             window.resize(size(px(self.config.width), px(self.height)));
@@ -567,7 +702,9 @@ impl Render for Bar {
             .text_size(px(13.5))
             .capture_key_down(cx.listener(Self::key_down))
             .child(input);
-        if let Some(breadcrumb) = &self.state.breadcrumb {
+        if tree_active {
+            panel = panel.child(self.tree_path_header(&surface, cx));
+        } else if let Some(breadcrumb) = &self.state.breadcrumb {
             panel = panel.child(
                 surface.finish(
                     surface
@@ -614,21 +751,93 @@ impl Render for Bar {
                 ),
             );
         }
-        if count > 0 {
+        if tree_active {
+            panel = panel.child(self.render_tree(geometry.list_height, &surface, window, cx));
+        } else if count > 0 {
             panel = panel.child(self.result_list(geometry.list_height, &surface, cx));
+        }
+        if preview_controls {
+            panel = panel.child(self.list_preview_controls(&surface, window, cx));
         }
         panel
     }
 }
 
 impl Bar {
+    fn frame_layout(&self, count: usize, status: bool) -> ctx_bar::layout::Layout {
+        if self.tree_active() {
+            return ctx_bar::layout::tree_layout(self.config.design, self.config.height);
+        }
+        let breadcrumb =
+            u8::from(self.state.breadcrumb.is_some()) as f32 * ctx_bar::layout::STATUS_HEIGHT;
+        let preview =
+            u8::from(self.state.receipt.is_some()) as f32 * ctx_bar::layout::STATUS_HEIGHT;
+        let mut geometry = layout(
+            self.config.design,
+            count,
+            status,
+            self.config.height - breadcrumb - preview,
+        );
+        geometry.height += breadcrumb + preview;
+        geometry
+    }
+    fn candidate_row(
+        &self,
+        index: usize,
+        item: &ctx_bar::model::Item,
+        surface: &Frame,
+        cx: &mut Context<Self>,
+    ) -> gpui_kit::Stateful<gpui_kit::Div> {
+        let ink = surface.ink(false);
+        let selected = index == self.state.selected;
+        let generation = self.state.generation;
+        let id = item.id.clone();
+        let metadata = div()
+            .flex()
+            .gap_2()
+            .text_size(px(11.))
+            .child(surface.text(item.tool.clone(), Role::ToolMetadata, selected, cx))
+            .child(div().flex_1().min_w_0().child(surface.text(
+                item.interface.clone(),
+                Role::Metadata,
+                selected,
+                cx,
+            )));
+        let trailing = if item.is_branch() {
+            IconName::ChevronRight
+        } else {
+            IconName::CornerDownLeft
+        };
+        surface
+            .row(selected)
+            .id(SharedString::from(format!("suggestion-{index}")))
+            .cursor_pointer()
+            .on_click(cx.listener(move |this, _, _, cx| {
+                this.choose_candidate(generation, index, &id, cx);
+            }))
+            .child(
+                Icon::new(icon(&item.icon))
+                    .size(px(18.))
+                    .text_color(ink.metadata),
+            )
+            .child(
+                div()
+                    .flex_1()
+                    .min_w_0()
+                    .flex()
+                    .flex_col()
+                    .gap_1()
+                    .child(surface.text(item.label.clone(), Role::Label, selected, cx))
+                    .child(metadata),
+            )
+            .child(Icon::new(trailing).size(px(16.)).text_color(ink.metadata))
+    }
     fn result_list(
         &self,
         height: f32,
         surface: &Frame,
         cx: &mut Context<Self>,
     ) -> impl IntoElement {
-        let ink = surface.ink(false);
         let mut list = div()
             .id("suggestions")
             .mt(px(INSET))
@@ -637,12 +846,12 @@ impl Bar {
             .track_scroll(&self.scroll)
             .flex()
             .flex_col();
-        if let Some(choices) = &self.local_themes {
-            for (index, design) in choices.iter().copied().enumerate() {
+        if let Some(choices) = &self.local_choices {
+            for (index, action) in choices.iter().copied().enumerate() {
                 list = list.child(
                     surface
                         .row(index == self.state.selected)
-                        .id(SharedString::from(format!("design-{}", design.id())))
+                        .id(SharedString::from(format!("local-control-{index}")))
                         .cursor_pointer()
                         .on_click(
                             cx.listener(move |this, _, window, cx| this.choose(index, window, cx)),
@@ -655,20 +864,20 @@ impl Bar {
                                 .gap_1()
                                 .min_w_0()
                                 .child(surface.text(
-                                    design.label(),
+                                    action.label(),
                                     Role::Label,
                                     index == self.state.selected,
                                     cx,
                                 ))
                                 .child(surface.text(
-                                    design.description(),
+                                    action.detail(),
                                     Role::Metadata,
                                     index == self.state.selected,
                                     cx,
                                 )),
                         )
                         .child(surface.text(
-                            "Local design",
+                            "Local control",
                             Role::ToolMetadata,
                             index == self.state.selected,
                             cx,
@@ -676,63 +885,18 @@ impl Bar {
                 );
             }
         } else {
+            let offset = f32::from(self.scroll.offset().y);
             for (index, item) in self.state.items.iter().enumerate() {
-                let generation = self.state.generation;
-                let id = item.id.clone();
                 list = list.child(
-                    surface
-                        .row(index == self.state.selected)
-                        .id(SharedString::from(format!("suggestion-{index}")))
-                        .cursor_pointer()
-                        .on_click(cx.listener(move |this, _, _, cx| {
-                            this.choose_candidate(generation, index, &id, cx);
-                        }))
-                        .child(
-                            Icon::new(icon(&item.icon))
-                                .size(px(18.))
-                                .text_color(ink.metadata),
-                        )
-                        .child(
-                            div()
-                                .flex_1()
-                                .min_w_0()
-                                .flex()
-                                .flex_col()
-                                .gap_1()
-                                .child(surface.text(
-                                    item.label.clone(),
-                                    Role::Label,
-                                    index == self.state.selected,
-                                    cx,
-                                ))
-                                .child(
-                                    div()
-                                        .flex()
-                                        .gap_2()
-                                        .text_size(px(11.))
-                                        .child(surface.text(
-                                            item.tool.clone(),
-                                            Role::ToolMetadata,
-                                            index == self.state.selected,
-                                            cx,
-                                        ))
-                                        .child(div().flex_1().min_w_0().child(surface.text(
-                                            item.interface.clone(),
-                                            Role::Metadata,
-                                            index == self.state.selected,
-                                            cx,
-                                        ))),
-                                ),
-                        )
-                        .child(
-                            Icon::new(if item.is_branch() {
-                                IconName::ChevronRight
-                            } else {
-                                IconName::CornerDownLeft
-                            })
-                            .size(px(16.))
-                            .text_color(ink.metadata),
-                        ),
+                    if ctx_bar::layout::live_row(index, self.state.selected, offset, height) {
+                        self.candidate_row(index, item, surface, cx)
+                            .into_any_element()
+                    } else {
+                        div()
+                            .h(px(ctx_bar::layout::ROW_HEIGHT))
+                            .flex_shrink_0()
+                            .into_any_element()
+                    },
                 );
             }
         }

@@ -76,9 +76,18 @@ removes its own descriptor on shutdown. EAVS credentials never enter this file.
 - Platforms: `macos`, `windows`, `linux`, `omarchy`; context fixtures: `desktop`,
   `selection`, `audio`, `unavailable`. Typed input is explicitly sent to Jev;
   no screenshot, AX, clipboard or live focused-app state is collected.
-- Flat returns offered leaves. Branches root groups appearance/sound/display/
-  network; selecting a declared group makes **one new decision**, with only its
-  children. No speculative child decisions or precomputed tree; maximum two levels.
+- Flat returns offered leaves. Branches root offers 12 declared groups
+  (appearance, sound, display, network, notifications, session, power, input,
+  accessibility, privacy, maintenance, desktop) plus ungrouped leaves; selecting
+  a group makes **one new decision**, with only its children. No speculative
+  child decisions or precomputed tree; maximum two levels.
+- `catalog.json` declares 96 synthetic leaves, validated by `catalog.schema.json`.
+  Optional per-platform `support` text names the expected mechanism and its
+  conditions (for example a Linux desktop-environment or Omarchy/Hyprland
+  dependency). It is descriptive review data, not detection, a permission grant
+  or an invocation contract, and responses cannot alter it. The largest offered
+  scope is 94 entries, inside the 128-candidate bound. The retrieval benchmark
+  uses its own frozen copy, `scripts/retrieval/benchmark-catalog.json`.
 - Response: `{items,source,latencyMs,fixtureOnly}`. Unknown IDs, invalid/omitted
   probabilities, wrong branch scope and invalid JSON become errors, not fabricated
   fallback results. REFUSE becomes no-match.
@@ -96,7 +105,14 @@ just omnibar-check
 ```
 
 Native tests cover selection, generation/timer cancellation and transport/catalog
-validation. Adapter tests cover context gating, actual choice envelopes, branch
+validation. `verify-scopes.ts` compares native and adapter scoping for all 224
+platform/context/presentation/node combinations:
+
+```sh
+(cd examples/omnibar-gpui && cargo run -q -p ctx-bar --example catalog_scopes) > /tmp/scopes.json
+bun examples/omnibar-prototype/verify-scopes.ts /tmp/scopes.json
+```
+ Adapter tests cover context gating, actual choice envelopes, branch
 scope, lazy hops, malformed/oversize bodies, concurrency and credential isolation.
 A live synthetic `light mode` probe returned HTTP 200 for flat selection, branch
 root and child selection. This is transport proof, not native visual, dictation,

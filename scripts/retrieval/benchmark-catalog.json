@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "status": "prototype-fixtures-not-execution-contracts",
+  "branches": [
+    {"id":"fixture.appearance","node":"fixture-appearance","kind":"branch","tool":"System","interface":"Appearance","label":"Appearance controls","description":"Choose light or dark mode, open appearance settings, or browse Omarchy themes.","icon":"palette","children":["appearance.light","appearance.dark","appearance.open","theme.pick"]},
+    {"id":"fixture.sound","node":"fixture-sound","kind":"branch","tool":"System","interface":"Sound","label":"Sound controls","description":"Adjust volume, speakers, headphones or microphone input.","icon":"volume","children":["sound.volume","sound.output","sound.input"]},
+    {"id":"fixture.display","node":"fixture-display","kind":"branch","tool":"System","interface":"Display","label":"Display controls","description":"Choose brightness, resolution, arrangement or warm night colors.","icon":"display","children":["display.brightness","display.open","display.night"]},
+    {"id":"fixture.network","node":"fixture-network","kind":"branch","tool":"System","interface":"Network","label":"Connection controls","description":"Choose Wi-Fi, Bluetooth devices or VPN settings.","icon":"wifi","children":["network.wifi","network.bluetooth","network.vpn"]}
+  ],
+  "items": [
+    {"id":"appearance.light","tool":"System","interface":"Appearance","label":"Switch to light mode","description":"Use the operating system's light appearance or an Omarchy light theme.","icon":"sun"},
+    {"id":"appearance.dark","tool":"System","interface":"Appearance","label":"Switch to dark mode","description":"Use the operating system's dark appearance or an Omarchy dark theme.","icon":"moon"},
+    {"id":"appearance.open","tool":"System","interface":"Appearance","label":"Open appearance settings","description":"Find theme, color, wallpaper and appearance controls.","icon":"sliders"},
+    {"id":"theme.pick","tool":"Omarchy","interface":"Themes","label":"Choose an Omarchy theme","description":"Browse installed Omarchy themes; a light or dark scheme must actually exist.","platforms":["omarchy"],"icon":"palette"},
+    {"id":"sound.volume","tool":"System","interface":"Sound","label":"Adjust volume","description":"Open output volume and mute controls.","icon":"volume"},
+    {"id":"sound.output","tool":"System","interface":"Sound","label":"Choose audio output","description":"Choose speakers, headphones or another sound output device.","icon":"volume"},
+    {"id":"sound.input","tool":"System","interface":"Sound","label":"Choose microphone input","description":"Open microphone selection and input level controls.","icon":"mic"},
+    {"id":"display.brightness","tool":"System","interface":"Display","label":"Adjust brightness","description":"Open display brightness controls when the hardware supports them.","icon":"sun"},
+    {"id":"display.open","tool":"System","interface":"Display","label":"Open display settings","description":"Find resolution, scaling and multiple display arrangement.","icon":"display"},
+    {"id":"display.night","tool":"System","interface":"Display","label":"Adjust night light","description":"Open warm screen colors, Night Shift or Night Light controls where available.","icon":"moon"},
+    {"id":"notifications.focus","tool":"System","interface":"Notifications","label":"Turn on Do Not Disturb","description":"Open focus or notification suppression controls.","icon":"bell"},
+    {"id":"network.wifi","tool":"System","interface":"Network","label":"Choose a Wi-Fi network","description":"Open wireless network selection.","icon":"wifi"},
+    {"id":"network.bluetooth","tool":"System","interface":"Bluetooth","label":"Open Bluetooth devices","description":"Pair or connect headphones and other Bluetooth devices.","icon":"bluetooth"},
+    {"id":"network.vpn","tool":"System","interface":"Network","label":"Open VPN settings","description":"Inspect configured VPN connections.","icon":"shield"},
+    {"id":"system.settings","tool":"System","interface":"Settings","label":"Open system settings","description":"Open the platform's settings or control interfaces.","icon":"sliders"},
+    {"id":"system.lock","tool":"System","interface":"Session","label":"Lock the screen","description":"Lock the current desktop session.","icon":"lock"},
+    {"id":"system.power","tool":"System","interface":"Power","label":"Open power settings","description":"Open battery, sleep and energy controls.","icon":"power"},
+    {"id":"files.open","tool":"System","interface":"Files","label":"Open the file browser","description":"Open Finder, Explorer or the configured Linux file manager.","icon":"folder"},
+    {"id":"clipboard.open","tool":"System","interface":"Clipboard","label":"Open clipboard controls","description":"Find supported clipboard history or clipboard settings; availability depends on platform.","icon":"clipboard"},
+    {"id":"screenshot.capture","tool":"ctx","interface":"Capture","label":"Take a screenshot","description":"Capture a visible desktop or window, with the required platform permission.","requires":"window","icon":"capture"},
+    {"id":"selection.speak","tool":"spqx","interface":"Speech","label":"Read the selection aloud","description":"Speak the deliberately selected text; only available when this fixture has a selection.","requires":"selection","icon":"volume"},
+    {"id":"audio.transcribe","tool":"eaRS","interface":"Transcription","label":"Transcribe audio","description":"Transcribe the audio that is available in this fixture.","requires":"audio","icon":"mic"},
+    {"id":"dictation.start","tool":"eaRS","interface":"Dictation","label":"Start dictation","description":"Choose the dictation interface to turn speech into text.","icon":"mic"},
+    {"id":"oqto.open","tool":"Oqto","interface":"Workspace","label":"Open Oqto","description":"Open the agent workspace interface.","icon":"workspace"},
+    {"id":"tasks.add","tool":"lst","interface":"Tasks","label":"Add a task","description":"Add a reminder or todo using the user's input text.","icon":"check"},
+    {"id":"history.search","tool":"hstry","interface":"History","label":"Search past conversations","description":"Look up a prior discussion or agent session.","icon":"history"},
+    {"id":"memory.search","tool":"mmry","interface":"Memory","label":"Find a saved memory","description":"Find a remembered preference or operational fact.","icon":"history"},
+    {"id":"issues.search","tool":"trx","interface":"Issues","label":"Search project issues","description":"Find a tracked bug, feature or task.","icon":"search"}
+  ]
+}

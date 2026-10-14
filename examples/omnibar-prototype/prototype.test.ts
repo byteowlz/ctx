@@ -26,7 +26,7 @@ describe("decision envelopes", () => {
     expect(root.some(item => item.id === "fixture.appearance" && item.node === "fixture-appearance")).toBe(true);
     expect(root.some(item => item.id === "appearance.light")).toBe(false);
     const child = candidates("macos", "desktop", "branches", "fixture-appearance");
-    expect(child.map(item => item.id)).toEqual(["appearance.light", "appearance.dark", "appearance.open"]);
+    expect(child.map(item => item.id)).toEqual(["appearance.light", "appearance.dark", "appearance.open", "appearance.wallpaper", "appearance.accent", "appearance.auto"]);
     expect(candidates("omarchy", "desktop", "branches", "fixture-appearance").some(item => item.id === "theme.pick")).toBe(true);
     expect(() => candidates("macos", "desktop", "flat", "fixture-appearance")).toThrow();
     expect(() => candidates("macos", "desktop", "branches", "appearance.light")).toThrow();

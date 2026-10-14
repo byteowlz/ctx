@@ -107,51 +107,81 @@ fn expansion_height_accepts_legacy_and_new_minimum_not_idle_geometry() {
         );
     }
 }
+/// Runs only inside the isolated child process that owns its environment.
+fn assert_layered_precedence(dir: PathBuf) {
+    let global = dir.join("global.toml");
+    let local = dir.join("local.toml");
+    let explicit = dir.join("explicit.toml");
+    let env_cfg = load_layers(&global, Some(&local), None, &[]).unwrap();
+    assert_eq!(env_cfg.design, BarDesign::Slot);
+    assert_eq!(env_cfg.presentation, Presentation::Branches);
+    assert_eq!(env_cfg.view, ViewMode::Tree);
+    assert_eq!(env_cfg.tree_variant, TreeVariant::Crumbs);
+    assert!(env_cfg.reduce_motion);
+    let file_cfg = load_layers(&global, Some(&local), Some(&explicit), &[]).unwrap();
+    assert_eq!(file_cfg.design, BarDesign::Prompt);
+    assert_eq!(file_cfg.presentation, Presentation::Flat);
+    assert_eq!(file_cfg.view, ViewMode::List);
+    assert_eq!(file_cfg.tree_variant, TreeVariant::Trail);
+    assert!(!file_cfg.reduce_motion);
+    let tree_args = [
+        "--config",
+        explicit.to_str().unwrap(),
+        "--view",
+        "tree",
+        "--tree-variant",
+        "faint",
+        "--reduce-motion",
+    ];
+    let cfg = load_or_create(tree_args.map(String::from)).unwrap();
+    assert_eq!(
+        (cfg.view, cfg.tree_variant, cfg.reduce_motion),
+        (ViewMode::Tree, TreeVariant::Faint, true)
+    );
+    let cfg = load_or_create(
+        ["--config", explicit.to_str().unwrap(), "--no-reduce-motion"].map(String::from),
+    )
+    .unwrap();
+    assert!(!cfg.reduce_motion);
+    for design in BarDesign::ALL {
+        for presentation in ["flat", "branches"] {
+            let args = [
+                "--config",
+                explicit.to_str().unwrap(),
+                "--design",
+                design.id(),
+                "--presentation",
+                presentation,
+            ];
+            let cfg = load_or_create(args.map(String::from)).unwrap();
+            assert_eq!(cfg.design, design);
+            assert_eq!(
+                serde_json::to_value(cfg.presentation).unwrap(),
+                presentation
+            );
+        }
+    }
+    for args in [
+        vec!["--design"],
+        vec!["--presentation"],
+        vec!["--design", "dot"],
+        vec!["--design", "unknown"],
+        vec!["--presentation", "branch"],
+        vec!["--view", "Tree"],
+        vec!["--tree-variant", "breadcrumbs"],
+    ] {
+        let mut with_config = vec!["--config", explicit.to_str().unwrap()];
+        with_config.extend(args);
+        assert!(load_or_create(with_config.into_iter().map(String::from)).is_err());
+    }
+    assert!(!dir.join("ctx/config.toml").exists());
+}
+
 #[test]
 fn environment_and_cli_design_precedence_without_process_global_mutation() {
     const CHILD_DIR: &str = "CTX_BAR_TEST_THEME_DIR";
     if let Some(dir) = std::env::var_os(CHILD_DIR) {
-        let dir = PathBuf::from(dir);
-        let global = dir.join("global.toml");
-        let local = dir.join("local.toml");
-        let explicit = dir.join("explicit.toml");
-        let env_cfg = load_layers(&global, Some(&local), None, &[]).unwrap();
-        assert_eq!(env_cfg.design, BarDesign::Slot);
-        assert_eq!(env_cfg.presentation, Presentation::Branches);
-        let file_cfg = load_layers(&global, Some(&local), Some(&explicit), &[]).unwrap();
-        assert_eq!(file_cfg.design, BarDesign::Prompt);
-        assert_eq!(file_cfg.presentation, Presentation::Flat);
-        for design in BarDesign::ALL {
-            for presentation in ["flat", "branches"] {
-                let args = [
-                    "--config",
-                    explicit.to_str().unwrap(),
-                    "--design",
-                    design.id(),
-                    "--presentation",
-                    presentation,
-                ];
-                let cfg = load_or_create(args.map(String::from)).unwrap();
-                assert_eq!(cfg.design, design);
-                assert_eq!(
-                    serde_json::to_value(cfg.presentation).unwrap(),
-                    presentation
-                );
-            }
-        }
-        for args in [
-            vec!["--design"],
-            vec!["--presentation"],
-            vec!["--design", "dot"],
-            vec!["--design", "unknown"],
-            vec!["--presentation", "branch"],
-        ] {
-            let mut with_config = vec!["--config", explicit.to_str().unwrap()];
-            with_config.extend(args);
-            assert!(load_or_create(with_config.into_iter().map(String::from)).is_err());
-        }
-        assert!(!dir.join("ctx/config.toml").exists());
-        return;
+        return assert_layered_precedence(PathBuf::from(dir));
     }
     let dir = std::env::temp_dir().join(format!("ctx-bar-theme-config-{}", std::process::id()));
     fs::create_dir_all(&dir).unwrap();
@@ -167,7 +197,7 @@ fn environment_and_cli_design_precedence_without_process_global_mutation() {
     .unwrap();
     fs::write(
         dir.join("explicit.toml"),
-        "design = 'prompt'\npresentation = 'flat'\n",
+        "design = 'prompt'\npresentation = 'flat'\nview = 'list'\ntree_variant = 'trail'\nreduce_motion = false\n",
     )
     .unwrap();
     let mut command = std::process::Command::new(std::env::current_exe().unwrap());
@@ -185,6 +215,9 @@ fn environment_and_cli_design_precedence_without_process_global_mutation() {
         .env("CTX_BAR__DESIGN", "corners")
         .env("CTX_BAR__PRESENTATION", "branches")
         .env("CTX__BAR__DESIGN", "slot")
+        .env("CTX__BAR__VIEW", "tree")
+        .env("CTX__BAR__TREE_VARIANT", "crumbs")
+        .env("CTX__BAR__REDUCE_MOTION", "true")
         .output().unwrap();
     fs::remove_dir_all(&dir).unwrap();
     assert!(

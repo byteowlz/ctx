@@ -60,7 +60,7 @@ impl Bar {
         .detach();
     }
     pub(super) fn browse_all(&mut self, cx: &mut Context<Self>) {
-        if !self.catalog_ready || !self.catalog.retrieval_enabled || self.local_themes.is_some() {
+        if !self.catalog_ready || self.local_choices.is_some() {
             return;
         }
         if let Ok(items) = self.catalog.candidates(&self.state.request()) {

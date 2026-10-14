@@ -61,6 +61,6 @@ export function fixtures(catalog: { items: any[] }) {
 if (import.meta.main) {
   const path = Bun.argv[2];
   if (!path) throw new Error("Output path required");
-  const catalog = await Bun.file(new URL("../../examples/omnibar-prototype/catalog.json", import.meta.url)).json();
+  const catalog = await Bun.file(new URL("./benchmark-catalog.json", import.meta.url)).json();
   await Bun.write(path, JSON.stringify(fixtures(catalog), null, 2) + "\n");
 }

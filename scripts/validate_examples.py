@@ -37,6 +37,12 @@ def main() -> None:
     validators["config.schema.json"].validate(tomllib.loads(bar_example.read_text()))
     print("Valid shared bar example: omnibar-gpui/examples/config.toml")
     if not args.config_only:
+        catalog_dir = examples / "omnibar-prototype"
+        schema = json.loads((catalog_dir / "catalog.schema.json").read_text())
+        catalog_validator = validator_for(schema)
+        catalog_validator.check_schema(schema)
+        catalog_validator(schema).validate(json.loads((catalog_dir / "catalog.json").read_text()))
+        print("Valid preview-only catalog schema and example: omnibar-prototype/catalog.json")
         for path in sorted((examples / "bundles").glob("*.json")):
             validators["bundle.schema.json"].validate(json.loads(path.read_text()))
             print(f"Valid example: bundles/{path.name}")

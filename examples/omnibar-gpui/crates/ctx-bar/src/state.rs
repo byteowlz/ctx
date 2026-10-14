@@ -1,17 +1,16 @@
 //! Pure state machine. A selection is a preview receipt or one lazy child request,
 //! never an invocation. Generation and timer tickets bind each action to its list.
+#[cfg(test)]
 use ctx_bar_design::theme_choices;
 
-use crate::model::{Fixture, Item, Platform, Presentation, Request, Suggestions};
+use crate::commands::holds_input;
+use crate::model::{Fixture, Item, Platform, Presentation, Request, Suggestions, ViewMode};
 
 // Hold exact provisional c/ct input locally, even across a debounce pause.
 // This intentionally withholds standalone c/ct requests too. The theme parser
 // still returns None for them, so the UI shows neither choices nor Theme NoMatch.
 fn is_local_or_theme_prefix(query: &str) -> bool {
-    let query = query.trim();
-    query.eq_ignore_ascii_case("c")
-        || query.eq_ignore_ascii_case("ct")
-        || theme_choices(query).is_some()
+    holds_input(query)
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -28,7 +27,8 @@ pub enum Status {
 pub struct TimerTicket {
     pub generation: u64,
     serial: u64,
-    first_id: String,
+    selected_id: String,
+    index: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -38,10 +38,24 @@ pub enum Selection {
 }
 
 /// In-memory receipt only; deliberately not persisted or sent back to the proxy.
+#[derive(Clone)]
 pub struct PreviewReceipt {
     pub item: Item,
     pub request: Request,
     pub source: String,
+}
+
+#[derive(Clone)]
+pub(crate) struct Scope {
+    pub items: Vec<Item>,
+    pub selected: usize,
+    node: String,
+    breadcrumb: Option<String>,
+    status: Status,
+    source: String,
+    latency_ms: f64,
+    provisional: bool,
+    local_note: Option<String>,
 }
 
 pub struct State {
@@ -49,6 +63,7 @@ pub struct State {
     pub platform: Platform,
     pub fixture: Fixture,
     pub presentation: Presentation,
+    pub view: ViewMode,
     pub node: String,
     pub breadcrumb: Option<String>,
     pub generation: u64,
@@ -65,6 +80,9 @@ pub struct State {
     pub local_note: Option<String>,
     intervened: bool,
     timer_serial: u64,
+    pub(crate) history: Vec<Scope>,
+    dwell_active: bool,
+    tree_settled: bool,
 }
 
 impl State {
@@ -74,6 +92,7 @@ impl State {
             platform,
             fixture,
             presentation: Presentation::Flat,
+            view: ViewMode::List,
             node: "root".into(),
             breadcrumb: None,
             generation: 0,
@@ -90,6 +109,9 @@ impl State {
             local_note: None,
             intervened: false,
             timer_serial: 0,
+            history: vec![],
+            dwell_active: false,
+            tree_settled: false,
         }
     }
     pub fn request(&self) -> Request {
@@ -117,6 +139,8 @@ impl State {
     fn invalidate(&mut self) {
         self.generation += 1;
         self.cancel_timer();
+        self.dwell_active = false;
+        self.tree_settled = false;
         self.items.clear();
         self.receipt = None;
         self.selected = 0;
@@ -140,6 +164,7 @@ impl State {
     }
     pub fn edit(&mut self, query: String) {
         self.query = query;
+        self.history.clear();
         self.node = "root".into();
         self.breadcrumb = None;
         self.invalidate();
@@ -151,11 +176,52 @@ impl State {
         self.platform = platform;
         self.fixture = fixture;
         self.presentation = presentation;
+        self.history.clear();
         self.node = "root".into();
         self.breadcrumb = None;
         self.invalidate();
     }
+    pub fn history_len(&self) -> usize {
+        self.history.len()
+    }
+    pub fn tree_is_settled(&self) -> bool {
+        self.tree_settled
+    }
+    pub fn switch_view(&mut self, view: ViewMode) {
+        let preview = matches!(self.status, Status::Preview(_))
+            .then(|| (self.receipt.clone(), self.status.clone()));
+        self.view = view;
+        let presentation = if view == ViewMode::Tree {
+            Presentation::Branches
+        } else {
+            Presentation::Flat
+        };
+        self.options(self.platform, self.fixture, presentation);
+        if let Some((Some(receipt), status)) = preview {
+            // Keep the original decision provenance, not a fresh decision in the new scope.
+            // Back explicitly opens that mode's root; never resurrect an incompatible child.
+            self.remember_scope();
+            self.items = vec![receipt.item.clone()];
+            self.source = receipt.source.clone();
+            self.receipt = Some(receipt);
+            self.status = status;
+        }
+    }
     pub fn back(&mut self) -> bool {
+        if let Some(scope) = self.history.pop() {
+            self.invalidate();
+            self.items = scope.items;
+            self.selected = scope.selected;
+            self.node = scope.node;
+            self.breadcrumb = scope.breadcrumb;
+            self.status = scope.status;
+            self.source = scope.source;
+            self.latency_ms = scope.latency_ms;
+            self.provisional = scope.provisional;
+            self.local_note = scope.local_note;
+            self.intervened = true;
+            return true;
+        }
         if self.node == "root" {
             return false;
         }
@@ -164,19 +230,87 @@ impl State {
         self.invalidate();
         true
     }
+    fn remember_scope(&mut self) {
+        self.history.push(Scope {
+            items: self.items.clone(),
+            selected: self.selected,
+            node: self.node.clone(),
+            breadcrumb: self.breadcrumb.clone(),
+            status: self.status.clone(),
+            source: self.source.clone(),
+            latency_ms: self.latency_ms,
+            provisional: self.provisional,
+            local_note: self.local_note.clone(),
+        });
+    }
+    pub fn pause_dwell(&mut self) {
+        self.dwell_active = false;
+        self.cancel_timer();
+    }
+    pub fn settle_tree(&mut self, generation: u64) -> bool {
+        if generation != self.generation || self.view != ViewMode::Tree {
+            return false;
+        }
+        self.tree_settled = true;
+        self.arm_current();
+        true
+    }
+    pub fn resume_dwell(&mut self) -> bool {
+        if self.view != ViewMode::Tree
+            || !self.timeout_enabled
+            || !self.focused
+            || self.status != Status::Ready
+            || self.provisional
+            || self.items.is_empty()
+            || !self.tree_settled
+            || !self.tree_dwell_eligible()
+        {
+            return false;
+        }
+        self.dwell_active = true;
+        self.arm_current();
+        self.timer.is_some()
+    }
+    fn tree_dwell_eligible(&self) -> bool {
+        self.source == "Jev via EAVS"
+            && self
+                .items
+                .get(self.selected)
+                .and_then(|item| item.probability)
+                .is_some_and(|p| p.is_finite() && (0.0..=1.0).contains(&p))
+    }
+    fn arm_current(&mut self) {
+        if self.timer.is_some()
+            || !self.timeout_enabled
+            || !self.focused
+            || self.status != Status::Ready
+            || self.provisional
+            || self.items.is_empty()
+            || (self.view == ViewMode::Tree
+                && (!self.dwell_active || !self.tree_settled || !self.tree_dwell_eligible()))
+        {
+            return;
+        }
+        self.timer = Some(TimerTicket {
+            generation: self.generation,
+            serial: self.timer_serial,
+            selected_id: self.items[self.selected].id.clone(),
+            index: self.selected,
+        });
+    }
     pub fn escape(&mut self) {
         self.edit(String::new());
     }
     pub fn set_timeout(&mut self, enabled: bool) {
         self.timeout_enabled = enabled;
-        self.cancel_timer();
+        self.pause_dwell();
         // Toggling never starts a surprise timer on an already visible list.
         // Only the next fresh response may arm it.
     }
     pub fn focus(&mut self, focused: bool) {
         self.focused = focused;
         if !focused {
-            self.cancel_timer()
+            self.pause_dwell()
         }
     }
     /// Provisional local rows leave the remote request loading and never arm a timer.
@@ -228,6 +362,7 @@ impl State {
         self.items.clear();
         self.selected = 0;
         self.source.clear();
+        self.tree_settled = false;
         match result {
             Ok(response) => {
                 self.items = response.items;
@@ -245,16 +380,8 @@ impl State {
                 } else {
                     Status::Ready
                 };
-                if self.timeout_enabled
-                    && self.focused
-                    && !self.items.is_empty()
-                    && !self.intervened
-                {
-                    self.timer = Some(TimerTicket {
-                        generation,
-                        serial: self.timer_serial,
-                        first_id: self.items[0].id.clone(),
-                    });
+                if self.view == ViewMode::List && !self.intervened {
+                    self.arm_current();
                 }
             }
             Err(error) => self.status = Status::Error(error),
@@ -263,7 +390,8 @@ impl State {
     }
     pub fn navigate(&mut self, delta: isize) {
         self.intervened = true;
-        self.cancel_timer();
+        self.pause_dwell();
+        self.tree_settled = false;
         if self.items.is_empty() {
             return;
         }
@@ -277,7 +405,10 @@ impl State {
         self.choose(index)
     }
     pub fn choose(&mut self, index: usize) -> Option<Selection> {
-        self.cancel_timer();
+        self.select(index, false)
+    }
+    fn select(&mut self, index: usize, automatic: bool) -> Option<Selection> {
+        self.pause_dwell();
         if self.status != Status::Ready && !(self.status == Status::Loading && self.provisional) {
             return None;
         }
@@ -291,11 +422,14 @@ impl State {
             if node == "root" || node.is_empty() {
                 return None;
             }
+            self.remember_scope();
             self.node = node;
             self.breadcrumb = Some(item.label.clone());
             self.invalidate();
+            self.dwell_active = automatic && self.view == ViewMode::Tree;
             Some(Selection::Expand(self.request()))
         } else {
+            self.remember_scope();
             self.receipt = Some(PreviewReceipt {
                 item: item.clone(),
                 request: self.request(),
@@ -316,11 +450,11 @@ impl State {
             || !self.timeout_enabled
             || self.timer.as_ref() != Some(ticket)
             || self.generation != ticket.generation
-            || self.items.first().map(|i| &i.id) != Some(&ticket.first_id)
+            || self.items.get(ticket.index).map(|i| &i.id) != Some(&ticket.selected_id)
         {
             return None;
         }
-        self.choose(0)
+        self.select(ticket.index, true)
     }
 }
 

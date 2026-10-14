@@ -22,8 +22,11 @@ macro_rules! selector {
 selector!(Platform, Macos, [Macos => "macOS", Windows => "Windows", Linux => "Linux", Omarchy => "Omarchy"]);
 selector!(Fixture, Desktop, [Desktop => "Desktop", Selection => "Selection", Audio => "Audio", Unavailable => "Unavailable"]);
 selector!(Presentation, Flat, [Flat => "Flat", Branches => "Branches"]);
+selector!(ViewMode, List, [List => "List", Tree => "Tree"]);
+selector!(TreeVariant, Faint, [Faint => "Faint prior path", Trail => "Clipped horizontal trail", Crumbs => "Contextual breadcrumbs"]);
 
 #[derive(Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Item {
     pub id: String,
     pub tool: String,
@@ -31,6 +34,9 @@ pub struct Item {
     pub label: String,
     pub description: String,
     pub icon: String,
+    /// Human-readable platform mechanisms/conditions, never invocation contracts.
+    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
+    pub support: std::collections::BTreeMap<String, String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub platforms: Option<Vec<Platform>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -46,6 +52,15 @@ pub struct Item {
 }
 
 impl Item {
+    pub fn support_for(&self, platform: Platform) -> Option<&str> {
+        let key = match platform {
+            Platform::Macos => "macos",
+            Platform::Windows => "windows",
+            Platform::Linux => "linux",
+            Platform::Omarchy => "omarchy",
+        };
+        self.support.get(key).map(String::as_str)
+    }
     pub fn offered(&self, platform: Platform, fixture: Fixture) -> bool {
         let platform_ok = self
             .platforms

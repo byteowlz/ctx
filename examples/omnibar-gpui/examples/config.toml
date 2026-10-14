@@ -6,6 +6,10 @@ theme = "Lumen Dark"
 # Native design ID; input command `ctx theme dot` selects dot-matrix locally.
 design = "dot-matrix"
 presentation = "flat"
+# List is the default; tree uses branch routing. F3 switches without clearing input.
+view = "list"
+tree_variant = "faint"
+reduce_motion = false
 fixture = "desktop"
 auto_select_first = false
 timeout_seconds = 3

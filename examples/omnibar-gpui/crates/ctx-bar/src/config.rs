@@ -6,7 +6,7 @@ use anyhow::{Context as _, Result, bail};
 use ctx_bar_design::BarDesign;
 use serde::{Deserialize, Serialize};
 
-use crate::model::{Fixture, Platform, Presentation};
+use crate::model::{Fixture, Platform, Presentation, TreeVariant, ViewMode};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(default, deny_unknown_fields)]
@@ -16,6 +16,11 @@ pub struct Config {
     pub design: BarDesign,
     #[serde(deserialize_with = "canonical_selector")]
     pub presentation: Presentation,
+    #[serde(deserialize_with = "canonical_selector")]
+    pub view: ViewMode,
+    #[serde(deserialize_with = "canonical_selector")]
+    pub tree_variant: TreeVariant,
+    pub reduce_motion: bool,
     pub platform: Platform,
     pub fixture: Fixture,
     pub auto_select_first: bool,
@@ -43,6 +48,9 @@ impl Default for Config {
             theme: "Lumen Dark".into(),
             design: BarDesign::default(),
             presentation: Presentation::default(),
+            view: ViewMode::List,
+            tree_variant: TreeVariant::Faint,
+            reduce_motion: false,
             platform: if cfg!(target_os = "windows") {
                 Platform::Windows
             } else if cfg!(target_os = "linux") {
@@ -210,29 +218,8 @@ pub fn load_layers(
     explicit: Option<&Path>,
     cli: &[(String, String)],
 ) -> Result<Config> {
-    let defaults = Config::default();
     let mut builder = config::Config::builder()
-        .set_default("theme", defaults.theme)?
-        .set_default("design", defaults.design.id())?
-        .set_default(
-            "presentation",
-            serde_json::to_value(defaults.presentation)?
-                .as_str()
-                .unwrap_or("flat"),
-        )?
-        .set_default(
-            "platform",
-            serde_json::to_value(defaults.platform)?
-                .as_str()
-                .unwrap_or("macos"),
-        )?
-        .set_default("fixture", "desktop")?
-        .set_default("auto_select_first", false)?
-        .set_default("timeout_seconds", 3)?
-        .set_default("debounce_ms", 220)?
-        .set_default("request_timeout_seconds", 15)?
-        .set_default("width", 680.0)?
-        .set_default("height", 520.0)?
+        .add_source(config::Config::try_from(&Config::default())?)
         .add_source(bar_layer(global, false, false)?);
     if let Some(path) = local {
         builder = builder.add_source(bar_layer(path, false, false)?)
@@ -276,12 +263,14 @@ pub fn load_or_create(args: impl IntoIterator<Item = String>) -> Result<Config> 
                     args.next().context("--config requires a path")?,
                 ))
             }
+            "--reduce-motion" => overrides.push(("reduce_motion".into(), "true".into())),
+            "--no-reduce-motion" => overrides.push(("reduce_motion".into(), "false".into())),
             "--auto-select-first" => overrides.push(("auto_select_first".into(), "true".into())),
             "--no-auto-select-first" => {
                 overrides.push(("auto_select_first".into(), "false".into()))
             }
-            "--theme" | "--design" | "--presentation" | "--platform" | "--fixture"
-            | "--timeout-seconds" => {
+            "--theme" | "--design" | "--presentation" | "--view" | "--tree-variant"
+            | "--platform" | "--fixture" | "--timeout-seconds" => {
                 let value = args.next().context("Flag requires a value")?;
                 overrides.push((flag.trim_start_matches("--").replace('-', "_"), value));
             }
@@ -303,6 +292,10 @@ pub fn load_or_create(args: impl IntoIterator<Item = String>) -> Result<Config> 
 #[cfg(test)]
 #[path = "config_design_tests.rs"]
 mod design_tests;
+
+#[cfg(test)]
+#[path = "config_tree_tests.rs"]
+mod tree_tests;
 
 #[cfg(test)]
 #[path = "config_shared_tests.rs"]
