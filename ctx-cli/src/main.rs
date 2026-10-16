@@ -1,3 +1,4 @@
+mod browser;
 mod bundle;
 mod destinations;
 
@@ -91,6 +92,8 @@ enum Command {
         #[command(subcommand)]
         action: Option<CurrentAction>,
     },
+    /// Read explicitly consented browser tabs; never grants or executes control
+    Browser(browser::BrowserCli),
     /// Manage context bundles for Agent Handoff
     Bundle(bundle::BundleCli),
     /// Watch screenshot sources (clipboard + screenshot dirs) and emit JSONL detection events
@@ -228,6 +231,9 @@ fn main() -> anyhow::Result<()> {
             } else {
                 cmd_config_show()?;
             }
+        }
+        Some(Command::Browser(browser_cli)) => {
+            browser::run(browser_cli)?;
         }
         Some(Command::Bundle(bundle_cli)) => {
             let cfg = config::load(config::default_app_name())?;
