@@ -24,6 +24,9 @@ just check-all  # Compile, stable fmt check, strict Clippy, tests, schema/exampl
 retrieval experiment; [results and limits](docs/retrieval-benchmark.md). It does
 not change native routing or execute capabilities.
 
+[Thud evaluation](docs/thud-evaluation.md) records the audio-routing access gate
+and preview-only benchmark protocol; no Thud inference has been measured.
+
 Requires Rust with rustfmt/Clippy, `just`, and `uv` (Python >=3.11 for schema
 validation). See [AGENTS.md](AGENTS.md) and [development notes](docs/development.md)
 for focused checks and scoped exceptions.
