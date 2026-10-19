@@ -83,10 +83,11 @@ trx verify add trx-42 --status passed --command "just check-all" --summary "Chec
 trx close trx-42 --reason "Implemented and verified" --json
 ```
 
-Tracked state is `.trx/issues.jsonl`, `.trx/events.jsonl`, and (when evidence is
-recorded) `.trx/verifications.jsonl`; include changed tracker files with related
-code when a commit is authorized. trx persists updates locally; it does not
-automatically commit/push code. `trx sync` is an explicit commit action.
+Tracker state is centralized: `.trx/central` selects this repository's entry in
+the per-user central store, so the old repo-local `.trx/*.jsonl` ledgers are no
+longer tracked here and must not be recreated by hand. trx updates the central
+ledger without committing or pushing this repository's code, so a change set
+carries only its own files.
 Do not install bd/Beads hooks, filters or configuration. Use `just purge-beads`
 on existing clones to archive legacy integration outside git; it never invokes bd
 or alters `.trx`. Mixed/unrecognized or external shared hooks require manual review.
