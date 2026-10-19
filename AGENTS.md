@@ -106,3 +106,20 @@ Record deferred gaps and honest verification evidence in the issue.
 - Put ephemeral planning documents under `history/`; only inspect existing
   history when explicitly requested. Use repo docs/ADRs for durable design and
   trx for work status. Keep private host data and credentials out of git.
+
+### Voice and speaker evidence
+
+- Dictation/voice input is not implemented in ctx-bar. Any future voice path must
+  fail closed on live speaker evidence bound to the same completed utterance:
+  unknown, tentative, insufficient, overlapping, changed, stale, unsupported or
+  unavailable evidence dispatches nothing, and a configured-but-unavailable gate
+  must never fall back to ungated typing or inference.
+- Identity is shared, not ctx-owned: reuse voqx `voice_id` and checkpoint-bound
+  recognition profiles. Do not build a ctx-local enrollment/registry, and never
+  treat a speaker match as authorization, robot permission or liveness proof.
+- Speaker evidence, active window/context, Jev results and tree previews are all
+  distinct from execution permission. Execution remains an explicit human gesture
+  on the fixed whitelist - never a model, timer, probability, dwell or voice match.
+- Padded short audio (for example a 10-second embedding window) cannot approve a
+  longer instruction; whole-instruction coverage is required or the request is
+  rejected. Owning gate: eaRS `trx-2stp.4`; ctx dictation work is `trx-xv4n.19`.

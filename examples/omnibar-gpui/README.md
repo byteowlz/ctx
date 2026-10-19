@@ -109,6 +109,15 @@ replaces a Jev refusal (NoMatch still means no match; F2 still browses), and
 only explicit human gestures act on previews. Jev answers replace local rows
 when they arrive.
 
+## Voice preconditions (not implemented)
+
+ctx-bar has no dictation or voice-command path. If one is added it must fail
+closed on live speaker evidence for the same completed utterance (unknown,
+tentative, insufficient, overlapping, changed, stale, unsupported, unavailable),
+must reuse voqx identities instead of a ctx-local speaker registry, and must
+never let a speaker match trigger execution - see the repo `AGENTS.md` and the
+owning gate eaRS `trx-2stp.4` / ctx `trx-xv4n.19`.
+
 ## Real actions (macOS, human gesture only)
 
 Nine whitelisted previews are executable today: dark/light appearance,
