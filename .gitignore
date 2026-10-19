@@ -55,3 +55,7 @@ criterion/
 
 # pi session artifacts
 .pi/
+
+# trx central-mode markers are per-machine, not shared state
+/.trx/central
+/.trx/MIGRATED
