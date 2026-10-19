@@ -380,14 +380,6 @@ impl Bar {
     fn tree_moving(&self) -> bool {
         self.state.view == ViewMode::Tree && !self.motion.settled(Instant::now())
     }
-    fn toggle_view(&mut self, cx: &mut Context<Self>) {
-        let view = self.state.view.next();
-        self.state.switch_view(view);
-        self.config.view = view;
-        self.local_choices = choices(&self.state.query);
-        self.scroll.scroll_to_item(0);
-        self.schedule(true, cx);
-    }
     fn choose_candidate(
         &mut self,
         generation: u64,
@@ -434,7 +426,6 @@ impl Bar {
             }
             "escape" => self.escape_key(window, cx),
             "f2" => self.browse_all(cx),
-            "f3" => self.toggle_view(cx),
             "f4" => self.back(cx),
             key => {
                 if !self.tree_key(key, window, cx) {

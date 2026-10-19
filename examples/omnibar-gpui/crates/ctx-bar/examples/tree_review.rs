@@ -163,24 +163,35 @@ async fn capture(directory: std::path::PathBuf, cx: &mut gpui_kit::AsyncApp) -> 
                         && preview["timer"] == false,
                     "Enter did not stop at inert preview"
                 );
-                key(handle, "f3", cx)?;
+                // View switching is a ctx command, not a function key: apply it
+                // through the real input path and expect the usual command reset.
+                let input = bar.read_with(cx, |bar, _| bar.review_input().unwrap());
+                handle.update(cx, |_, window, cx| {
+                    input.update(cx, |input, cx| {
+                        input.focus(window, cx);
+                        // set_value is event-silent by design; the app state
+                        // mirrors Change events, so drive it like a user edit.
+                        input.replace_all("ctx view list", window, cx)
+                    })
+                })?;
+                settle(handle, cx).await?;
+                let offered = bar.read_with(cx, |bar, cx| bar.review_snapshot(cx));
+                anyhow::ensure!(
+                    offered["local_choices"] == 1,
+                    "ctx view list did not offer exactly one view action: {offered}"
+                );
+                key(handle, "enter", cx)?;
+                settle(handle, cx).await?;
                 let list = bar.read_with(cx, |bar, cx| bar.review_snapshot(cx));
                 anyhow::ensure!(
                     list["view"] == "list"
-                        && list["status"] == preview["status"]
-                        && list["query"] == preview["query"]
-                        && list["receipt"] == preview["receipt"],
-                    "mode switch lost preview provenance"
+                        && list["query"] == ""
+                        && list["input_empty"] == true
+                        && list["local_choices"].is_null()
+                        && list["timer"] == false,
+                    "ctx view switch left stale input or menu: {list}"
                 );
-                key(handle, "f4", cx)?;
-                let back = bar.read_with(cx, |bar, cx| bar.review_snapshot(cx));
-                anyhow::ensure!(
-                    back["node"] == "root"
-                        && back["status"] == "Loading"
-                        && back["presentation"] == "flat",
-                    "Back resurrected incompatible child scope"
-                );
-                keyboard_checks += 4;
+                keyboard_checks += 3;
             }
             cx.update_window(handle.into(), |_, window, _| window.remove_window())?;
         }

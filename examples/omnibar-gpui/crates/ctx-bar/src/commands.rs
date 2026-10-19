@@ -25,9 +25,7 @@ impl Action {
     pub fn detail(self) -> &'static str {
         match self {
             Self::Design(design) => design.description(),
-            Self::View(ViewMode::List) => {
-                "Compact rows. F3 switches view without clearing your request."
-            }
+            Self::View(ViewMode::List) => "Compact rows. Switch views with the ctx view command.",
             Self::View(ViewMode::Tree) => {
                 "Centered choices, moving path, reversible Back. Preview only."
             }

@@ -65,8 +65,11 @@ picks the path treatment: `faint` (earlier choices dimmed), `trail` (only the
 chosen horizontal path) or `crumbs` (contextual breadcrumbs). All three are
 implemented for review; none is a selected winner.
 
-- **F3** switches view without clearing the request; it invalidates the old
-  scope, pending requests and timers. A final preview keeps its receipt.
+- View switching is the in-input command `ctx view list|tree` — there is no
+  view function key. Like every `ctx` command it applies in memory and resets
+  the input; it invalidates the old scope, pending requests and timers. The
+  pure `switch_view` keeps a final receipt's provenance when the state layer
+  switches programmatically.
 - **F4** (or Left in the tree) goes Back to the previous offered scope and
   selection without a new inference. **F2** browses the full offered scope in
   either view; the tree shows five nodes around the selection, never filtering.
