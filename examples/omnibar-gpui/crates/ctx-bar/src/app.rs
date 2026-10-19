@@ -49,6 +49,8 @@ pub struct Bar {
     tree_focus: FocusHandle,
     motion: Motion,
     armed_timer: Option<TimerTicket>,
+    execution: Option<String>,
+    executing: bool,
     catalog: Catalog,
     catalog_ready: bool,
     connection: String,
@@ -87,6 +89,8 @@ impl Bar {
             tree_focus: cx.focus_handle(),
             motion: Motion::default(),
             armed_timer: None,
+            execution: None,
+            executing: false,
             catalog: fixture_catalog().unwrap_or(Catalog {
                 items: vec![],
                 branches: vec![],
@@ -125,6 +129,7 @@ impl Bar {
                         return;
                     }
                     this.local_choices = choices(&this.state.query);
+                    this.clear_execution();
                     this.motion = Motion::default();
                     this.scroll.scroll_to_item(0);
                     #[cfg(feature = "native-review")]
@@ -134,7 +139,9 @@ impl Bar {
                     this.schedule(true, cx);
                 }
                 InputEvent::PressEnter { .. } => {
-                    if !this.composing(window, cx) {
+                    // An explicit Enter on a real-action preview runs it; the
+                    // timer/dwell path never reaches here.
+                    if !this.composing(window, cx) && !this.execute_preview(cx) {
                         this.choose(this.state.selected, window, cx);
                     }
                 }
@@ -352,6 +359,7 @@ impl Bar {
                 });
             }
             Action::View(view) => {
+                self.clear_execution();
                 self.config.view = view;
                 self.state.switch_view(view);
             }
@@ -374,6 +382,63 @@ impl Bar {
         self.scroll.scroll_to_item(0);
         cx.notify();
     }
+    fn clear_execution(&mut self) {
+        self.execution = None;
+        self.executing = false;
+    }
+    /// The whitelisted real action behind the current preview, if any.
+    fn preview_action(&self) -> Option<(u64, String, ctx_bar::exec::Action)> {
+        if self.state.timer.is_some() || !matches!(self.state.status, Status::Preview(_)) {
+            return None;
+        }
+        let receipt = self.state.receipt.as_ref()?;
+        let selected = self.state.items.get(self.state.selected)?;
+        if selected.id != receipt.item.id {
+            return None;
+        }
+        let action = ctx_bar::exec::action_for(&receipt.item.id)?;
+        Some((self.state.generation, receipt.item.id.clone(), action))
+    }
+    /// Runs the previewed whitelist action on an explicit user gesture only.
+    /// Returns false when the current preview is not executable.
+    fn execute_preview(&mut self, cx: &mut Context<Self>) -> bool {
+        let Some((generation, id, action)) = self.preview_action() else {
+            return false;
+        };
+        if self.executing {
+            return true;
+        }
+        self.executing = true;
+        self.execution = Some("Running…".into());
+        let summary = action.summary;
+        cx.spawn(async move |this, cx| {
+            let outcome = cx
+                .background_executor()
+                .spawn(async move { ctx_bar::exec::run(&action) })
+                .await;
+            this.update(cx, |this, cx| {
+                this.executing = false;
+                // Drop the note when the preview it belongs to is gone.
+                let stale = this.state.generation != generation
+                    || this
+                        .state
+                        .receipt
+                        .as_ref()
+                        .is_none_or(|receipt| receipt.item.id != id);
+                if !stale {
+                    this.execution = Some(if outcome.ok {
+                        format!("Ran: {summary} in {}ms", outcome.duration_ms)
+                    } else {
+                        format!("Failed: {summary} — {}", outcome.detail)
+                    });
+                }
+                cx.notify();
+            })
+        })
+        .detach();
+        cx.notify();
+        true
+    }
     fn tree_can_choose(&self) -> bool {
         self.state.view != ViewMode::Tree || (self.state.tree_is_settled() && !self.tree_moving())
     }
@@ -394,6 +459,7 @@ impl Bar {
         }
     }
     fn back(&mut self, cx: &mut Context<Self>) {
+        self.clear_execution();
         if self.state.back() {
             self.scroll.scroll_to_item(0);
             self.schedule(false, cx);
@@ -489,6 +555,7 @@ impl Bar {
     }
 
     fn escape_input(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.clear_execution();
         if self.state.history_len() > 0 || self.state.node != "root" {
             self.back(cx);
             return;
@@ -510,6 +577,9 @@ impl Bar {
         if self.state.timer.is_some() {
             return format!("First preview in {}s · nothing executes", self.remaining);
         }
+        if let Some(note) = &self.execution {
+            return note.clone();
+        }
         if let Some(note) = &self.state.local_note {
             return note.clone();
         }
@@ -523,6 +593,9 @@ impl Bar {
             Status::Loading => "Asking Jev…".into(),
             Status::NoMatch if self.catalog.retrieval_enabled => "No Jev match · F2: all".into(),
             Status::NoMatch => "No matching interface. Edit the request to retry.".into(),
+            Status::Preview(message) if self.preview_action().is_some() => {
+                format!("{message} Enter again to run on this Mac.")
+            }
             Status::Error(error) | Status::Preview(error) => error.clone(),
         }
     }
@@ -588,6 +661,14 @@ impl Bar {
         Some(self.input.clone())
     }
 
+    /// Hidden-native review only: select an offered index without key events.
+    #[cfg(feature = "native-review")]
+    pub fn review_select(&mut self, index: usize) {
+        if self.state.items.get(index).is_some() {
+            self.state.selected = index;
+        }
+    }
+
     #[cfg(feature = "native-review")]
     pub fn review_snapshot(&self, cx: &gpui_kit::App) -> serde_json::Value {
         let tree = self.tree_active().then(|| {
@@ -607,6 +688,8 @@ impl Bar {
             "catalog_count": self.catalog.candidates(&self.state.request()).map_or(0, |items| items.len()),
             "chosen_label": self.state.items.get(self.state.selected).map(|item| &item.label),
             "selected": self.state.selected, "node": self.state.node, "presentation": self.state.presentation,
+            "execution": self.execution,
+            "runnable": self.preview_action().is_some(),
             "receipt": self.state.receipt.as_ref().map(|receipt| serde_json::json!({"item":receipt.item,"request":receipt.request,"source":receipt.source})),
             "routable": self.state.remote_request().is_some(),
             "timer": self.state.timer.is_some(), "generation": self.state.generation,

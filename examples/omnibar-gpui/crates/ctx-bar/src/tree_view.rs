@@ -234,6 +234,7 @@ impl Bar {
     ) -> Div {
         let ready = self.state.status == Status::Ready || self.state.provisional;
         let can_choose = ready && self.tree_can_choose();
+        let can_run = self.preview_action().is_some();
         let can_back = self.state.history_len() > 0;
         let can_pause = self.state.timer.is_some();
         let can_resume = ready
@@ -269,6 +270,21 @@ impl Bar {
                     })),
             )
             .child(
+                Button::new("tree-run")
+                    .ghost()
+                    .accessibility_label("Run on this Mac")
+                    .disabled(!can_run || self.executing)
+                    .opacity(if can_run && !self.executing {
+                        1.0
+                    } else {
+                        0.42
+                    })
+                    .child(surface.text("Run", Role::Control, false, cx))
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.execute_preview(cx);
+                    })),
+            )
+            .child(
                 Button::new("tree-pause")
                     .ghost()
                     .accessibility_label("Pause preview dwell")
@@ -295,6 +311,19 @@ impl Bar {
                         cx.notify();
                     })),
             );
+        if self.preview_action().is_some() {
+            panel = panel.child(
+                Button::new("preview-run")
+                    .ghost()
+                    .accessibility_label("Run on this Mac")
+                    .disabled(self.executing)
+                    .opacity(if self.executing { 0.42 } else { 1.0 })
+                    .child(surface.text("Run", Role::Control, false, cx))
+                    .on_click(cx.listener(|this, _, _, cx| {
+                        this.execute_preview(cx);
+                    })),
+            );
+        }
         if let Some(details) = self.preview_details_button(surface, cx) {
             panel = panel.child(details);
         }

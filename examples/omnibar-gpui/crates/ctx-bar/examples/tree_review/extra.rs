@@ -5,6 +5,22 @@ use gpui_kit::{AppContext as _, EntityInputHandler as _};
 
 use super::{Scene, app, host, key, save, settle, theme};
 
+fn osascript_volume(program: &str) -> u8 {
+    let output = std::process::Command::new("osascript")
+        .args(["-e", program])
+        .output()
+        .expect("osascript volume");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    String::from_utf8_lossy(&output.stdout)
+        .trim()
+        .parse()
+        .expect("volume number")
+}
+
 pub(super) async fn capture(
     directory: &std::path::Path,
     cx: &mut gpui_kit::AsyncApp,
@@ -158,6 +174,87 @@ pub(super) async fn capture(
             handle.update(cx, |_, window, cx| {
                 input.update(cx, |input, cx| input.unmark_text(window, cx))
             })?;
+        }
+        // Real execution proof, once: preview sound.volume in the tree and run
+        // it with a second Enter through the app's own whitelist path.
+        if scheme == "Lumen Dark" && width == 1200.0 {
+            let before = osascript_volume("output volume of (get volume settings)");
+            handle.update(cx, |_, window, cx| {
+                bar.update(cx, |bar, cx| {
+                    bar.review_tree_scene(TreeVariant::Faint, "root", window, cx)
+                })
+            })?;
+            settle(handle, cx).await?;
+            key(handle, "up", cx)?; // visual order: sound sits above the centered first branch
+            settle(handle, cx).await?; // starts the pan
+            cx.background_executor()
+                .timer(std::time::Duration::from_millis(240))
+                .await;
+            settle(handle, cx).await?; // marks the tree settled
+            key(handle, "enter", cx)?;
+            cx.update_window(handle.into(), |_, _, cx| {
+                bar.update(cx, |bar, cx| bar.review_tree_complete(cx))
+            })?;
+            settle(handle, cx).await?;
+            let child = bar.read_with(cx, |bar, cx| bar.review_snapshot(cx));
+            anyhow::ensure!(
+                child["node"] == "fixture-sound" && child["status"] == "Ready",
+                "sound branch did not load: {child}"
+            );
+            let position = child["ids"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .position(|id| id == "sound.volume")
+                .expect("sound.volume offered");
+            handle.update(cx, |_, window, cx| {
+                bar.update(cx, |bar, _| bar.review_select(position))
+            })?; // navigation is proven elsewhere; this scene tests execution
+            cx.background_executor()
+                .timer(std::time::Duration::from_millis(240))
+                .await;
+            settle(handle, cx).await?; // child-entry pan must settle before Enter chooses
+            key(handle, "enter", cx)?;
+            settle(handle, cx).await?;
+            let preview = bar.read_with(cx, |bar, cx| bar.review_snapshot(cx));
+            anyhow::ensure!(
+                preview["receipt"]["item"]["id"] == "sound.volume",
+                "previewed wrong item: {preview}"
+            );
+            anyhow::ensure!(
+                preview["runnable"] == true,
+                "preview is not runnable: {preview}"
+            );
+            key(handle, "enter", cx)?;
+            let mut executed = bar.read_with(cx, |bar, cx| bar.review_snapshot(cx));
+            for _ in 0..40 {
+                if executed["execution"]
+                    .as_str()
+                    .is_some_and(|note| note.starts_with("Ran: volume +10"))
+                {
+                    break;
+                }
+                cx.background_executor()
+                    .timer(std::time::Duration::from_millis(100))
+                    .await;
+                settle(handle, cx).await?;
+                executed = bar.read_with(cx, |bar, cx| bar.review_snapshot(cx));
+            }
+            anyhow::ensure!(
+                executed["execution"]
+                    .as_str()
+                    .is_some_and(|note| note.starts_with("Ran: volume +10")),
+                "explicit Enter did not run the action: {executed}"
+            );
+            std::process::Command::new("osascript")
+                .args(["-e", &format!("set volume output volume {before}")])
+                .output()
+                .expect("restore volume");
+            anyhow::ensure!(
+                osascript_volume("output volume of (get volume settings)") == before,
+                "volume was not restored"
+            );
+            key(handle, "escape", cx)?;
         }
         captures.push(deep_list_catalog(directory, scheme, width, handle, &bar, cx).await?);
         cx.update_window(handle.into(), |_, window, _| window.remove_window())?;

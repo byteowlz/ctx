@@ -3,7 +3,9 @@
 Loopback-only Bun service, not a browser interface or execution server. Synthetic
 platform/context fixtures go to Jev through the local EAVS SystemOne route;
 choosing an interface does not execute it. `catalog.json` is review data, not an
-authoritative capability registry or proof of installed OS adapters.
+authoritative capability registry or proof of installed OS adapters. The backend
+never executes; the native app itself may run a small fixed whitelist of
+user-confirmed actions locally (macOS v1).
 
 From the ctx root, in separate terminals:
 

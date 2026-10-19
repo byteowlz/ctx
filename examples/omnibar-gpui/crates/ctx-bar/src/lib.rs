@@ -2,6 +2,7 @@
 //! ctx-core remains independent of the native surface and decision provider.
 pub mod commands;
 pub mod config;
+pub mod exec;
 pub mod layout;
 pub mod model;
 pub mod proxy;

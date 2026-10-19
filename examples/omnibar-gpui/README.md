@@ -52,6 +52,9 @@ Jev transport is real. The browser gallery is separate and uses no model.
 Enter previews a suggested interface. Flat is the default; `presentation =
 "branches"` permits root plus one lazily requested child level. No speculative
 tree, tool invocation, grants, host capture or microphone recording is added.
+The native app additionally runs a small fixed whitelist of **human-confirmed
+real actions** on macOS (see below); the adapter/backend itself never executes
+anything.
 Native explicit editing remains available; no periodic clipboard reads occur.
 
 ## List and tree views
@@ -89,6 +92,22 @@ implemented for review; none is a selected winner.
 In the classic list, rows outside the scrolled viewport (and away from the
 selection) render as equal-height spacers, so a 94-entry F2 scope stays fully
 scrollable without exhausting the per-frame Dot budget.
+
+## Real actions (macOS, human gesture only)
+
+Nine whitelisted previews are executable today: dark/light appearance,
+mute toggle, volume +10, and opening the Appearance, Display, Notifications,
+Accessibility and Privacy settings panes. On such a preview the status line
+says "Enter again to run on this Mac" and a Run control appears; the outcome
+(`Ran: …` / `Failed: …` with real exit/stderr) is reported in the status line.
+Execution is only ever triggered by an explicit user gesture — Enter on the
+preview or the Run button. Timers, dwell, probabilities and Jev can select and
+preview but never execute. Commands are fixed argv templates in
+`ctx-bar/src/exec.rs` keyed by catalog id: no shell, no interpolation of query
+or model text, unknown ids never run, and other platforms stay preview-only.
+The first dark/light run triggers macOS's Automation permission prompt
+(System Events); declining is reported as a normal failure. Sound Settings
+panes opened by `open` are real windows on the user's screen.
 
 Optional first-row timeout defaults off, independent of confidence. Edits,
 navigation, selection changes, focus loss and local commands cancel it.
