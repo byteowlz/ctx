@@ -109,6 +109,12 @@ replaces a Jev refusal (NoMatch still means no match; F2 still browses), and
 only explicit human gestures act on previews. Jev answers replace local rows
 when they arrive.
 
+Text that is still composing (IME marked text, dictation interim) is displayed
+but not committed, so it also drives provisional local matches
+(`Composing · local matches · Enter inserts, it does not run`) computed from the
+visible field: composing text is never sent to Jev, never arms a timer and can
+never execute, because Enter is suppressed until the composition is committed.
+
 ## Voice preconditions (not implemented)
 
 ctx-bar has no dictation or voice-command path. If one is added it must fail

@@ -305,6 +305,39 @@ impl Bar {
     /// Instant fuzzy matches over the offered scope. `offline` reports the
     /// transport as down instead of leaving a pending spinner. Pure and cheap;
     /// never arms timers and never touches execution.
+    /// Composing (marked) text is visible but not committed: it may drive
+    /// provisional local matches only. It is never sent to Jev, never arms a
+    /// timer and can never be executed (Enter stays suppressed while composing).
+    fn show_composing_matches(&mut self, visible: &str) -> bool {
+        if visible.trim().is_empty()
+            || ctx_bar::state::is_local_or_theme_prefix(visible)
+            || self.state.query == visible
+        {
+            return false;
+        }
+        let mut request = self.state.request();
+        request.query = visible.to_string();
+        let Ok(offered) = self.catalog.candidates(&request) else {
+            return false;
+        };
+        let offered: Vec<_> = offered.into_iter().cloned().collect();
+        let ranked = ctx_bar::fuzzy::rank(visible, &offered, 5);
+        if ranked.is_empty() {
+            return false;
+        }
+        let picked: Vec<_> = ranked
+            .into_iter()
+            .map(|index| offered[index].clone())
+            .collect();
+        let generation = self.state.generation;
+        self.state.show_local(
+            generation,
+            picked,
+            "Local fuzzy",
+            "Composing · local matches · Enter inserts, it does not run".into(),
+            false,
+        )
+    }
     fn apply_fuzzy(&mut self, offline: bool) -> bool {
         if self.state.query.trim().is_empty()
             || ctx_bar::state::is_local_or_theme_prefix(&self.state.query)
@@ -794,6 +827,15 @@ impl Render for Bar {
         {
             presentation::diagnose(cx, |d| d.renders += 1);
             surfaces::begin_frame(cx);
+        }
+        if !self.review {
+            let composing = self.composing(window, cx);
+            if composing {
+                let visible = self.input.read(cx).value().to_string();
+                if self.show_composing_matches(&visible) {
+                    // Provisional only; no notify recursion, no transport.
+                }
+            }
         }
         let theme = cx.theme().clone();
         let surface = Frame::new(self.config.design, theme.color_tokens(), !theme.is_dark());
