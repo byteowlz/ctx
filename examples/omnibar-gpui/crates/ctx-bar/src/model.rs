@@ -81,7 +81,7 @@ impl Item {
     }
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize)]
 pub struct Catalog {
     pub items: Vec<Item>,
     #[serde(default)]
@@ -375,5 +375,29 @@ mod tests {
         response.items.clear();
         response.source = "demo".into();
         assert!(validate(&response, &req, &catalog).is_err());
+    }
+}
+
+/// The catalog is a static declaration file: ship it with the binary so the bar
+/// never needs the adapter (or Jev) merely to list and match real actions.
+pub fn embedded_catalog() -> Option<Catalog> {
+    serde_json::from_str(include_str!("../../../../omnibar-prototype/catalog.json")).ok()
+}
+
+#[cfg(test)]
+mod embedded_tests {
+    #[test]
+    fn embedded_catalog_parses_and_keeps_the_declared_scope() {
+        let catalog = super::embedded_catalog().expect("embedded catalog parses");
+        assert_eq!(catalog.items.len(), 96);
+        assert_eq!(catalog.branches.len(), 12);
+        assert!(catalog.items.iter().any(|item| item.id == "sound.volume"));
+        assert!(catalog.items.iter().all(|item| {
+            !item.is_branch()
+                || item
+                    .children
+                    .as_ref()
+                    .is_some_and(|children| !children.is_empty())
+        }));
     }
 }

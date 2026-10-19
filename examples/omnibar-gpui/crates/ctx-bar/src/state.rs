@@ -9,7 +9,7 @@ use crate::model::{Fixture, Item, Platform, Presentation, Request, Suggestions, 
 // Hold exact provisional c/ct input locally, even across a debounce pause.
 // This intentionally withholds standalone c/ct requests too. The theme parser
 // still returns None for them, so the UI shows neither choices nor Theme NoMatch.
-fn is_local_or_theme_prefix(query: &str) -> bool {
+pub fn is_local_or_theme_prefix(query: &str) -> bool {
     holds_input(query)
 }
 
@@ -324,11 +324,17 @@ impl State {
         note: String,
         offline: bool,
     ) -> bool {
+        let acceptable = matches!(
+            self.status,
+            Status::Loading | Status::Error(_) | Status::NoMatch | Status::Overview
+        );
         if generation != self.generation
-            || self.remote_request().is_none()
+            || !acceptable
             || self.intervened
             || items.is_empty()
             || items.iter().any(|item| item.probability.is_some())
+            || self.query.trim().is_empty()
+            || is_local_or_theme_prefix(&self.query)
         {
             return false;
         }

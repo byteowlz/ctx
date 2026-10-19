@@ -206,3 +206,54 @@ fn local_branches_request_one_declared_child_and_invalidate_root_work() {
     assert!(state.back());
     assert_eq!(state.node, "root");
 }
+
+#[test]
+fn offline_fuzzy_survives_a_transport_error_and_never_arms_a_timer() {
+    let catalog = crate::model::fixture_catalog().unwrap();
+    let mut state = crate::state::State::new(
+        crate::model::Platform::Macos,
+        crate::model::Fixture::Desktop,
+        true,
+    );
+    state.edit("volum".into());
+    let generation = state.generation;
+    // The adapter is down: the transport fails first.
+    assert!(state.complete(generation, Err("Start the local prototype proxy".into())));
+    assert!(matches!(state.status, crate::state::Status::Error(_)));
+    let offered = catalog.candidates(&state.request()).unwrap();
+    let ranked = crate::fuzzy::rank(
+        &state.query,
+        &offered
+            .iter()
+            .map(|item| (*item).clone())
+            .collect::<Vec<_>>(),
+        5,
+    );
+    assert!(!ranked.is_empty(), "fuzzy must match the offered scope");
+    let picked: Vec<_> = ranked
+        .into_iter()
+        .map(|index| offered[index].clone())
+        .collect();
+    assert!(state.show_local(
+        generation,
+        picked,
+        "Local fuzzy",
+        "Adapter unavailable · local matches · F2: all".into(),
+        true
+    ));
+    assert_eq!(
+        state.status,
+        crate::state::Status::Overview,
+        "offline matches settle the spinner"
+    );
+    assert!(state.provisional);
+    assert!(state.timer.is_none(), "local matches never arm a timer");
+    assert!(
+        state
+            .local_note
+            .as_deref()
+            .unwrap_or_default()
+            .contains("Adapter unavailable")
+    );
+    assert!(state.items.iter().all(|item| item.probability.is_none()));
+}

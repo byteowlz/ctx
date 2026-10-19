@@ -207,7 +207,7 @@ pub(super) async fn capture(
                 .iter()
                 .position(|id| id == "sound.volume")
                 .expect("sound.volume offered");
-            handle.update(cx, |_, window, cx| {
+            handle.update(cx, |_, _window, cx| {
                 bar.update(cx, |bar, _| bar.review_select(position))
             })?; // navigation is proven elsewhere; this scene tests execution
             cx.background_executor()

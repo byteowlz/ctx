@@ -25,8 +25,12 @@ pub struct Descriptor {
 }
 impl Descriptor {
     pub fn read(path: &Path) -> Result<Self> {
-        let file = File::open(path)
-            .context("Start the local prototype proxy; review descriptor unavailable")?;
+        let file = File::open(path).with_context(|| {
+            format!(
+                "Start the local prototype proxy; review descriptor unavailable at {}",
+                path.display()
+            )
+        })?;
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt as _;

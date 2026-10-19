@@ -95,7 +95,11 @@ scrollable without exhausting the per-frame Dot budget.
 
 ## Offline fuzzy matching
 
-The bar never depends on Jev to be useful. Every edit instantly fuzzy-matches
+The catalog ships inside the binary (an embedded copy of
+`examples/omnibar-prototype/catalog.json`), so listing, F2 browsing, branch
+routing, previews, fuzzy matching and the whitelisted actions all work with no
+adapter at all; a reachable adapter only refreshes that copy. The bar never
+depends on Jev to be useful. Every edit instantly fuzzy-matches
 the offered catalog scope (label weighted, then tool/interface/id) and shows
 provisional `Local matches · Jev pending · F2: all` rows while a request is
 outstanding. When the transport fails, the same rows stay with an honest

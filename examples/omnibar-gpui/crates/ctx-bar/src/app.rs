@@ -91,12 +91,15 @@ impl Bar {
             armed_timer: None,
             execution: None,
             executing: false,
-            catalog: fixture_catalog().unwrap_or(Catalog {
-                items: vec![],
-                branches: vec![],
-                retrieval_enabled: false,
-            }),
-            catalog_ready: false,
+            catalog: if review {
+                fixture_catalog().unwrap_or_default()
+            } else {
+                ctx_bar::model::embedded_catalog().unwrap_or_default()
+            },
+            // The embedded catalog means listing, browsing, fuzzy matching and
+            // execution work with no adapter at all; Jev only adds ranking.
+            // Review scenes keep their original explicit-ready behaviour.
+            catalog_ready: !review,
             connection: "Start the local omnibar adapter, then edit to retry.".into(),
             busy: false,
             local_busy: false,
@@ -194,7 +197,10 @@ impl Bar {
                     Err(error) => {
                         this.connection =
                             format!("{error}. Start the local adapter, then edit to retry.");
-                        if this.state.remote_request().is_some() {
+                        // The embedded catalog keeps local matching alive; only a
+                        // bar with no catalog at all has to surface the failure.
+                        this.catalog_ready = !this.catalog.items.is_empty();
+                        if !this.catalog_ready && this.state.remote_request().is_some() {
                             this.state
                                 .complete(this.state.generation, Err(this.connection.clone()));
                         }
@@ -209,13 +215,16 @@ impl Bar {
     /// Local presentation commands never enter the transport path. Edits coalesce
     /// to one latest-generation network request; no desktop capture is performed.
     fn schedule(&mut self, debounce: bool, cx: &mut Context<Self>) {
-        if self.review || self.state.remote_request().is_none() {
+        if self.review {
             return;
         }
         if !self.catalog_ready {
             if !self.busy {
                 self.load_catalog(cx);
             }
+            return;
+        }
+        if self.state.remote_request().is_none() {
             return;
         }
         if self.state.presentation == ctx_bar::model::Presentation::Branches
@@ -297,9 +306,12 @@ impl Bar {
     /// transport as down instead of leaving a pending spinner. Pure and cheap;
     /// never arms timers and never touches execution.
     fn apply_fuzzy(&mut self, offline: bool) -> bool {
-        let Some(request) = self.state.remote_request() else {
+        if self.state.query.trim().is_empty()
+            || ctx_bar::state::is_local_or_theme_prefix(&self.state.query)
+        {
             return false;
-        };
+        }
+        let request = self.state.request();
         let Ok(offered) = self.catalog.candidates(&request) else {
             return false;
         };
@@ -702,6 +714,7 @@ impl Bar {
 
     /// Hidden-native review only: select an offered index without key events.
     #[cfg(feature = "native-review")]
+    #[allow(dead_code)] // called by the separately compiled hidden harness
     pub fn review_select(&mut self, index: usize) {
         if self.state.items.get(index).is_some() {
             self.state.selected = index;

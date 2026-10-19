@@ -203,7 +203,8 @@ async fn capture(directory: std::path::PathBuf, cx: &mut gpui_kit::AsyncApp) -> 
         directory.join("manifest.json"),
         serde_json::to_vec_pretty(&serde_json::json!({
             "limits":"Synthetic declarations and simulated decision replies. Hidden GPUI pixels/native dispatch, not live inference, host discovery, physical input, compositor completion, OS control execution or screen-reader qualification.",
-            "captures":captures,"keyboard_checks":keyboard_checks,"system_reduce_motion_at_start":system_reduce_motion,"animation_fixture_override":"App-only false for supplemental hidden animation/IME poses, restored afterwards; OS preferences unchanged"
+            "captures":captures,"keyboard_checks":keyboard_checks,
+            "pixel_proof":"dot-separation probes require a >=2x capture; on lower-scale displays they print a skip instead of asserting","system_reduce_motion_at_start":system_reduce_motion,"animation_fixture_override":"App-only false for supplemental hidden animation/IME poses, restored afterwards; OS preferences unchanged"
         }))?,
     )?;
     println!(
@@ -333,6 +334,12 @@ fn verify_grid(
         })
         .ok_or_else(|| anyhow::anyhow!("selected title bounds missing: {snapshot}"))?;
     let scale = pixel_width as f32 / width;
+    if scale < 1.95 {
+        // A 1x capture cannot resolve the gap between 2-device-pixel cells, so
+        // it cannot prove separation either way. Record the skip, never a pass.
+        println!("dot grid separation: skipped (capture scale {scale:.2})");
+        return Ok(());
+    }
     let origin_x = label[0].as_f64().unwrap() as f32;
     let origin_y = label[1].as_f64().unwrap() as f32;
     let w = label[2].as_f64().unwrap() as usize;

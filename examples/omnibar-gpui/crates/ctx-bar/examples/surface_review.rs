@@ -222,6 +222,10 @@ fn verify_pixels(
     if scene != "tools" {
         return Ok(());
     }
+    if device < 1.95 {
+        println!("dot cell separation: skipped (capture scale {device:.2})");
+        return Ok(());
+    }
     let actual = label_bounds
         .get(0)
         .ok_or_else(|| anyhow::anyhow!("first row label bounds unavailable"))?;
