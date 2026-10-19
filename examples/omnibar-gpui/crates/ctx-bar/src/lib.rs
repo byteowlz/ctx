@@ -3,6 +3,7 @@
 pub mod commands;
 pub mod config;
 pub mod exec;
+pub mod fuzzy;
 pub mod layout;
 pub mod model;
 pub mod proxy;

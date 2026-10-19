@@ -93,6 +93,18 @@ In the classic list, rows outside the scrolled viewport (and away from the
 selection) render as equal-height spacers, so a 94-entry F2 scope stays fully
 scrollable without exhausting the per-frame Dot budget.
 
+## Offline fuzzy matching
+
+The bar never depends on Jev to be useful. Every edit instantly fuzzy-matches
+the offered catalog scope (label weighted, then tool/interface/id) and shows
+provisional `Local matches · Jev pending · F2: all` rows while a request is
+outstanding. When the transport fails, the same rows stay with an honest
+`Adapter unavailable · local matches · F2: all` note instead of an empty error.
+Fuzzy is pure, ranking-only and dependency-free: it never arms timers, never
+replaces a Jev refusal (NoMatch still means no match; F2 still browses), and
+only explicit human gestures act on previews. Jev answers replace local rows
+when they arrive.
+
 ## Real actions (macOS, human gesture only)
 
 Nine whitelisted previews are executable today: dark/light appearance,

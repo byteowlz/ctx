@@ -313,6 +313,36 @@ impl State {
             self.pause_dwell()
         }
     }
+    /// Instant offline fuzzy matches over the offered scope. Same provisional
+    /// contract as local recall: no probabilities, no timer, Jev still wins.
+    /// `offline` marks the transport as down so the note reports it honestly.
+    pub fn show_local(
+        &mut self,
+        generation: u64,
+        items: Vec<Item>,
+        source: &str,
+        note: String,
+        offline: bool,
+    ) -> bool {
+        if generation != self.generation
+            || self.remote_request().is_none()
+            || self.intervened
+            || items.is_empty()
+            || items.iter().any(|item| item.probability.is_some())
+        {
+            return false;
+        }
+        self.cancel_timer();
+        self.items = items;
+        self.selected = 0;
+        self.provisional = true;
+        self.source = source.into();
+        self.local_note = Some(note);
+        if offline {
+            self.status = Status::Overview; // transport is down; nothing more is coming
+        }
+        true
+    }
     /// Provisional local rows leave the remote request loading and never arm a timer.
     pub fn complete_local(&mut self, generation: u64, result: Result<Vec<Item>, String>) -> bool {
         if generation != self.generation || self.remote_request().is_none() || self.intervened {

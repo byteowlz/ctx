@@ -237,6 +237,7 @@ impl Bar {
             return;
         }
         self.schedule_local(cx);
+        self.apply_fuzzy(false);
         let generation = self.state.generation;
         let delay = if debounce { self.config.debounce_ms } else { 0 };
         cx.spawn(async move |this, cx| {
@@ -269,10 +270,21 @@ impl Bar {
             let result = task.await;
             let _ = this.update(cx, |this, cx| {
                 this.busy = false;
-                if this.state.complete(generation, result) {
+                let offline = result.is_err();
+                let accepted = if offline {
+                    // Transport is down: keep honest instant local matches if the
+                    // scope offers any, otherwise surface the real error.
+                    this.apply_fuzzy(true) || this.state.complete(generation, result)
+                } else if this.state.complete(generation, result) {
                     this.scroll.scroll_to_item(0);
                     this.arm_timer(cx);
-                } else if generation != this.state.generation {
+                    true
+                } else {
+                    generation != this.state.generation
+                };
+                if accepted {
+                    this.scroll.scroll_to_item(0);
+                } else {
                     this.schedule(true, cx);
                 }
                 cx.notify();
@@ -281,6 +293,33 @@ impl Bar {
         .detach();
     }
 
+    /// Instant fuzzy matches over the offered scope. `offline` reports the
+    /// transport as down instead of leaving a pending spinner. Pure and cheap;
+    /// never arms timers and never touches execution.
+    fn apply_fuzzy(&mut self, offline: bool) -> bool {
+        let Some(request) = self.state.remote_request() else {
+            return false;
+        };
+        let Ok(offered) = self.catalog.candidates(&request) else {
+            return false;
+        };
+        let offered: Vec<_> = offered.into_iter().cloned().collect();
+        let ranked = ctx_bar::fuzzy::rank(&self.state.query, &offered, 5);
+        if ranked.is_empty() {
+            return false;
+        }
+        let picked: Vec<_> = ranked
+            .into_iter()
+            .map(|index| offered[index].clone())
+            .collect();
+        let note = if offline {
+            "Adapter unavailable · local matches · F2: all".to_string()
+        } else {
+            "Local matches · Jev pending · F2: all".to_string()
+        };
+        self.state
+            .show_local(self.state.generation, picked, "Local fuzzy", note, offline)
+    }
     fn timer_work(&mut self) -> Option<(TimerTicket, u64)> {
         let ticket = self.state.timer.clone()?;
         if self.armed_timer.as_ref() == Some(&ticket) {
