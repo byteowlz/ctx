@@ -155,6 +155,21 @@ impl Frame {
         ink(self.design, &self.colors, self.light, selected)
     }
 
+    /// Backing for one element floating over the desktop (moving tree): the
+    /// design's own ground at high opacity, so text stays legible on any
+    /// wallpaper without enclosing the whole area in a window-like panel.
+    pub fn chip(&self) -> Div {
+        let ink = self.ink(false);
+        let chip = div()
+            .text_color(ink.foreground)
+            .bg(ink.background.opacity(0.92));
+        match self.design {
+            BarDesign::Lens => chip.rounded(px(14.0)),
+            BarDesign::DotMatrix | BarDesign::Monolith => chip,
+            _ => chip.rounded(px(6.0)),
+        }
+    }
+
     /// One enclosure per disclosed group, never a replacement interaction tree.
     pub fn panel(&self) -> Div {
         let ink = self.ink(false);

@@ -290,6 +290,11 @@ fn save(
             let image = window.render_to_image()?;
             let snapshot = bar.read(cx).review_snapshot(cx);
             image.save(&path)?;
+            if snapshot["tree"]["viewport_top"].is_number() {
+                verify_floating(&snapshot, design, width, image.width(), |x, y| {
+                    image.get_pixel(x, y).0
+                })?;
+            }
             if design == ctx_bar_design::BarDesign::DotMatrix
                 && snapshot["tree"]["selected_center"].is_array()
                 && snapshot["tree_moving"] == false
@@ -306,6 +311,36 @@ fn save(
     snapshot["variant"] = serde_json::json!(variant);
     snapshot["scene"] = serde_json::json!(scene);
     Ok(snapshot)
+}
+
+/// The tree floats over the desktop: below the input bar, empty space must be
+/// fully transparent (only node, label and control chips are painted).
+#[cfg(feature = "native-review")]
+fn verify_floating(
+    snapshot: &serde_json::Value,
+    design: ctx_bar_design::BarDesign,
+    width: f32,
+    pixel_width: u32,
+    pixel: impl Fn(u32, u32) -> [u8; 4],
+) -> anyhow::Result<()> {
+    let scale = pixel_width as f32 / width;
+    let top = snapshot["tree"]["viewport_top"].as_f64().unwrap_or(0.0) as f32;
+    let height = snapshot["tree"]["viewport_height"].as_f64().unwrap_or(0.0) as f32;
+    let header = design.bar_height() + 16.0;
+    for (name, x, y) in [
+        ("path line right edge", width - 3.0, header),
+        ("tree area bottom-right", width - 3.0, top + height - 3.0),
+    ] {
+        // Painted chips/panels are 235-255 alpha. A design's own soft input
+        // shadow (Lens fades from about 52 to 1 below the bar) is not a panel.
+        let alpha = pixel((x * scale) as u32, (y * scale) as u32)[3];
+        anyhow::ensure!(
+            alpha < 64,
+            "{}: {name} is painted (alpha {alpha}); the tree must float over the desktop",
+            design.id()
+        );
+    }
+    Ok(())
 }
 
 #[cfg(feature = "native-review")]

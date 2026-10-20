@@ -38,21 +38,33 @@ impl Bar {
                 .clone()
                 .unwrap_or_else(|| "Root choices".into())
         };
-        surface.finish(
-            surface
-                .panel()
-                .h(px(32.0))
-                .flex_shrink_0()
-                .flex()
-                .items_center()
-                .px_3()
-                .child(div().w_full().min_w_0().child(surface.text(
-                    text,
-                    Role::Navigation,
-                    false,
-                    cx,
-                ))),
-        )
+        self.floating_band(surface, text, Role::Navigation, cx)
+    }
+    /// A text line floating over the desktop: only the label's own chip is
+    /// painted, never a full-width band.
+    pub(super) fn floating_band(
+        &self,
+        surface: &Frame,
+        text: String,
+        role: Role,
+        cx: &mut Context<Self>,
+    ) -> Div {
+        div()
+            .h(px(32.0))
+            .flex_shrink_0()
+            .flex()
+            .items_center()
+            .child(
+                surface
+                    .chip()
+                    .h(px(26.0))
+                    .px_3()
+                    .flex()
+                    .items_center()
+                    .min_w_0()
+                    .max_w(px(self.config.width - 8.0))
+                    .child(surface.text(text, role, false, cx)),
+            )
     }
     pub(super) fn render_tree(
         &mut self,
@@ -98,12 +110,12 @@ impl Bar {
     ) -> gpui_kit::Stateful<Div> {
         let height = plan.center.y * 2.0;
         let ink = surface.ink(false);
-        let mut panel = surface.panel().id("moving-tree").relative().h(px(height)).flex_shrink_0()
+        let mut panel = div().id("moving-tree").relative().h(px(height)).flex_shrink_0()
             .overflow_hidden().track_focus(&self.tree_focus).tab_index(0)
             .role(gpui_kit::accesskit::Role::ListBox).aria_label("Preview choices")
             .aria_description("Synthetic control declarations. Up/Down select, Enter previews, F4 Back. No system action is executed.");
         let width = plan.node_width;
-        panel = panel.child(tree_edges(plan, offset, ink.foreground));
+        panel = panel.child(tree_edges(plan, offset, ink.foreground, ink.background));
         if let Some(position) = plan.query {
             let p = position.plus(offset);
             panel = panel.child(
@@ -114,6 +126,7 @@ impl Bar {
                     .left(px(p.x - width / 2.0))
                     .top(px(p.y - 28.0))
                     .w(px(width))
+                    .bg(ink.background.opacity(0.92))
                     .opacity(0.42)
                     .child(div().min_w_0().flex_1().child(surface.text(
                         self.state.query.clone(),
@@ -128,11 +141,23 @@ impl Bar {
             panel = panel.child(self.tree_node(plan, node, offset, surface, cx));
         }
         // This is the pinned tree aperture, not the rejected idle/input focus mark.
+        // A dark halo keeps its hairlines visible over light wallpapers.
         let aperture_height = if preview {
             124.0_f32.min(height - 4.0)
         } else {
             64.0
         };
+        panel = panel.child(
+            div()
+                .absolute()
+                .left(px(plan.center.x - width / 2.0 - 8.0))
+                .top(px(plan.center.y - aperture_height / 2.0 - 1.0))
+                .w(px(plan.current_width + 16.0))
+                .h(px(aperture_height + 2.0))
+                .border_t_2()
+                .border_b_2()
+                .border_color(ink.background.opacity(0.85)),
+        );
         panel = panel.child(
             div()
                 .absolute()
@@ -144,7 +169,8 @@ impl Bar {
                 .border_b_1()
                 .border_color(ink.foreground),
         );
-        surface.finish(panel)
+        // Floating over the desktop: no panel ground and no enclosure edges.
+        panel
     }
     fn tree_node(
         &self,
@@ -175,6 +201,9 @@ impl Bar {
             .top(px(p.y - row_height / 2.0))
             .w(px(width))
             .h(px(row_height));
+        if !node.selected {
+            row = row.bg(surface.ink(false).background.opacity(0.92));
+        }
         if node.prior {
             row = row.opacity(if node.selected { 0.62 } else { 0.42 });
         }
@@ -242,12 +271,11 @@ impl Bar {
             && self.state.timeout_enabled
             && self.tree_can_choose();
         let mut panel = surface
-            .panel()
-            .h(px(32.0))
-            .flex_shrink_0()
+            .chip()
+            .h(px(28.0))
+            .px_3()
             .flex()
             .items_center()
-            .justify_center()
             .gap_3()
             .child(
                 Button::new("tree-back")
@@ -327,7 +355,13 @@ impl Bar {
         if let Some(details) = self.preview_details_button(surface, cx) {
             panel = panel.child(details);
         }
-        surface.finish(panel)
+        div()
+            .h(px(32.0))
+            .flex_shrink_0()
+            .flex()
+            .items_center()
+            .justify_center()
+            .child(panel)
     }
     pub(super) fn preview_details_button(
         &self,
@@ -381,7 +415,12 @@ impl Bar {
 }
 
 /// Orthogonal connectors share the node layer's offset, so they move together.
-fn tree_edges(plan: &Plan, offset: Position, ink: gpui_kit::Hsla) -> gpui_kit::Canvas<()> {
+fn tree_edges(
+    plan: &Plan,
+    offset: Position,
+    ink: gpui_kit::Hsla,
+    halo: gpui_kit::Hsla,
+) -> gpui_kit::Canvas<()> {
     let width = plan.node_width;
     let edges: Vec<_> = plan
         .edges
@@ -395,13 +434,19 @@ fn tree_edges(plan: &Plan, offset: Position, ink: gpui_kit::Hsla) -> gpui_kit::C
                 let start = bounds.origin + point(px(from.x + width / 2.0), px(from.y));
                 let end = bounds.origin + point(px(to.x - width / 2.0), px(to.y));
                 let middle = (start.x + end.x) / 2.0;
-                let mut path = PathBuilder::stroke(px(1.0));
-                path.move_to(start);
-                path.line_to(point(middle, start.y));
-                path.line_to(point(middle, end.y));
-                path.line_to(end);
-                if let Ok(path) = path.build() {
-                    window.paint_path(path, ink.opacity(if *chosen { 0.5 } else { 0.24 }));
+                // Halo first, then the hairline, so connectors read over any wallpaper.
+                for (width, color) in [
+                    (3.0, halo.opacity(0.85)),
+                    (1.0, ink.opacity(if *chosen { 0.6 } else { 0.35 })),
+                ] {
+                    let mut path = PathBuilder::stroke(px(width));
+                    path.move_to(start);
+                    path.line_to(point(middle, start.y));
+                    path.line_to(point(middle, end.y));
+                    path.line_to(end);
+                    if let Ok(path) = path.build() {
+                        window.paint_path(path, color);
+                    }
                 }
             }
         },

@@ -858,7 +858,10 @@ impl Render for Bar {
                 ),
             );
         }
-        if !message.is_empty() {
+        if !message.is_empty() && tree_active {
+            let role = status_role(&self.state.status);
+            panel = panel.child(self.floating_band(&surface, message, role, cx));
+        } else if !message.is_empty() {
             panel = panel.child(
                 surface.finish(
                     surface
