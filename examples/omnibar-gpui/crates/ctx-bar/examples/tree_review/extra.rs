@@ -47,6 +47,34 @@ pub(super) async fn capture(
             cx.new(|cx| host::root(view, window, cx))
         })?;
         let bar = bar.ok_or_else(|| anyhow::anyhow!("view unavailable"))?;
+        // Expansion must grow downward: the top edge (where the launch position
+        // anchors the bar) stays put while the height changes.
+        let mut edges = vec![];
+        for scene in ["catalog", "idle", "catalog", "idle"] {
+            handle.update(cx, |_, window, cx| {
+                bar.update(cx, |bar, cx| {
+                    bar.review_tree_scene(TreeVariant::Faint, scene, window, cx)
+                })
+            })?;
+            settle(handle, cx).await?;
+            cx.background_executor()
+                .timer(std::time::Duration::from_millis(50))
+                .await;
+            settle(handle, cx).await?;
+            let bounds = cx.update_window(handle.into(), |_, window, _| window.bounds())?;
+            edges.push((f32::from(bounds.origin.y), f32::from(bounds.size.height)));
+        }
+        // Hidden harness windows open at a default size; the first change
+        // establishes the bar's own height, so measure from the second scene.
+        let edges = &edges[1..];
+        anyhow::ensure!(
+            edges[1].1 > edges[0].1 && edges[2].1 < edges[1].1,
+            "menu did not expand and collapse the window: {edges:?}"
+        );
+        anyhow::ensure!(
+            edges.iter().all(|(top, _)| (top - edges[0].0).abs() < 0.5),
+            "window top moved while the menu expanded/collapsed: {edges:?}"
+        );
         for variant in TreeVariant::ALL {
             for scene in [
                 "catalog",
@@ -160,12 +188,51 @@ pub(super) async fn capture(
                 "Escape destroyed the tree request"
             );
             let input = bar.read_with(cx, |bar, _| bar.review_input().unwrap());
+            // Real keystrokes: plain command words open the local menu without
+            // routing, and Enter switches the view.
+            for (word, choices, view) in [("list", 1, "list"), ("tree", 4, "tree")] {
+                handle.update(cx, |_, window, cx| {
+                    input.update(cx, |input, cx| {
+                        input.set_value("", window, cx);
+                        input.focus(window, cx);
+                    })
+                })?;
+                for ch in word.chars() {
+                    key(handle, &ch.to_string(), cx)?;
+                }
+                settle(handle, cx).await?;
+                let typed = bar.read_with(cx, |bar, cx| bar.review_snapshot(cx));
+                anyhow::ensure!(
+                    typed["query"] == word
+                        && typed["local_choices"] == choices
+                        && typed["routable"] == false,
+                    "typing {word} did not open the local command menu without routing: {typed}"
+                );
+                key(handle, "enter", cx)?;
+                settle(handle, cx).await?;
+                let applied = bar.read_with(cx, |bar, cx| bar.review_snapshot(cx));
+                anyhow::ensure!(
+                    applied["view"] == view
+                        && applied["input_empty"] == true
+                        && applied["local_choices"].is_null(),
+                    "Enter on {word} did not switch to the {view} view: {applied}"
+                );
+            }
+            // Composing (marked) text is not committed: it neither routes nor
+            // arms a timer, and Enter must not choose anything.
             handle.update(cx, |_, window, cx| {
                 input.update(cx, |input, cx| {
                     input.set_value("", window, cx);
-                    input.replace_and_mark_text_in_range(None, "abc", Some(0..3), window, cx);
+                    input.focus(window, cx);
+                    input.replace_and_mark_text_in_range(None, "volume", Some(0..6), window, cx);
                 })
             })?;
+            settle(handle, cx).await?;
+            let composing = bar.read_with(cx, |bar, cx| bar.review_snapshot(cx));
+            anyhow::ensure!(
+                composing["routable"] == false && composing["timer"] == false,
+                "composing text must not route or arm a timer: {composing}"
+            );
             key(handle, "enter", cx)?;
             anyhow::ensure!(
                 bar.read_with(cx, |bar, cx| bar.review_snapshot(cx))["node"] == "root",

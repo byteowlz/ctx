@@ -109,11 +109,26 @@ replaces a Jev refusal (NoMatch still means no match; F2 still browses), and
 only explicit human gestures act on previews. Jev answers replace local rows
 when they arrive.
 
-Text that is still composing (IME marked text, dictation interim) is displayed
-but not committed, so it also drives provisional local matches
-(`Composing · local matches · Enter inserts, it does not run`) computed from the
-visible field: composing text is never sent to Jev, never arms a timer and can
-never execute, because Enter is suppressed until the composition is committed.
+Text that is still composing (IME marked text) is shown but not committed: it is
+not matched, never sent to Jev and never arms a timer, and Enter is suppressed
+until the composition commits.
+
+## Command words and placement
+
+Bar commands do not need the `ctx` prefix: typing a command word such as
+`tree`, `list`, `view`, `breadcrumbs` or `dwell` (optionally with `show`,
+`switch to` or `use`) opens the local command menu, and Enter applies it in
+memory. These words are never sent to Jev, need at least four letters, and a
+test guarantees none of them shadows a catalog word, so ordinary requests like
+`switch to dark mode` still route normally. Catalog matching is word-based:
+each typed word must match a whole word, a word start, a 3+ letter run inside a
+word, or the initials of consecutive words (`dnd`); scattered letters no longer
+match.
+
+The bar opens centred horizontally with its top edge a fifth of the way down
+the display's visible area, and it grows downward from that edge (a scoped
+vendor patch; see `vendor/gpui-pre-macos/CTX-PATCH.md`). It is lifted only as
+far as needed for the fully expanded menu to stay on screen.
 
 ## Voice preconditions (not implemented)
 

@@ -55,6 +55,82 @@ impl Action {
     }
 }
 
+/// Plain words that name bar commands. Each needs at least four typed
+/// characters, and a test guards that no catalog word shares these stems, so
+/// a bar command can never shadow a real catalog match.
+const COMMAND_WORDS: [(&str, &[Action]); 10] = [
+    (
+        "tree",
+        &[
+            Action::View(ViewMode::Tree),
+            Action::Variant(TreeVariant::Faint),
+            Action::Variant(TreeVariant::Trail),
+            Action::Variant(TreeVariant::Crumbs),
+        ],
+    ),
+    ("branches", &[Action::View(ViewMode::Tree)]),
+    ("list", &[Action::View(ViewMode::List)]),
+    ("classic", &[Action::View(ViewMode::List)]),
+    ("flat", &[Action::View(ViewMode::List)]),
+    ("faint", &[Action::Variant(TreeVariant::Faint)]),
+    ("trail", &[Action::Variant(TreeVariant::Trail)]),
+    ("breadcrumbs", &[Action::Variant(TreeVariant::Crumbs)]),
+    ("crumbs", &[Action::Variant(TreeVariant::Crumbs)]),
+    ("dwell", &[Action::Dwell(true), Action::Dwell(false)]),
+];
+/// Words that may surround a command word ("show tree", "switch to list").
+/// Catalog words such as "mode" or "layout" are deliberately excluded.
+const FILLER: [&str; 6] = ["show", "switch", "use", "to", "the", "view"];
+
+/// Bar commands for a plain query, without the `ctx` prefix. Every token must
+/// be a filler word or a 4+ character prefix of a command word; a lone "view"
+/// offers both views. Returns None for anything else, so ordinary requests
+/// still reach catalog matching and Jev.
+pub fn suggest(query: &str) -> Option<Vec<Action>> {
+    let tokens: Vec<String> = query
+        .split_whitespace()
+        .map(str::to_ascii_lowercase)
+        .collect();
+    if tokens.is_empty() {
+        return None;
+    }
+    let mut actions: Vec<Action> = vec![];
+    for token in &tokens {
+        let token = token.trim_end_matches('s');
+        if FILLER.contains(&token)
+            || FILLER
+                .iter()
+                .any(|filler| filler.trim_end_matches('s') == token)
+        {
+            continue;
+        }
+        if token.len() < 4 {
+            return None;
+        }
+        let matched: Vec<Action> = COMMAND_WORDS
+            .iter()
+            .filter(|(word, _)| word.starts_with(token))
+            .flat_map(|(_, found)| found.iter().copied())
+            .collect();
+        if matched.is_empty() {
+            return None;
+        }
+        for action in matched {
+            if !actions.contains(&action) {
+                actions.push(action);
+            }
+        }
+    }
+    if actions.is_empty()
+        && tokens
+            .iter()
+            .any(|token| token.trim_end_matches('s') == "view")
+    {
+        actions = vec![Action::View(ViewMode::List), Action::View(ViewMode::Tree)];
+    }
+    (!actions.is_empty()).then_some(actions)
+}
+
 pub fn choices(query: &str) -> Option<Vec<Action>> {
     if let Some(designs) = theme_choices(query) {
         return Some(designs.into_iter().map(Action::Design).collect());
@@ -87,7 +163,10 @@ pub fn choices(query: &str) -> Option<Vec<Action>> {
             );
         }
     }
-    None
+    if query.starts_with("ctx ") || query == "ctx" {
+        return None;
+    }
+    suggest(&query)
 }
 
 pub fn holds_input(query: &str) -> bool {
@@ -120,6 +199,91 @@ mod tests {
         }
         for query in ["ctx capture", "ctx themed", "ctx views", "cat", "ct scan"] {
             assert!(!holds_input(query));
+        }
+    }
+
+    #[test]
+    fn plain_command_words_open_the_local_menu() {
+        let tree = suggest("tree").unwrap();
+        assert_eq!(tree[0], Action::View(ViewMode::Tree));
+        assert_eq!(tree.len(), 4, "tree view plus its three path variants");
+        assert_eq!(suggest("Show Tree"), Some(tree.clone()));
+        assert_eq!(
+            suggest("switch to list"),
+            Some(vec![Action::View(ViewMode::List)])
+        );
+        assert_eq!(
+            suggest("breadcrumbs"),
+            Some(vec![Action::Variant(TreeVariant::Crumbs)])
+        );
+        assert_eq!(
+            suggest("view"),
+            Some(vec![
+                Action::View(ViewMode::List),
+                Action::View(ViewMode::Tree)
+            ])
+        );
+        assert!(holds_input("tree"), "command words are not sent to Jev");
+        assert_eq!(choices("tree"), Some(tree));
+    }
+
+    #[test]
+    fn ordinary_requests_are_never_mistaken_for_commands() {
+        for query in [
+            "tr",
+            "tre",
+            "t",
+            "switch to dark mode",
+            "mode",
+            "keyboard layout",
+            "adjust volume",
+            "tree house",
+            "ctx tree house",
+            "lis",
+            "dwel x",
+        ] {
+            assert_eq!(suggest(query), None, "{query}");
+        }
+        for query in ["switch to dark mode", "adjust volume"] {
+            assert!(!holds_input(query), "{query} must still reach Jev");
+        }
+    }
+
+    #[test]
+    fn command_words_never_shadow_catalog_words() {
+        let catalog = crate::model::embedded_catalog().expect("embedded catalog");
+        let words: Vec<String> = catalog
+            .items
+            .iter()
+            .chain(&catalog.branches)
+            .flat_map(|item| {
+                format!(
+                    "{} {} {} {}",
+                    item.label, item.tool, item.interface, item.id
+                )
+                .to_ascii_lowercase()
+                .split(|c: char| !c.is_alphanumeric())
+                .filter(|word| !word.is_empty())
+                .map(str::to_string)
+                .collect::<Vec<_>>()
+            })
+            .collect();
+        for (command, _) in COMMAND_WORDS {
+            let stem = &command[..4];
+            let clash: Vec<_> = words.iter().filter(|word| word.starts_with(stem)).collect();
+            assert!(
+                clash.is_empty(),
+                "command word {command} shadows catalog words {clash:?}"
+            );
+        }
+        for filler in FILLER {
+            if ["show", "switch", "use", "to", "the"].contains(&filler) {
+                continue; // connective words; never sole tokens of a command
+            }
+            assert!(
+                !words.iter().any(|word| word == filler),
+                "filler {filler} is a catalog word"
+            );
         }
     }
 }

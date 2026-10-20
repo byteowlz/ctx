@@ -355,6 +355,16 @@ async fn expanded_grid(width: f32, cx: &mut gpui_kit::AsyncApp) -> anyhow::Resul
                 "{case}: expected one successful native grid: {}",
                 serde_json::to_string(&stats)?
             );
+            let capture_scale = dimensions.0 as f32 / width;
+            if capture_scale < 1.95 {
+                // A 1x capture cannot resolve gaps between 2-device-pixel cells;
+                // record the skip instead of asserting either way.
+                println!(
+                    "[ctx-expanded-grid] {case}: cell separation skipped (capture scale {capture_scale:.2})"
+                );
+                anyhow::ensure!(white_pixels > 100, "{case}: grid text not visible at all");
+                continue;
+            }
             anyhow::ensure!(
                 center[0] >= 12
                     && center[0] <= 20
