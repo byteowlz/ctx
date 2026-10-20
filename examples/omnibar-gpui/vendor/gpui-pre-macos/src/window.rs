@@ -656,6 +656,8 @@ unsafe fn apply_simple_fullscreen_plan(
 
 struct MacWindowState {
     handle: AnyWindowHandle,
+    /// ctx trial: frameless popups grow downward from a fixed top edge.
+    keep_top_on_resize: bool,
     foreground_executor: ForegroundExecutor,
     background_executor: BackgroundExecutor,
     native_window: id,
@@ -1106,6 +1108,7 @@ impl MacWindow {
 
             let state = Arc::new(Mutex::new(MacWindowState {
                 handle,
+                keep_top_on_resize: frameless_popup,
                 foreground_executor,
                 background_executor,
                 native_window,
@@ -1458,13 +1461,32 @@ impl PlatformWindow for MacWindow {
         let this = self.0.lock();
         let window = this.native_window;
         let closed = this.closed.clone();
+        let keep_top = this.keep_top_on_resize;
         this.foreground_executor
             .spawn(async move {
                 if_window_not_closed(closed, || unsafe {
-                    window.setContentSize_(NSSize {
+                    let content = NSSize {
                         width: size.width.as_f32() as f64,
                         height: size.height.as_f32() as f64,
-                    });
+                    };
+                    if keep_top {
+                        // ctx trial: AppKit keeps the bottom-left corner fixed
+                        // (y grows upward), so a launcher would jump up whenever
+                        // its menu expands. Keep the top-left corner instead.
+                        let frame = NSWindow::frame(window);
+                        let current = NSWindow::contentRectForFrameRect_(window, frame);
+                        let target = NSRect::new(
+                            NSPoint::new(
+                                current.origin.x,
+                                current.origin.y + current.size.height - content.height,
+                            ),
+                            content,
+                        );
+                        let next = NSWindow::frameRectForContentRect_(window, target);
+                        window.setFrame_display_(next, YES);
+                    } else {
+                        window.setContentSize_(content);
+                    }
                 })
             })
             .detach();

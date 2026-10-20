@@ -16,6 +16,11 @@ uses a local `[patch.crates-io]`; no global Cargo/cache/framework files change.
   (nonactivating only; no titled/full-size/resize/close/minimize flags) and native
   `hasShadow` is false. Cocoa's convenience getter truncates unknown mask bits,
   so the regression reads the raw native property via the existing platform FFI.
+- `src/window.rs` `resize`: those same frameless popups keep their **top-left**
+  corner fixed when resized (content rect recomputed, then `setFrame:display:`).
+  AppKit's `setContentSize:` keeps the bottom-left corner, so a launcher anchored
+  high on screen would jump upward each time its menu expanded. Other windows
+  still use `setContentSize:` unchanged.
 - `src/gpui_macos.rs`: allow only preexisting upstream Cocoa deprecation warnings.
   Published dependency builds cap these; local path builds would otherwise emit
   1,213 inherited warnings. Application warnings-denied gates stay unchanged.
@@ -32,6 +37,10 @@ Afterward its debug record is `borderless popup style=128, shadow=false`.
 All-ten scene/Enter review and 200 native input edits pass; Dot median about
 5.43 ms and Unicode/composition/selection fallback remains intact. Checks,
 65 native test invocations and warnings-denied application Clippy pass.
+
+Resize anchoring is measured, not assumed: the hidden tree harness expands and
+collapses a popup and asserts its top edge never moves. With the field forced
+off, the same check fails (top 1016 -> 600 -> 1016 while height 64 -> 480 -> 64).
 
 These properties verify the native host, unlike app-scene alpha alone. User
 on-screen visual/physical-keyboard acceptance remains separate. Never commit

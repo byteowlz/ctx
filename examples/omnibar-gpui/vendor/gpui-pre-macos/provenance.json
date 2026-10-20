@@ -67,7 +67,7 @@
     },
     "src/window.rs": {
       "original": "fb5551fe68cc4a7250dbbeec074bddb3f566521cabdee2dce8d2e5ad42652bdf",
-      "vendored": "031d203a064566c7ad2bbd81be99c25988a1b59e66bf2ce46a6d474b3ef07b84"
+      "vendored": "d7ce8ac72b19e758b00a067716f15de1989b8160e8c92d43809db7413a5fff83"
     },
     "src/window_appearance.rs": {
       "original": "b8a1950175c0184469606447fca9450ab39a194fde04b80da3f0ad468ce2bd03",

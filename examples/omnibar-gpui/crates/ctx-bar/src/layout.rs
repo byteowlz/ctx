@@ -34,6 +34,21 @@ pub fn live_row(index: usize, selected: usize, offset_y: f32, height: f32) -> bo
     band.contains(&index) || index.abs_diff(selected) <= 5
 }
 
+/// Fraction of the visible display height above the bar's top edge. Launchers
+/// sit high so the menu has room to grow downward without covering the middle.
+pub const LAUNCH_TOP_FRACTION: f32 = 0.2;
+
+/// Top-left launch position inside a display's visible area (menu bar and dock
+/// excluded): centred horizontally, top edge at LAUNCH_TOP_FRACTION, and moved
+/// up only as far as needed so the fully expanded menu stays on screen.
+pub fn launch_origin(visible: [f32; 4], width: f32, max_height: f32) -> (f32, f32) {
+    let [x, y, w, h] = visible;
+    let left = x + (w - width).max(0.0) / 2.0;
+    let preferred = y + h * LAUNCH_TOP_FRACTION;
+    let lowest = y + (h - max_height).max(0.0);
+    (left, preferred.min(lowest).max(y))
+}
+
 /// Reserve the same path/status/control bands at every tree depth so the
 /// aperture never shifts when a branch or final receipt is disclosed.
 pub fn tree_layout(design: BarDesign, maximum: f32) -> Layout {
@@ -68,6 +83,21 @@ mod tests {
         assert_eq!(loading.height - idle.height, STATUS_HEIGHT);
         assert_eq!(ready.list_height, 3.0 * ROW_HEIGHT);
         assert_eq!(layout(BarDesign::DotMatrix, 0, false, 520.0), idle);
+    }
+
+    #[test]
+    fn launch_sits_high_and_keeps_the_expanded_menu_on_screen() {
+        // 1080p display, 25px menu bar.
+        let (x, y) = launch_origin([0.0, 25.0, 1920.0, 1055.0], 680.0, 520.0);
+        assert_eq!(x, 620.0);
+        assert_eq!(y, 25.0 + 1055.0 * LAUNCH_TOP_FRACTION);
+        assert!(y + 520.0 <= 1080.0);
+        // Short display: lifted so the full menu still fits.
+        let (_, y) = launch_origin([0.0, 25.0, 1280.0, 600.0], 680.0, 520.0);
+        assert_eq!(y, 25.0 + 80.0);
+        // Never above the visible area, never off the left edge.
+        let (x, y) = launch_origin([100.0, 25.0, 400.0, 300.0], 680.0, 520.0);
+        assert_eq!((x, y), (100.0, 25.0));
     }
 
     #[test]

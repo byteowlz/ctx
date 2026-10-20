@@ -8,7 +8,7 @@ mod theme;
 
 use std::path::PathBuf;
 
-use gpui_kit::{App, AppContext as _, AsyncApp, WindowBounds, WindowOptions, px, size};
+use gpui_kit::{App, AppContext as _, AsyncApp, WindowBounds, WindowOptions, point, px, size};
 
 use ctx_bar::config::Config;
 
@@ -56,10 +56,24 @@ fn fatal(error: anyhow::Error) -> ! {
 fn window_options(config: &Config, review: bool, cx: &App) -> WindowOptions {
     let height = ctx_bar::layout::layout(config.design, 0, false, config.height).height;
     let mut options = host::options(config, review);
-    options.window_bounds = Some(WindowBounds::centered(
-        size(px(config.width), px(height)),
-        cx,
-    ));
+    let window_size = size(px(config.width), px(height));
+    options.window_bounds = Some(match cx.primary_display() {
+        Some(display) => {
+            let visible = display.visible_bounds();
+            let (x, y) = ctx_bar::layout::launch_origin(
+                [
+                    f32::from(visible.origin.x),
+                    f32::from(visible.origin.y),
+                    f32::from(visible.size.width),
+                    f32::from(visible.size.height),
+                ],
+                config.width,
+                config.height,
+            );
+            WindowBounds::Windowed(gpui_kit::Bounds::new(point(px(x), px(y)), window_size))
+        }
+        None => WindowBounds::centered(window_size, cx),
+    });
     options
 }
 
