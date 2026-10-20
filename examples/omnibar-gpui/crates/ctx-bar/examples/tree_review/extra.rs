@@ -62,7 +62,11 @@ pub(super) async fn capture(
                 .await;
             settle(handle, cx).await?;
             let bounds = cx.update_window(handle.into(), |_, window, _| window.bounds())?;
-            edges.push((f32::from(bounds.origin.y), f32::from(bounds.size.height)));
+            edges.push((
+                f32::from(bounds.origin.y),
+                f32::from(bounds.size.height),
+                f32::from(bounds.origin.x) + f32::from(bounds.size.width) / 2.0,
+            ));
         }
         // Hidden harness windows open at a default size; the first change
         // establishes the bar's own height, so measure from the second scene.
@@ -72,8 +76,11 @@ pub(super) async fn capture(
             "menu did not expand and collapse the window: {edges:?}"
         );
         anyhow::ensure!(
-            edges.iter().all(|(top, _)| (top - edges[0].0).abs() < 0.5),
-            "window top moved while the menu expanded/collapsed: {edges:?}"
+            edges
+                .iter()
+                .all(|(top, _, centre)| (top - edges[0].0).abs() < 0.5
+                    && (centre - edges[0].2).abs() < 0.5),
+            "window top or centre moved while the menu expanded/collapsed: {edges:?}"
         );
         for variant in TreeVariant::ALL {
             for scene in [
@@ -158,7 +165,7 @@ pub(super) async fn capture(
                 "Enter advanced an unsettled tree"
             );
             cx.background_executor()
-                .timer(std::time::Duration::from_millis(240))
+                .timer(std::time::Duration::from_millis(460))
                 .await;
             settle(handle, cx).await?;
             let settled = save(
@@ -255,7 +262,7 @@ pub(super) async fn capture(
             key(handle, "up", cx)?; // visual order: sound sits above the centered first branch
             settle(handle, cx).await?; // starts the pan
             cx.background_executor()
-                .timer(std::time::Duration::from_millis(240))
+                .timer(std::time::Duration::from_millis(460))
                 .await;
             settle(handle, cx).await?; // marks the tree settled
             key(handle, "enter", cx)?;
@@ -278,7 +285,7 @@ pub(super) async fn capture(
                 bar.update(cx, |bar, _| bar.review_select(position))
             })?; // navigation is proven elsewhere; this scene tests execution
             cx.background_executor()
-                .timer(std::time::Duration::from_millis(240))
+                .timer(std::time::Duration::from_millis(460))
                 .await;
             settle(handle, cx).await?; // child-entry pan must settle before Enter chooses
             key(handle, "enter", cx)?;

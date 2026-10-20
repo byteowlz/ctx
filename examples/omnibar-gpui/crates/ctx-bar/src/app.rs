@@ -59,6 +59,8 @@ pub struct Bar {
     local_generation: Option<u64>,
     remaining: u64,
     height: f32,
+    /// Window width: the bar's width, or the wider tree stage in tree view.
+    window_width: f32,
     review: bool,
     last_selection: Range<usize>,
     scroll: ScrollHandle,
@@ -81,6 +83,7 @@ impl Bar {
         };
         state.view = config.view;
         let height = layout(config.design, 0, false, config.height).height;
+        let window_width = config.width;
         let mut bar = Self {
             state,
             config,
@@ -106,6 +109,7 @@ impl Bar {
             local_generation: None,
             remaining: 0,
             height,
+            window_width,
             review,
             last_selection: 0..0,
             scroll: ScrollHandle::new(),
@@ -724,11 +728,12 @@ impl Bar {
     #[cfg(feature = "native-review")]
     pub fn review_snapshot(&self, cx: &gpui_kit::App) -> serde_json::Value {
         let tree = self.tree_active().then(|| {
-            let top = self.config.design.bar_height() + 64.0;
-            let viewport = self.height - top - 32.0;
-            let plan = ctx_bar::tree::Plan::new(&self.state, self.config.tree_variant, self.config.width, viewport);
-            let selected = plan.selected_center().map(|position| [position.x, position.y + top]);
-            serde_json::json!({"viewport_top":top,"viewport_height":viewport,"center":[plan.center.x,plan.center.y + top],"selected_center":selected,"node_width":plan.node_width,"current_width":plan.current_width,"depth":plan.depth,"visible_current":plan.nodes.iter().filter(|node| !node.prior).count(),"prior_nodes":plan.nodes.iter().filter(|node| node.prior).count(),"edges":plan.edges.len()})
+            let top = self.config.design.bar_height() + ctx_bar::layout::TREE_GAP;
+            let viewport = ctx_bar::layout::TREE_VIEWPORT;
+            let inset = tree_view::STAGE_INSET;
+            let plan = ctx_bar::tree::Plan::new(&self.state, self.config.tree_variant, self.window_width - 2.0 * inset, viewport);
+            let selected = plan.selected_center().map(|position| [position.x + inset, position.y + top]);
+            serde_json::json!({"viewport_top":top,"viewport_height":viewport,"center":[plan.center.x + inset,plan.center.y + top],"selected_center":selected,"node_width":plan.node_width,"window_width":self.window_width,"bar_width":self.config.width,"depth":plan.depth,"visible_current":plan.nodes.iter().filter(|node| !node.prior).count(),"prior_nodes":plan.nodes.iter().filter(|node| node.prior).count(),"edges":plan.edges.len()})
         });
         serde_json::json!({
             "tree": tree,
@@ -811,9 +816,22 @@ impl Render for Bar {
         let tree_active = self.tree_active();
         let preview_controls = !tree_active && self.state.receipt.is_some();
         let geometry = self.frame_layout(count, !message.is_empty());
-        if (self.height - geometry.height).abs() > 0.5 {
+        let target_width = if tree_active {
+            window.display(cx).map_or(self.config.width, |display| {
+                ctx_bar::tree::stage_width(
+                    self.config.width,
+                    f32::from(display.visible_bounds().size.width),
+                )
+            })
+        } else {
+            self.config.width
+        };
+        if (self.height - geometry.height).abs() > 0.5
+            || (self.window_width - target_width).abs() > 0.5
+        {
             self.height = geometry.height;
-            window.resize(size(px(self.config.width), px(self.height)));
+            self.window_width = target_width;
+            window.resize(size(px(self.window_width), px(self.height)));
         }
         let input = presentation::input(self.config.design, &self.input, window, cx);
         let mut panel = div()
@@ -824,13 +842,12 @@ impl Render for Bar {
             .p(px(INSET))
             .flex()
             .flex_col()
+            .items_center()
             .text_color(theme.foreground)
             .text_size(px(13.5))
             .capture_key_down(cx.listener(Self::key_down))
-            .child(input);
-        if tree_active {
-            panel = panel.child(self.tree_path_header(&surface, cx));
-        } else if let Some(breadcrumb) = &self.state.breadcrumb {
+            .child(div().w(px(self.config.width)).flex_shrink_0().child(input));
+        if let (false, Some(breadcrumb)) = (tree_active, &self.state.breadcrumb) {
             panel = panel.child(
                 surface.finish(
                     surface
@@ -858,10 +875,7 @@ impl Render for Bar {
                 ),
             );
         }
-        if !message.is_empty() && tree_active {
-            let role = status_role(&self.state.status);
-            panel = panel.child(self.floating_band(&surface, message, role, cx));
-        } else if !message.is_empty() {
+        if !message.is_empty() && !tree_active {
             panel = panel.child(
                 surface.finish(
                     surface
@@ -881,7 +895,7 @@ impl Render for Bar {
             );
         }
         if tree_active {
-            panel = panel.child(self.render_tree(geometry.list_height, &surface, window, cx));
+            panel = panel.child(self.render_tree(&surface, window, cx));
         } else if count > 0 {
             panel = panel.child(self.result_list(geometry.list_height, &surface, cx));
         }
@@ -895,7 +909,7 @@ impl Render for Bar {
 impl Bar {
     fn frame_layout(&self, count: usize, status: bool) -> ctx_bar::layout::Layout {
         if self.tree_active() {
-            return ctx_bar::layout::tree_layout(self.config.design, self.config.height);
+            return ctx_bar::layout::tree_layout(self.config.design);
         }
         let breadcrumb =
             u8::from(self.state.breadcrumb.is_some()) as f32 * ctx_bar::layout::STATUS_HEIGHT;

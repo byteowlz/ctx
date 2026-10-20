@@ -313,8 +313,9 @@ fn save(
     Ok(snapshot)
 }
 
-/// The tree floats over the desktop: below the input bar, empty space must be
-/// fully transparent (only node, label and control chips are painted).
+/// Tree view anatomy over the desktop: nothing is painted beside the bar, a
+/// dark stage sits behind the tree, and the stage has no window-shaped edge
+/// (the window's outer corner stays clear).
 #[cfg(feature = "native-review")]
 fn verify_floating(
     snapshot: &serde_json::Value,
@@ -323,23 +324,36 @@ fn verify_floating(
     pixel_width: u32,
     pixel: impl Fn(u32, u32) -> [u8; 4],
 ) -> anyhow::Result<()> {
-    let scale = pixel_width as f32 / width;
-    let top = snapshot["tree"]["viewport_top"].as_f64().unwrap_or(0.0) as f32;
-    let height = snapshot["tree"]["viewport_height"].as_f64().unwrap_or(0.0) as f32;
-    let header = design.bar_height() + 16.0;
-    for (name, x, y) in [
-        ("path line right edge", width - 3.0, header),
-        ("tree area bottom-right", width - 3.0, top + height - 3.0),
-    ] {
-        // Painted chips/panels are 235-255 alpha. A design's own soft input
-        // shadow (Lens fades from about 52 to 1 below the bar) is not a panel.
-        let alpha = pixel((x * scale) as u32, (y * scale) as u32)[3];
+    let tree = &snapshot["tree"];
+    let window_width = tree["window_width"].as_f64().map_or(width, |v| v as f32);
+    let bar_width = tree["bar_width"].as_f64().map_or(width, |v| v as f32);
+    let top = tree["viewport_top"].as_f64().unwrap_or(0.0) as f32;
+    let scale = pixel_width as f32 / window_width;
+    let alpha = |x: f32, y: f32| pixel((x * scale) as u32, (y * scale) as u32)[3];
+    // Painted grounds are 200+ alpha; a design's own soft input shadow is not.
+    if window_width > bar_width + 40.0 {
+        let beside = alpha(
+            (window_width - bar_width) / 2.0 - 12.0,
+            design.bar_height() / 2.0,
+        );
         anyhow::ensure!(
-            alpha < 64,
-            "{}: {name} is painted (alpha {alpha}); the tree must float over the desktop",
+            beside < 64,
+            "{}: area beside the bar is painted (alpha {beside})",
             design.id()
         );
     }
+    let stage = alpha(64.0, top + 48.0);
+    anyhow::ensure!(
+        stage >= 150,
+        "{}: tree stage missing (alpha {stage})",
+        design.id()
+    );
+    let corner = alpha(2.0, top + 2.0);
+    anyhow::ensure!(
+        corner < 64,
+        "{}: stage reaches the window edge (alpha {corner})",
+        design.id()
+    );
     Ok(())
 }
 
@@ -368,7 +382,10 @@ fn verify_grid(
                 && b[4].as_f64().unwrap_or(0.0) == 2.0
         })
         .ok_or_else(|| anyhow::anyhow!("selected title bounds missing: {snapshot}"))?;
-    let scale = pixel_width as f32 / width;
+    let window_width = snapshot["tree"]["window_width"]
+        .as_f64()
+        .map_or(width, |value| value as f32);
+    let scale = pixel_width as f32 / window_width;
     if scale < 1.95 {
         // A 1x capture cannot resolve the gap between 2-device-pixel cells, so
         // it cannot prove separation either way. Record the skip, never a pass.

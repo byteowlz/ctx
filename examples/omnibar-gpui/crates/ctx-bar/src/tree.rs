@@ -4,8 +4,19 @@ use std::time::{Duration, Instant};
 use crate::model::{Item, TreeVariant};
 use crate::state::{State, Status};
 
-pub const PITCH: f32 = 64.0;
-pub const MOTION_MS: u64 = 220;
+// Studio moving-tree-r1 geometry (styles.css/app.js): 96px rows, 264px nodes,
+// 90px aperture (124px for the final preview), one 420ms ease-out translation.
+pub const PITCH: f32 = 96.0;
+pub const NODE_WIDTH: f32 = 264.0;
+pub const APERTURE: f32 = 90.0;
+pub const APERTURE_PREVIEW: f32 = 124.0;
+pub const MOTION_MS: u64 = 420;
+
+/// Tree stage width for a display: wide enough for query, fork and child
+/// columns (three steps plus a node), never wider than the mockup's 1440px.
+pub fn stage_width(bar_width: f32, display_width: f32) -> f32 {
+    (display_width - 64.0).min(1440.0).max(bar_width)
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Position {
@@ -39,9 +50,6 @@ pub struct Plan {
     pub target: Position,
     pub center: Position,
     pub node_width: f32,
-    /// Current choices keep the shared left edge but may extend toward the
-    /// window edge, where no column follows, so the selected label stays readable.
-    pub current_width: f32,
     pub depth: usize,
     pub query: Option<Position>,
 }
@@ -103,8 +111,7 @@ impl Plan {
             edges: vec![],
             target: center,
             center,
-            node_width: 264.0,
-            current_width: (width - 16.0 - (center.x - 132.0)).clamp(264.0, 560.0),
+            node_width: NODE_WIDTH,
             depth,
             query: (depth == 0 || variant != TreeVariant::Crumbs)
                 .then_some(Position { x: -step, y: 0.0 }),
@@ -217,14 +224,6 @@ impl Plan {
         }
         if let Some(query) = &mut self.query {
             query.y = y;
-        }
-    }
-    /// Width used to draw a node; ancestors keep the shared column width.
-    pub fn width_of(&self, node: &Node) -> f32 {
-        if node.prior {
-            self.node_width
-        } else {
-            self.current_width
         }
     }
     pub fn selected_center(&self) -> Option<Position> {

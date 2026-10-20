@@ -167,12 +167,15 @@ fn unverified_platform_conditions_are_metadata_not_executable_or_forgeable() {
     assert!(serde_json::from_value::<crate::model::Item>(json).is_err());
 }
 #[test]
-fn tree_geometry_never_moves_the_aperture_at_new_depth_or_exceeds_configured_height() {
+fn tree_geometry_is_fixed_so_the_aperture_never_moves() {
     for design in ctx_bar_design::BarDesign::ALL {
-        for max in [240.0, 520.0, 900.0] {
-            let geometry = crate::layout::tree_layout(design, max);
-            assert!(geometry.height <= max);
-            assert!((64.0..=320.0).contains(&geometry.list_height));
-        }
+        let geometry = crate::layout::tree_layout(design);
+        assert_eq!(geometry.list_height, crate::layout::TREE_VIEWPORT);
+        assert!(geometry.height <= design.bar_height() + 640.0);
     }
+    // Five options at the 96px pitch fit inside the tree window.
+    const { assert!(4.0 * crate::tree::PITCH + 64.0 <= crate::layout::TREE_VIEWPORT) };
+    assert_eq!(crate::tree::stage_width(680.0, 1920.0), 1440.0);
+    assert_eq!(crate::tree::stage_width(680.0, 1280.0), 1216.0);
+    assert_eq!(crate::tree::stage_width(680.0, 600.0), 680.0);
 }

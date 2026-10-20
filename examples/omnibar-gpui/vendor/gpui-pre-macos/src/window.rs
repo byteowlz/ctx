@@ -1472,12 +1472,14 @@ impl PlatformWindow for MacWindow {
                     if keep_top {
                         // ctx trial: AppKit keeps the bottom-left corner fixed
                         // (y grows upward), so a launcher would jump up whenever
-                        // its menu expands. Keep the top-left corner instead.
+                        // its menu expands. Keep the top edge and the horizontal
+                        // centre instead, so a wider tree stage grows evenly
+                        // around the bar.
                         let frame = NSWindow::frame(window);
                         let current = NSWindow::contentRectForFrameRect_(window, frame);
                         let target = NSRect::new(
                             NSPoint::new(
-                                current.origin.x,
+                                current.origin.x + (current.size.width - content.width) / 2.0,
                                 current.origin.y + current.size.height - content.height,
                             ),
                             content,

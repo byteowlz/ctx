@@ -51,12 +51,19 @@ pub fn launch_origin(visible: [f32; 4], width: f32, max_height: f32) -> (f32, f3
 
 /// Reserve the same path/status/control bands at every tree depth so the
 /// aperture never shifts when a branch or final receipt is disclosed.
-pub fn tree_layout(design: BarDesign, maximum: f32) -> Layout {
-    let bands = design.bar_height() + STATUS_HEIGHT * 3.0;
-    let list_height = (maximum - bands).clamp(64.0, 320.0);
+/// Tree bands below the bar (Studio moving-tree-r1): 24px gap, the 480px tree
+/// window (breadcrumbs overlay its top edge), navigation, status, margin.
+pub const TREE_GAP: f32 = 24.0;
+pub const TREE_VIEWPORT: f32 = 480.0;
+pub const TREE_NAVIGATION: f32 = 56.0;
+pub const TREE_STATUS: f32 = 32.0;
+pub const TREE_MARGIN: f32 = 16.0;
+
+pub fn tree_layout(design: BarDesign) -> Layout {
+    let bands = design.bar_height() + TREE_GAP + TREE_NAVIGATION + TREE_STATUS + TREE_MARGIN;
     Layout {
-        height: bands + list_height,
-        list_height,
+        height: bands + TREE_VIEWPORT,
+        list_height: TREE_VIEWPORT,
     }
 }
 

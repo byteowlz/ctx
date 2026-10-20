@@ -60,11 +60,14 @@ Native explicit editing remains available; no periodic clipboard reads occur.
 ## List and tree views
 
 Two first-class views share one catalog, routing, retrieval and preview
-contract. In the tree view only the input bar keeps a window-like surface; the
-path and status lines, nodes, connectors and controls float over the desktop as
-individual chips in the design's own colours (connectors and aperture hairlines
-carry a dark halo for contrast). The hidden harness asserts the space around
-them is unpainted for all ten designs. `view = "list"` (default) keeps compact rows. `view = "tree"` uses
+contract. The tree view follows Studio `moving-tree-r1` geometry: a stage up to
+1440px wide centred under the bar (the window widens around the bar and shrinks
+back for the list), a 480px tree window, 96px rows, 264px text-only nodes whose
+labels wrap to two lines, a 90px aperture (124px for the final preview), bracket
+connectors at 0.24/0.65, plain-text navigation and a short status line, and one
+420ms ease-out move. The stage is the design's ground at 0.86 with feathered
+edges rather than a boxed window; nothing is painted beside the bar. The hidden
+harness asserts those properties for all ten designs. `view = "list"` (default) keeps compact rows. `view = "tree"` uses
 branch routing with a stationary centered aperture: nodes and connectors move
 on one coordinate layer, the current choice stays centered, earlier steps sit
 to the left and the final receipt is inert (`Nothing executed`). `tree_variant`

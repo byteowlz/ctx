@@ -16,8 +16,9 @@ uses a local `[patch.crates-io]`; no global Cargo/cache/framework files change.
   (nonactivating only; no titled/full-size/resize/close/minimize flags) and native
   `hasShadow` is false. Cocoa's convenience getter truncates unknown mask bits,
   so the regression reads the raw native property via the existing platform FFI.
-- `src/window.rs` `resize`: those same frameless popups keep their **top-left**
-  corner fixed when resized (content rect recomputed, then `setFrame:display:`).
+- `src/window.rs` `resize`: those same frameless popups keep their **top edge
+  and horizontal centre** fixed when resized (content rect recomputed, then
+  `setFrame:display:`), so the tree view's wider stage grows evenly around the bar.
   AppKit's `setContentSize:` keeps the bottom-left corner, so a launcher anchored
   high on screen would jump upward each time its menu expanded. Other windows
   still use `setContentSize:` unchanged.

@@ -5,8 +5,8 @@ use ctx_bar::tree::{Node, Plan, Position};
 use gpui_kit::base::Disableable as _;
 use gpui_kit::component::button::{Button, ButtonVariants as _};
 use gpui_kit::{
-    Context, Div, InteractiveElement as _, ParentElement as _, PathBuilder, SharedString,
-    StatefulInteractiveElement as _, Styled as _, Window, canvas, div, point, px,
+    BoxShadow, Context, Div, InteractiveElement as _, ParentElement as _, PathBuilder,
+    SharedString, StatefulInteractiveElement as _, Styled as _, Window, canvas, div, point, px,
 };
 
 use std::time::Instant;
@@ -22,62 +22,52 @@ impl Bar {
                 || self.state.breadcrumb.is_some()
                 || matches!(self.state.status, Status::Preview(_)))
     }
-    pub(super) fn tree_path_header(&self, surface: &Frame, cx: &mut Context<Self>) -> Div {
-        let text = if self.config.tree_variant == ctx_bar::model::TreeVariant::Crumbs {
-            let mut path = self.state.query.clone();
-            if let Some(parent) = &self.state.breadcrumb {
-                path.push_str(&format!(" / {parent}"));
-            }
-            if let Some(receipt) = &self.state.receipt {
-                path.push_str(&format!(" / {}", receipt.item.label));
-            }
-            path
-        } else {
-            self.state
-                .breadcrumb
-                .clone()
-                .unwrap_or_else(|| "Root choices".into())
-        };
-        self.floating_band(surface, text, Role::Navigation, cx)
+    /// Crumbs variant only: a compact centred path over the top edge of the
+    /// tree window (Studio `#breadcrumbs`), never a band of its own.
+    fn tree_breadcrumbs(&self, surface: &Frame, cx: &mut Context<Self>) -> Option<Div> {
+        if self.config.tree_variant != ctx_bar::model::TreeVariant::Crumbs
+            || (self.state.breadcrumb.is_none() && self.state.receipt.is_none())
+        {
+            return None;
+        }
+        let mut path = self.state.query.clone();
+        if let Some(parent) = &self.state.breadcrumb {
+            path.push_str(&format!(" / {parent}"));
+        }
+        if let Some(receipt) = &self.state.receipt {
+            path.push_str(&format!(" / {}", receipt.item.label));
+        }
+        Some(
+            div()
+                .absolute()
+                .top(px(4.0))
+                .left_0()
+                .w_full()
+                .flex()
+                .justify_center()
+                .child(
+                    div()
+                        .max_w(px(self.config.width))
+                        .min_w_0()
+                        .child(surface.text(path, Role::Navigation, false, cx)),
+                ),
+        )
     }
-    /// A text line floating over the desktop: only the label's own chip is
-    /// painted, never a full-width band.
-    pub(super) fn floating_band(
-        &self,
-        surface: &Frame,
-        text: String,
-        role: Role,
-        cx: &mut Context<Self>,
-    ) -> Div {
-        div()
-            .h(px(32.0))
-            .flex_shrink_0()
-            .flex()
-            .items_center()
-            .child(
-                surface
-                    .chip()
-                    .h(px(26.0))
-                    .px_3()
-                    .flex()
-                    .items_center()
-                    .min_w_0()
-                    .max_w(px(self.config.width - 8.0))
-                    .child(surface.text(text, role, false, cx)),
-            )
-    }
+    /// The tree region below the bar: one dark stage with feathered edges
+    /// (the mockup's black stage, without a window-like box), the moving tree,
+    /// plain-text navigation and the status line underneath.
     pub(super) fn render_tree(
         &mut self,
-        height: f32,
         surface: &Frame,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Div {
+        use ctx_bar::layout::{TREE_GAP, TREE_MARGIN, TREE_VIEWPORT};
         let plan = Plan::new(
             &self.state,
             self.config.tree_variant,
-            self.config.width,
-            height,
+            self.window_width - 2.0 * STAGE_INSET,
+            TREE_VIEWPORT,
         );
         let now = Instant::now();
         self.motion.retarget(
@@ -92,14 +82,69 @@ impl Bar {
         } else {
             window.request_animation_frame();
         }
+        let ground = surface.ink(false).background;
+        let stage = div()
+            .absolute()
+            .top_0()
+            .bottom(px(TREE_MARGIN))
+            .left(px(STAGE_INSET))
+            .right(px(STAGE_INSET))
+            .rounded(px(28.0))
+            .bg(ground.opacity(0.86))
+            .shadow(vec![BoxShadow {
+                color: ground.opacity(0.5),
+                offset: point(px(0.0), px(0.0)),
+                blur_radius: px(STAGE_INSET - 4.0),
+                spread_radius: px(0.0),
+                inset: false,
+            }]);
         div()
+            .relative()
             .w_full()
-            .h(px(height + 32.0))
+            .mt(px(TREE_GAP))
             .flex_shrink_0()
             .flex()
             .flex_col()
-            .child(self.tree_panel(&plan, offset, surface, cx))
+            .pb(px(TREE_MARGIN))
+            .child(stage)
+            .child(
+                div()
+                    .mx(px(STAGE_INSET))
+                    .child(self.tree_panel(&plan, offset, surface, cx)),
+            )
             .child(self.tree_controls(surface, window, cx))
+            .child(self.tree_status(surface, cx))
+    }
+    fn tree_status(&self, surface: &Frame, cx: &mut Context<Self>) -> Div {
+        // The preview node already names the choice; the status line only says
+        // what happens next (the list view keeps its full sentence).
+        let message = match (&self.state.status, &self.execution) {
+            (Status::Preview(_), None) if self.preview_action().is_some() => {
+                "Preview only. Enter again or Run to run it on this Mac.".to_string()
+            }
+            (Status::Preview(_), None) => "Preview only. Nothing executed.".to_string(),
+            _ => self.status_text(),
+        };
+        let mut line = div()
+            .h(px(ctx_bar::layout::TREE_STATUS))
+            .flex_shrink_0()
+            .flex()
+            .items_center()
+            .justify_center();
+        if !message.is_empty() {
+            line = line.child(
+                div()
+                    .max_w(px(self.window_width - 2.0 * STAGE_INSET - 32.0))
+                    .min_w_0()
+                    .child(surface.text(
+                        message,
+                        super::status_role(&self.state.status),
+                        false,
+                        cx,
+                    )),
+            );
+        }
+        line
     }
     pub(super) fn tree_panel(
         &self,
@@ -108,27 +153,29 @@ impl Bar {
         surface: &Frame,
         cx: &mut Context<Self>,
     ) -> gpui_kit::Stateful<Div> {
+        use ctx_bar::tree::{APERTURE, APERTURE_PREVIEW};
         let height = plan.center.y * 2.0;
         let ink = surface.ink(false);
-        let mut panel = div().id("moving-tree").relative().h(px(height)).flex_shrink_0()
+        let width = plan.node_width;
+        let mut panel = div().id("moving-tree").relative().w_full().h(px(height)).flex_shrink_0()
             .overflow_hidden().track_focus(&self.tree_focus).tab_index(0)
             .role(gpui_kit::accesskit::Role::ListBox).aria_label("Preview choices")
-            .aria_description("Synthetic control declarations. Up/Down select, Enter previews, F4 Back. No system action is executed.");
-        let width = plan.node_width;
-        panel = panel.child(tree_edges(plan, offset, ink.foreground, ink.background));
+            .aria_description("Up/Down select, Enter previews, F4 Back. Only an explicit Run executes a whitelisted action.");
+        panel = panel.child(tree_edges(plan, offset, ink.foreground));
         if let Some(position) = plan.query {
             let p = position.plus(offset);
             panel = panel.child(
-                surface
-                    .row(false)
-                    .px(px(6.0))
+                div()
                     .absolute()
                     .left(px(p.x - width / 2.0))
-                    .top(px(p.y - 28.0))
+                    .top(px(p.y - 32.0))
                     .w(px(width))
-                    .bg(ink.background.opacity(0.92))
+                    .h(px(64.0))
+                    .px(px(6.0))
+                    .flex()
+                    .items_center()
                     .opacity(0.42)
-                    .child(div().min_w_0().flex_1().child(surface.text(
+                    .child(div().min_w_0().child(surface.text(
                         self.state.query.clone(),
                         Role::Label,
                         false,
@@ -136,42 +183,34 @@ impl Bar {
                     ))),
             );
         }
-        let preview = matches!(self.state.status, Status::Preview(_));
         for node in &plan.nodes {
             panel = panel.child(self.tree_node(plan, node, offset, surface, cx));
         }
-        // This is the pinned tree aperture, not the rejected idle/input focus mark.
-        // A dark halo keeps its hairlines visible over light wallpapers.
-        let aperture_height = if preview {
-            124.0_f32.min(height - 4.0)
+        // The pinned aperture (not the rejected idle/input focus mark).
+        let aperture = if matches!(self.state.status, Status::Preview(_)) {
+            APERTURE_PREVIEW
         } else {
-            64.0
+            APERTURE
         };
         panel = panel.child(
             div()
                 .absolute()
-                .left(px(plan.center.x - width / 2.0 - 8.0))
-                .top(px(plan.center.y - aperture_height / 2.0 - 1.0))
-                .w(px(plan.current_width + 16.0))
-                .h(px(aperture_height + 2.0))
-                .border_t_2()
-                .border_b_2()
-                .border_color(ink.background.opacity(0.85)),
-        );
-        panel = panel.child(
-            div()
-                .absolute()
-                .left(px(plan.center.x - width / 2.0 - 8.0))
-                .top(px(plan.center.y - aperture_height / 2.0))
-                .w(px(plan.current_width + 16.0))
-                .h(px(aperture_height))
+                .left(px(plan.center.x - (width + 16.0) / 2.0))
+                .top(px(plan.center.y - aperture / 2.0))
+                .w(px(width + 16.0))
+                .h(px(aperture))
                 .border_t_1()
                 .border_b_1()
                 .border_color(ink.foreground),
         );
-        // Floating over the desktop: no panel ground and no enclosure edges.
+        if let Some(crumbs) = self.tree_breadcrumbs(surface, cx) {
+            panel = panel.child(crumbs);
+        }
         panel
     }
+    /// Studio node: text only (the stage is the ground), the label wrapping to
+    /// two lines at the node width, metadata beneath; only the selected or
+    /// hovered node gets the selection fill.
     fn tree_node(
         &self,
         plan: &Plan,
@@ -180,29 +219,32 @@ impl Bar {
         surface: &Frame,
         cx: &mut Context<Self>,
     ) -> gpui_kit::Stateful<Div> {
-        let left = plan.node_width / 2.0;
-        let width = plan.width_of(node);
-        let current_preview = matches!(self.state.status, Status::Preview(_)) && !node.prior;
+        let width = plan.node_width;
+        let preview = matches!(self.state.status, Status::Preview(_)) && !node.prior;
+        let lines = wrap_label(&node.item.label, surface.columns(width - 12.0, Role::Label));
+        let meta = surface.line_height(Role::Navigation);
+        let height =
+            (8.0 + lines.len() as f32 * surface.line_height(Role::Label) + 2.0 + meta).max(64.0);
         let p = node.position.plus(offset);
-        let row_height = if current_preview {
-            112.0_f32.min(plan.center.y * 2.0 - 8.0)
-        } else {
-            56.0
-        };
-        let mut row = surface
-            .row(node.selected)
-            .px(px(6.0))
+        let selection = surface.ink(true).selection;
+        let mut row = div()
             .id(SharedString::from(format!(
                 "tree-node-{}-{}-{}",
                 node.position.x, node.prior, node.item.id
             )))
             .absolute()
-            .left(px(p.x - left))
-            .top(px(p.y - row_height / 2.0))
+            .left(px(p.x - width / 2.0))
+            .top(px(p.y - height / 2.0))
             .w(px(width))
-            .h(px(row_height));
-        if !node.selected {
-            row = row.bg(surface.ink(false).background.opacity(0.92));
+            .h(px(height))
+            .px(px(6.0))
+            .py(px(4.0))
+            .flex()
+            .flex_col()
+            .justify_center()
+            .gap(px(2.0));
+        if node.selected && !node.prior {
+            row = row.bg(selection);
         }
         if node.prior {
             row = row.opacity(if node.selected { 0.62 } else { 0.42 });
@@ -220,26 +262,29 @@ impl Bar {
             }
             row = row
                 .cursor_pointer()
+                .hover(move |style| style.bg(selection))
                 .on_click(cx.listener(move |this, _, _, cx| {
                     this.tree_click(generation, index, &id, cx);
                 }));
         }
-        let mut content = div()
-            .flex_1()
-            .min_w_0()
-            .flex()
-            .flex_col()
-            .child(surface.text(node.item.label.clone(), Role::Label, node.selected, cx))
-            .child(surface.text(
-                format!("{} / {}", node.item.tool, node.item.interface),
-                Role::Metadata,
-                node.selected,
-                cx,
-            ));
-        if current_preview {
-            content = content.child(surface.text("Nothing executed", Role::Metadata, true, cx));
+        for line in lines {
+            row = row.child(surface.text(line, Role::Label, node.selected, cx));
         }
-        row.child(content)
+        let likely = node.index == Some(0) && !self.state.provisional && !node.prior;
+        let detail = if preview {
+            "Preview only".to_string()
+        } else if likely {
+            format!("{} / likely", node.item.tool)
+        } else {
+            node.item.tool.clone()
+        };
+        row = row.child(div().opacity(0.75).child(surface.text(
+            detail,
+            Role::Navigation,
+            node.selected,
+            cx,
+        )));
+        row
     }
     fn tree_click(&mut self, generation: u64, index: usize, id: &str, cx: &mut Context<Self>) {
         if generation != self.state.generation
@@ -255,6 +300,7 @@ impl Bar {
             cx.notify();
         }
     }
+    /// Plain-text navigation as in the mockup; disabled actions dim to 0.4.
     pub(super) fn tree_controls(
         &self,
         surface: &Frame,
@@ -263,109 +309,70 @@ impl Bar {
     ) -> Div {
         let ready = self.state.status == Status::Ready || self.state.provisional;
         let can_choose = ready && self.tree_can_choose();
-        let can_run = self.preview_action().is_some();
+        let can_run = self.preview_action().is_some() && !self.executing;
         let can_back = self.state.history_len() > 0;
         let can_pause = self.state.timer.is_some();
         let can_resume = ready
             && !self.state.provisional
             && self.state.timeout_enabled
             && self.tree_can_choose();
-        let mut panel = surface
-            .chip()
-            .h(px(28.0))
-            .px_3()
+        let _ = window;
+        let control =
+            |id: &'static str, label: &'static str, enabled: bool, cx: &mut Context<Self>| {
+                Button::new(id)
+                    .ghost()
+                    .accessibility_label(label)
+                    .disabled(!enabled)
+                    .opacity(if enabled { 1.0 } else { 0.4 })
+                    .child(surface.text(label, Role::Navigation, false, cx))
+            };
+        let mut row = div()
+            .h(px(ctx_bar::layout::TREE_NAVIGATION))
+            .flex_shrink_0()
             .flex()
             .items_center()
-            .gap_3()
+            .justify_center()
+            .gap(px(24.0))
             .child(
-                Button::new("tree-back")
-                    .ghost()
-                    .accessibility_label("Back")
-                    .disabled(!can_back)
-                    .opacity(if can_back { 1.0 } else { 0.42 })
-                    .child(surface.back_label(window, cx))
+                control("tree-back", "Back", can_back, cx)
                     .on_click(cx.listener(|this, _, _, cx| this.back(cx))),
             )
+            .child(control("tree-choose", "Choose", can_choose, cx).on_click(
+                cx.listener(|this, _, window, cx| this.choose(this.state.selected, window, cx)),
+            ))
             .child(
-                Button::new("tree-choose")
-                    .ghost()
-                    .accessibility_label("Choose preview")
-                    .disabled(!can_choose)
-                    .opacity(if can_choose { 1.0 } else { 0.42 })
-                    .child(surface.text("Choose", Role::Control, false, cx))
-                    .on_click(cx.listener(|this, _, window, cx| {
-                        this.choose(this.state.selected, window, cx)
-                    })),
+                control("tree-run", "Run", can_run, cx).on_click(cx.listener(|this, _, _, cx| {
+                    this.execute_preview(cx);
+                })),
             )
             .child(
-                Button::new("tree-run")
-                    .ghost()
-                    .accessibility_label("Run on this Mac")
-                    .disabled(!can_run || self.executing)
-                    .opacity(if can_run && !self.executing {
-                        1.0
-                    } else {
-                        0.42
-                    })
-                    .child(surface.text("Run", Role::Control, false, cx))
-                    .on_click(cx.listener(|this, _, _, cx| {
-                        this.execute_preview(cx);
-                    })),
-            )
-            .child(
-                Button::new("tree-pause")
-                    .ghost()
-                    .accessibility_label("Pause preview dwell")
-                    .disabled(!can_pause)
-                    .opacity(if can_pause { 1.0 } else { 0.42 })
-                    .child(surface.text("Pause", Role::Control, false, cx))
-                    .on_click(cx.listener(|this, _, _, cx| {
+                control("tree-pause", "Pause", can_pause, cx).on_click(cx.listener(
+                    |this, _, _, cx| {
                         this.state.pause_dwell();
                         cx.notify();
-                    })),
+                    },
+                )),
             )
             .child(
-                Button::new("tree-resume")
-                    .ghost()
-                    .accessibility_label("Resume preview dwell")
-                    .disabled(!can_resume)
-                    .opacity(if can_resume { 1.0 } else { 0.42 })
-                    .child(surface.text("Resume", Role::Control, false, cx))
-                    .on_click(cx.listener(|this, _, window, cx| {
+                control("tree-resume", "Resume", can_resume, cx).on_click(cx.listener(
+                    |this, _, window, cx| {
                         this.state.focus(window.is_window_active());
                         if this.state.resume_dwell() {
                             this.arm_timer(cx);
                         }
                         cx.notify();
-                    })),
+                    },
+                )),
             );
-        if self.preview_action().is_some() {
-            panel = panel.child(
-                Button::new("preview-run")
-                    .ghost()
-                    .accessibility_label("Run on this Mac")
-                    .disabled(self.executing)
-                    .opacity(if self.executing { 0.42 } else { 1.0 })
-                    .child(surface.text("Run", Role::Control, false, cx))
-                    .on_click(cx.listener(|this, _, _, cx| {
-                        this.execute_preview(cx);
-                    })),
-            );
+        if let Some(details) = self.preview_details_button(surface, Role::Navigation, cx) {
+            row = row.child(details);
         }
-        if let Some(details) = self.preview_details_button(surface, cx) {
-            panel = panel.child(details);
-        }
-        div()
-            .h(px(32.0))
-            .flex_shrink_0()
-            .flex()
-            .items_center()
-            .justify_center()
-            .child(panel)
+        row
     }
     pub(super) fn preview_details_button(
         &self,
         surface: &Frame,
+        role: Role,
         cx: &mut Context<Self>,
     ) -> Option<Button> {
         let receipt = self.state.receipt.as_ref()?;
@@ -383,7 +390,7 @@ impl Bar {
                 .ghost()
                 .tooltip(details.clone())
                 .accessibility_label(format!("Preview details: {details}"))
-                .child(surface.text("Details", Role::Control, false, cx)),
+                .child(surface.text("Details", role, false, cx)),
         )
     }
     pub(super) fn list_preview_controls(
@@ -407,20 +414,17 @@ impl Bar {
                     .child(surface.back_label(window, cx))
                     .on_click(cx.listener(|this, _, _, cx| this.back(cx))),
             );
-        if let Some(details) = self.preview_details_button(surface, cx) {
+        if let Some(details) = self.preview_details_button(surface, Role::Control, cx) {
             panel = panel.child(details);
         }
         surface.finish(panel)
     }
 }
 
-/// Orthogonal connectors share the node layer's offset, so they move together.
-fn tree_edges(
-    plan: &Plan,
-    offset: Position,
-    ink: gpui_kit::Hsla,
-    halo: gpui_kit::Hsla,
-) -> gpui_kit::Canvas<()> {
+/// Studio edge: from the parent's right edge, horizontal to the midpoint,
+/// vertical to the child's row, horizontal into the child. Chosen paths at
+/// 0.65, others at 0.24, one hairline each; edges share the node layer offset.
+fn tree_edges(plan: &Plan, offset: Position, ink: gpui_kit::Hsla) -> gpui_kit::Canvas<()> {
     let width = plan.node_width;
     let edges: Vec<_> = plan
         .edges
@@ -434,19 +438,13 @@ fn tree_edges(
                 let start = bounds.origin + point(px(from.x + width / 2.0), px(from.y));
                 let end = bounds.origin + point(px(to.x - width / 2.0), px(to.y));
                 let middle = (start.x + end.x) / 2.0;
-                // Halo first, then the hairline, so connectors read over any wallpaper.
-                for (width, color) in [
-                    (3.0, halo.opacity(0.85)),
-                    (1.0, ink.opacity(if *chosen { 0.6 } else { 0.35 })),
-                ] {
-                    let mut path = PathBuilder::stroke(px(width));
-                    path.move_to(start);
-                    path.line_to(point(middle, start.y));
-                    path.line_to(point(middle, end.y));
-                    path.line_to(end);
-                    if let Ok(path) = path.build() {
-                        window.paint_path(path, color);
-                    }
+                let mut path = PathBuilder::stroke(px(1.0));
+                path.move_to(start);
+                path.line_to(point(middle, start.y));
+                path.line_to(point(middle, end.y));
+                path.line_to(end);
+                if let Ok(path) = path.build() {
+                    window.paint_path(path, ink.opacity(if *chosen { 0.65 } else { 0.24 }));
                 }
             }
         },
@@ -455,4 +453,45 @@ fn tree_edges(
     .top_0()
     .left_0()
     .size_full()
+}
+
+/// Space kept between the stage and the window edge for its feathered shadow.
+pub(super) const STAGE_INSET: f32 = 24.0;
+
+/// Greedy word wrap into at most two lines; overflow stays on the second line,
+/// where the text element ellipsizes it.
+fn wrap_label(text: &str, columns: usize) -> Vec<String> {
+    let mut lines: Vec<String> = vec![String::new()];
+    for word in text.split_whitespace() {
+        let full = lines.len() >= 2;
+        let current = lines.last_mut().expect("one line");
+        if current.is_empty() {
+            current.push_str(word);
+        } else if !full && current.chars().count() + 1 + word.chars().count() > columns {
+            lines.push(word.to_string());
+        } else {
+            current.push(' ');
+            current.push_str(word);
+        }
+    }
+    lines
+}
+
+#[cfg(test)]
+mod wrap_tests {
+    use super::wrap_label;
+
+    #[test]
+    fn wraps_at_word_boundaries_into_at_most_two_lines() {
+        assert_eq!(
+            wrap_label("Notification controls", 18),
+            ["Notification", "controls"]
+        );
+        assert_eq!(wrap_label("Sound controls", 18), ["Sound controls"]);
+        assert_eq!(
+            wrap_label("Choose an Omarchy theme for today please", 12),
+            ["Choose an", "Omarchy theme for today please"]
+        );
+        assert_eq!(wrap_label("", 10), [""]);
+    }
 }
