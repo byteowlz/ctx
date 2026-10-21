@@ -238,7 +238,7 @@ fn offline_fuzzy_survives_a_transport_error_and_never_arms_a_timer() {
         generation,
         picked,
         "Local fuzzy",
-        "Adapter unavailable · local matches · F2: all".into(),
+        "Jev offline · local matches · F2: all".into(),
         true
     ));
     assert_eq!(
@@ -253,7 +253,7 @@ fn offline_fuzzy_survives_a_transport_error_and_never_arms_a_timer() {
             .local_note
             .as_deref()
             .unwrap_or_default()
-            .contains("Adapter unavailable")
+            .contains("Jev offline")
     );
     assert!(state.items.iter().all(|item| item.probability.is_none()));
 }

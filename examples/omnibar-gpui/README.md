@@ -110,7 +110,12 @@ depends on Jev to be useful. Every edit instantly fuzzy-matches
 the offered catalog scope (label weighted, then tool/interface/id) and shows
 provisional `Local matches · Jev pending · F2: all` rows while a request is
 outstanding. When the transport fails, the same rows stay with an honest
-`Adapter unavailable · local matches · F2: all` note instead of an empty error.
+`Jev offline · local matches · F2: all` note instead of an empty error. An
+absent or silent adapter (no descriptor, no answer) switches the bar to
+local-only for 15 seconds: no "Asking Jev..." and no transport attempts, and
+with no local match the status reads `No local match · Jev offline · F2: all`.
+Technical detail goes to the log, never the status line. A real Jev failure
+(for example an HTTP error) stays visible as `Jev error`.
 Fuzzy is pure, ranking-only and dependency-free: it never arms timers, never
 replaces a Jev refusal (NoMatch still means no match; F2 still browses), and
 only explicit human gestures act on previews. Jev answers replace local rows

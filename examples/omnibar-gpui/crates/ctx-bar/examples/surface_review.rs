@@ -211,6 +211,17 @@ fn verify_pixels(
     if design != BarDesign::DotMatrix || scene == "empty" {
         return Ok(());
     }
+    // Disclosed bands span the bar: Dot matrix grounds are opaque, so both
+    // window edges just below the input must be painted (regression: a centred
+    // root once shrank every band to its content width).
+    let band_y = ((design.bar_height() + 8.0) * device) as u32;
+    for x in [(2.0 * device) as u32, pixel_width - (3.0 * device) as u32] {
+        let alpha = pixel(x, band_y)[3];
+        anyhow::ensure!(
+            alpha > 200,
+            "{scene}: band does not span the bar at x={x} (alpha {alpha})"
+        );
+    }
     let bright = ((64.0 * device) as u32 + 1..pixel_height)
         .flat_map(|y| (0..pixel_width).map(move |x| (x, y)))
         .filter(|&(x, y)| {

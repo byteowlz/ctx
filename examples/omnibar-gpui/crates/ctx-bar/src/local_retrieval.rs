@@ -11,6 +11,7 @@ use super::Bar;
 impl Bar {
     pub(super) fn schedule_local(&mut self, cx: &mut Context<Self>) {
         if self.review
+            || self.offline()
             || !self.catalog_ready
             || !self.catalog.retrieval_enabled
             || self.state.remote_request().is_none()

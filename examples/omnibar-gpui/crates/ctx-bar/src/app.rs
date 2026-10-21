@@ -55,6 +55,8 @@ pub struct Bar {
     catalog_ready: bool,
     connection: String,
     busy: bool,
+    /// Set while the local adapter is absent or silent; local-only until then.
+    offline_until: Option<Instant>,
     local_busy: bool,
     local_generation: Option<u64>,
     remaining: u64,
@@ -66,6 +68,17 @@ pub struct Bar {
     scroll: ScrollHandle,
     _subscriptions: Vec<Subscription>,
 }
+/// How long the bar stays local-only after the adapter was found absent.
+const OFFLINE_RETRY: Duration = Duration::from_secs(15);
+
+/// Status wording for provisional local matches.
+#[derive(Clone, Copy)]
+enum LocalNote {
+    Pending,
+    Offline,
+    JevError,
+}
+
 impl Bar {
     pub fn new(config: Config, review: bool, window: &mut Window, cx: &mut Context<Self>) -> Self {
         let input = cx.new(|cx| InputState::new(window, cx).placeholder("Type..."));
@@ -105,6 +118,7 @@ impl Bar {
             catalog_ready: !review,
             connection: "Start the local omnibar adapter, then edit to retry.".into(),
             busy: false,
+            offline_until: None,
             local_busy: false,
             local_generation: None,
             remaining: 0,
@@ -186,7 +200,7 @@ impl Bar {
         let timeout = self.config.request_timeout_seconds;
         let task = cx.background_executor().spawn(async move {
             path.and_then(|path| Proxy::new(&path, timeout)?.catalog())
-                .map_err(|error| error.to_string())
+                .map_err(|error| (ctx_bar::proxy::is_offline(&error), error.to_string()))
         });
         cx.spawn(async move |this, cx| {
             let result = task.await;
@@ -196,9 +210,13 @@ impl Bar {
                     Ok(catalog) => {
                         this.catalog = catalog;
                         this.catalog_ready = true;
+                        this.offline_until = None;
                         this.schedule(true, cx)
                     }
-                    Err(error) => {
+                    Err((offline, error)) => {
+                        if offline {
+                            this.go_offline(&error);
+                        }
                         this.connection =
                             format!("{error}. Start the local adapter, then edit to retry.");
                         // The embedded catalog keeps local matching alive; only a
@@ -249,8 +267,23 @@ impl Bar {
             cx.notify();
             return;
         }
+        if self.offline() {
+            // Local-only: no spinner, no transport attempt until the retry window.
+            if !self.apply_fuzzy(LocalNote::Offline) {
+                self.state.complete(
+                    self.state.generation,
+                    Ok(ctx_bar::model::Suggestions {
+                        items: vec![],
+                        source: "Jev offline".into(),
+                        latency_ms: 0.0,
+                    }),
+                );
+            }
+            cx.notify();
+            return;
+        }
         self.schedule_local(cx);
-        self.apply_fuzzy(false);
+        self.apply_fuzzy(LocalNote::Pending);
         let generation = self.state.generation;
         let delay = if debounce { self.config.debounce_ms } else { 0 };
         cx.spawn(async move |this, cx| {
@@ -278,22 +311,40 @@ impl Bar {
             let path = descriptor_path();
             let task = cx.background_executor().spawn(async move {
                 path.and_then(|path| Proxy::new(&path, timeout)?.suggest(&request, &catalog))
-                    .map_err(|error| error.to_string())
+                    .map_err(|error| (ctx_bar::proxy::is_offline(&error), error.to_string()))
             });
             let result = task.await;
             let _ = this.update(cx, |this, cx| {
                 this.busy = false;
-                let offline = result.is_err();
-                let accepted = if offline {
-                    // Transport is down: keep honest instant local matches if the
-                    // scope offers any, otherwise surface the real error.
-                    this.apply_fuzzy(true) || this.state.complete(generation, result)
-                } else if this.state.complete(generation, result) {
-                    this.scroll.scroll_to_item(0);
-                    this.arm_timer(cx);
-                    true
-                } else {
-                    generation != this.state.generation
+                let accepted = match result {
+                    // Adapter absent or silent: local-only, plainly labelled.
+                    Err((true, error)) => {
+                        this.go_offline(&error);
+                        this.apply_fuzzy(LocalNote::Offline)
+                            || this.state.complete(
+                                generation,
+                                Ok(ctx_bar::model::Suggestions {
+                                    items: vec![],
+                                    source: "Jev offline".into(),
+                                    latency_ms: 0.0,
+                                }),
+                            )
+                    }
+                    // A real failure stays visible; local matches are labelled as such.
+                    Err((false, error)) => {
+                        this.apply_fuzzy(LocalNote::JevError)
+                            || this.state.complete(generation, Err(error))
+                    }
+                    Ok(response) => {
+                        if this.state.complete(generation, Ok(response)) {
+                            this.offline_until = None;
+                            this.scroll.scroll_to_item(0);
+                            this.arm_timer(cx);
+                            true
+                        } else {
+                            generation != this.state.generation
+                        }
+                    }
                 };
                 if accepted {
                     this.scroll.scroll_to_item(0);
@@ -309,7 +360,17 @@ impl Bar {
     /// Instant fuzzy matches over the offered scope. `offline` reports the
     /// transport as down instead of leaving a pending spinner. Pure and cheap;
     /// never arms timers and never touches execution.
-    fn apply_fuzzy(&mut self, offline: bool) -> bool {
+    fn offline(&self) -> bool {
+        self.offline_until
+            .is_some_and(|until| Instant::now() < until)
+    }
+    /// Remember that the adapter is absent; retry after a short window. The
+    /// detail goes to the log, never the status line.
+    fn go_offline(&mut self, detail: &str) {
+        log::info!("ctx-bar: Jev offline ({detail}); local matching only");
+        self.offline_until = Some(Instant::now() + OFFLINE_RETRY);
+    }
+    fn apply_fuzzy(&mut self, note: LocalNote) -> bool {
         if self.state.query.trim().is_empty()
             || ctx_bar::state::is_local_or_theme_prefix(&self.state.query)
         {
@@ -328,13 +389,18 @@ impl Bar {
             .into_iter()
             .map(|index| offered[index].clone())
             .collect();
-        let note = if offline {
-            "Adapter unavailable · local matches · F2: all".to_string()
-        } else {
-            "Local matches · Jev pending · F2: all".to_string()
+        let (text, settled) = match note {
+            LocalNote::Pending => ("Local matches · Jev pending · F2: all", false),
+            LocalNote::Offline => ("Jev offline · local matches · F2: all", true),
+            LocalNote::JevError => ("Jev error · local matches · F2: all", true),
         };
-        self.state
-            .show_local(self.state.generation, picked, "Local fuzzy", note, offline)
+        self.state.show_local(
+            self.state.generation,
+            picked,
+            "Local fuzzy",
+            text.into(),
+            settled,
+        )
     }
     fn timer_work(&mut self) -> Option<(TimerTicket, u64)> {
         let ticket = self.state.timer.clone()?;
@@ -646,6 +712,7 @@ impl Bar {
             Status::Ready if self.catalog_ready => "Jev · F2: all".into(),
             Status::Overview | Status::Ready => String::new(),
             Status::Loading => "Asking Jev…".into(),
+            Status::NoMatch if self.offline() => "No local match · Jev offline · F2: all".into(),
             Status::NoMatch if self.catalog.retrieval_enabled => "No Jev match · F2: all".into(),
             Status::NoMatch => "No matching interface. Edit the request to retry.".into(),
             Status::Preview(message) if self.preview_action().is_some() => {
@@ -842,11 +909,18 @@ impl Render for Bar {
             .p(px(INSET))
             .flex()
             .flex_col()
-            .items_center()
             .text_color(theme.foreground)
             .text_size(px(13.5))
             .capture_key_down(cx.listener(Self::key_down))
-            .child(div().w(px(self.config.width)).flex_shrink_0().child(input));
+            // Bands keep the window's width; only the bar is centred, which
+            // matters in tree view where the window is wider than the bar.
+            .child(
+                div()
+                    .w(px(self.config.width))
+                    .mx_auto()
+                    .flex_shrink_0()
+                    .child(input),
+            );
         if let (false, Some(breadcrumb)) = (tree_active, &self.state.breadcrumb) {
             panel = panel.child(
                 surface.finish(

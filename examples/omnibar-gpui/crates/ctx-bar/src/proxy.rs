@@ -17,6 +17,23 @@ const ORIGIN: &str = "http://127.0.0.1:4784";
 const MAX_RESPONSE: u64 = 64 * 1024;
 
 // Deliberately no Debug/Serialize: reviewKey is an ephemeral proxy capability.
+/// The local adapter is absent or not answering. Callers run local-only (the
+/// embedded catalog, fuzzy matches and whitelisted actions) instead of
+/// surfacing transport internals; any other error is a real failure.
+#[derive(Debug)]
+pub struct Offline(pub &'static str);
+impl std::fmt::Display for Offline {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.0)
+    }
+}
+impl std::error::Error for Offline {}
+
+/// True when an error means "adapter offline" rather than a real failure.
+pub fn is_offline(error: &anyhow::Error) -> bool {
+    error.downcast_ref::<Offline>().is_some()
+}
+
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Descriptor {
@@ -25,12 +42,17 @@ pub struct Descriptor {
 }
 impl Descriptor {
     pub fn read(path: &Path) -> Result<Self> {
-        let file = File::open(path).with_context(|| {
-            format!(
-                "Start the local prototype proxy; review descriptor unavailable at {}",
-                path.display()
-            )
-        })?;
+        let file = match File::open(path) {
+            Ok(file) => file,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Err(anyhow::Error::new(Offline("ctx adapter is not running")));
+            }
+            Err(error) => {
+                return Err(error).with_context(|| {
+                    format!("Review descriptor unreadable at {}", path.display())
+                });
+            }
+        };
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt as _;
@@ -87,11 +109,7 @@ impl Proxy {
             .header("Origin", &self.descriptor.origin)
             .header("X-Prototype-Key", review_key)
             .send()
-            .map_err(|_| {
-                anyhow::anyhow!(
-                    "Local Jev proxy unavailable or timed out; retry after starting the proxy"
-                )
-            })?;
+            .map_err(|_| anyhow::Error::new(Offline("ctx adapter did not answer")))?;
         if !response.status().is_success() {
             // Do not surface upstream bodies, headers, URLs, keys or private diagnostics.
             bail!(
@@ -275,5 +293,18 @@ mod tests {
             assert!(d.validate().is_err());
         }
         assert!(serde_json::from_str::<Descriptor>(r#"{"origin":"http://127.0.0.1:4784","reviewKey":"synthetic-review-capability-only","apiKey":"forbidden"}"#).is_err());
+    }
+
+    #[test]
+    fn missing_descriptor_and_silent_adapter_are_offline_not_failures() {
+        let missing =
+            std::env::temp_dir().join(format!("ctx-no-descriptor-{}", std::process::id()));
+        let error = Descriptor::read(&missing)
+            .err()
+            .expect("missing descriptor fails");
+        assert!(is_offline(&error), "{error}");
+        assert!(!error.to_string().contains('/'), "no paths leak: {error}");
+        let real = anyhow::anyhow!("Local proxy returned an invalid JSON shape");
+        assert!(!is_offline(&real));
     }
 }
