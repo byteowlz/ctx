@@ -18,6 +18,9 @@ mod matrix;
 #[path = "../src/presentation.rs"]
 mod presentation;
 #[cfg(feature = "native-review")]
+#[path = "tree_review/setup.rs"]
+mod setup_proof;
+#[cfg(feature = "native-review")]
 #[path = "../src/theme.rs"]
 mod theme;
 #[cfg(feature = "native-review")]
@@ -199,6 +202,7 @@ async fn capture(directory: std::path::PathBuf, cx: &mut gpui_kit::AsyncApp) -> 
     let system_reduce_motion = cx.update(|cx| cx.reduce_motion());
     captures.extend(extra_proof::capture(&directory, cx).await?);
     timing::run(&directory, cx).await?;
+    captures.extend(setup_proof::capture(&directory, cx).await?);
     std::fs::write(
         directory.join("manifest.json"),
         serde_json::to_vec_pretty(&serde_json::json!({

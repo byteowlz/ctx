@@ -20,6 +20,8 @@ anyhow.workspace = true
 log.workspace = true
 env_logger.workspace = true
 reqwest.workspace = true
+# Already locked via `config`; used for the owner-only credentials file.
+toml = "0.8"
 
 [lints]
 workspace = true

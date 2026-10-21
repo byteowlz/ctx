@@ -125,6 +125,26 @@ Text that is still composing (IME marked text) is shown but not committed: it is
 not matched, never sent to Jev and never arms a timer, and Enter is suppressed
 until the composition commits.
 
+## Setting up Jev in the app
+
+Type `setup` (or `ctx setup`) and press Enter. The bar asks for the decisions
+endpoint URL, then the API key (masked, never painted by the dot grid), then an
+optional EAVS listener token (`X-Eavs-Token`; Enter skips it). A bare origin such
+as `https://eavs.example` gets `/jev/v1/systemone` appended. HTTPS is required,
+except plain HTTP on loopback or tailnet (100.64.0.0/10) addresses.
+
+Before anything is saved the bar sends one synthetic request ("switch to dark
+mode") and validates the answer exactly like the adapter does. On success it
+writes `$XDG_CONFIG_HOME/ctx/credentials.toml` (owner-only 0600, atomic) and
+from then on calls the endpoint directly, so no local adapter is needed. A
+rejected key returns to the key step and saves nothing; Esc cancels. Keys never
+appear in the status line, logs or review snapshots, and the credentials file
+is refused if it becomes group- or world-readable. The request body is checked
+against the adapter's for all 224 scopes (`verify-scopes.ts`).
+
+The decision model still only ranks catalog declarations: a configured
+endpoint does not grant execution.
+
 ## Command words and placement
 
 Bar commands do not need the `ctx` prefix: typing a command word such as

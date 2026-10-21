@@ -9,6 +9,8 @@ pub enum Action {
     View(ViewMode),
     Variant(TreeVariant),
     Dwell(bool),
+    /// Start in-app decisions setup (endpoint, key, test call).
+    Setup,
 }
 
 impl Action {
@@ -20,6 +22,7 @@ impl Action {
             Self::Variant(variant) => variant.label(),
             Self::Dwell(true) => "Enable preview dwell",
             Self::Dwell(false) => "Disable preview dwell",
+            Self::Setup => "Set up Jev endpoint",
         }
     }
     pub fn detail(self) -> &'static str {
@@ -36,6 +39,7 @@ impl Action {
             }
             Self::Dwell(true) => "Opt-in 2s tree dwell after settlement. Explicit Resume required.",
             Self::Dwell(false) => "Only manual navigation; no automatic selection.",
+            Self::Setup => "Endpoint URL and API key, tested before saving. Stored owner-only.",
         }
     }
     fn matches(self, filter: &str) -> bool {
@@ -47,6 +51,7 @@ impl Action {
             Self::Variant(TreeVariant::Crumbs) => "crumbs breadcrumbs",
             Self::Dwell(true) => "on enable",
             Self::Dwell(false) => "off disable",
+            Self::Setup => "jev decisions endpoint key",
             Self::Design(_) => "",
         };
         aliases
@@ -58,7 +63,7 @@ impl Action {
 /// Plain words that name bar commands. Each needs at least four typed
 /// characters, and a test guards that no catalog word shares these stems, so
 /// a bar command can never shadow a real catalog match.
-const COMMAND_WORDS: [(&str, &[Action]); 10] = [
+const COMMAND_WORDS: [(&str, &[Action]); 11] = [
     (
         "tree",
         &[
@@ -77,6 +82,7 @@ const COMMAND_WORDS: [(&str, &[Action]); 10] = [
     ("breadcrumbs", &[Action::Variant(TreeVariant::Crumbs)]),
     ("crumbs", &[Action::Variant(TreeVariant::Crumbs)]),
     ("dwell", &[Action::Dwell(true), Action::Dwell(false)]),
+    ("setup", &[Action::Setup]),
 ];
 /// Words that may surround a command word ("show tree", "switch to list").
 /// Catalog words such as "mode" or "layout" are deliberately excluded.
@@ -150,6 +156,7 @@ pub fn choices(query: &str) -> Option<Vec<Action>> {
                 .collect(),
         ),
         ("ctx dwell", vec![Action::Dwell(false), Action::Dwell(true)]),
+        ("ctx setup", vec![Action::Setup]),
     ] {
         if query == prefix {
             return Some(options);
@@ -174,7 +181,7 @@ pub fn holds_input(query: &str) -> bool {
     query == "c"
         || query == "ct"
         || choices(&query).is_some()
-        || ["ctx view", "ctx tree", "ctx dwell"]
+        || ["ctx view", "ctx tree", "ctx dwell", "ctx setup"]
             .iter()
             .any(|prefix| query.starts_with("ctx ") && prefix.starts_with(&query))
 }

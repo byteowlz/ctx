@@ -33,7 +33,9 @@ fn main() -> Result<()> {
                         .iter()
                         .map(|item| item.id.as_str())
                         .collect();
-                    scopes.push(serde_json::json!({"platform":platform,"fixture":fixture,"presentation":presentation,"node":request.node,"ids":ids}));
+                    // The direct transport's request body must match the adapter's.
+                    let payload = ctx_bar::direct::payload(&request, &catalog, "jev-latest")?;
+                    scopes.push(serde_json::json!({"platform":platform,"fixture":fixture,"presentation":presentation,"node":request.node,"ids":ids,"payload":payload}));
                 }
             }
         }

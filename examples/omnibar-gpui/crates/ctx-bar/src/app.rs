@@ -57,6 +57,13 @@ pub struct Bar {
     busy: bool,
     /// Set while the local adapter is absent or silent; local-only until then.
     offline_until: Option<Instant>,
+    /// Decisions endpoint entered via `ctx setup`; when set the bar calls it
+    /// directly and no local adapter is needed.
+    credentials: Option<ctx_bar::direct::Credentials>,
+    /// Active in-app setup; input text is never routed while it runs.
+    setup: Option<ctx_bar::setup::Setup>,
+    /// Where setup saves credentials (overridable only by the hidden harness).
+    credentials_path: Option<std::path::PathBuf>,
     local_busy: bool,
     local_generation: Option<u64>,
     remaining: u64,
@@ -119,6 +126,9 @@ impl Bar {
             connection: "Start the local omnibar adapter, then edit to retry.".into(),
             busy: false,
             offline_until: None,
+            credentials: None,
+            setup: None,
+            credentials_path: ctx_bar::direct::credentials_path().ok(),
             local_busy: false,
             local_generation: None,
             remaining: 0,
@@ -131,7 +141,15 @@ impl Bar {
         };
         // Review scenes never read a descriptor or contact a decision service.
         if !review {
-            bar.load_catalog(cx);
+            bar.credentials = ctx_bar::direct::credentials_path()
+                .and_then(|path| ctx_bar::direct::load(&path))
+                .unwrap_or_else(|error| {
+                    log::warn!("ctx-bar: ignoring ctx credentials: {error}");
+                    None
+                });
+            if bar.credentials.is_none() {
+                bar.load_catalog(cx);
+            }
         }
         bar
     }
@@ -146,6 +164,12 @@ impl Bar {
                 InputEvent::Change => {
                     #[cfg(feature = "native-review")]
                     presentation::diagnose(cx, |d| d.changes += 1);
+                    if let Some(setup) = &mut this.setup {
+                        // Setup text (URLs, keys) is never matched or routed.
+                        setup.edited();
+                        cx.notify();
+                        return;
+                    }
                     if !this.state.input_change(input.read(cx).value().to_string()) {
                         return;
                     }
@@ -160,6 +184,12 @@ impl Bar {
                     this.schedule(true, cx);
                 }
                 InputEvent::PressEnter { .. } => {
+                    if this.setup.is_some() {
+                        if !this.composing(window, cx) {
+                            this.setup_submit(window, cx);
+                        }
+                        return;
+                    }
                     // An explicit Enter on a real-action preview runs it; the
                     // timer/dwell path never reaches here.
                     if !this.composing(window, cx) && !this.execute_preview(cx) {
@@ -240,7 +270,10 @@ impl Bar {
         if self.review {
             return;
         }
-        if !self.catalog_ready {
+        if self.setup.is_some() {
+            return;
+        }
+        if !self.catalog_ready && self.credentials.is_none() {
             if !self.busy {
                 self.load_catalog(cx);
             }
@@ -301,17 +334,24 @@ impl Bar {
                         request,
                         this.catalog.clone(),
                         this.config.request_timeout_seconds,
+                        this.credentials.clone(),
                     ))
                 })
                 .ok()
                 .flatten();
-            let Some((request, catalog, timeout)) = work else {
+            let Some((request, catalog, timeout, credentials)) = work else {
                 return;
             };
             let path = descriptor_path();
             let task = cx.background_executor().spawn(async move {
-                path.and_then(|path| Proxy::new(&path, timeout)?.suggest(&request, &catalog))
-                    .map_err(|error| (ctx_bar::proxy::is_offline(&error), error.to_string()))
+                let result = match credentials {
+                    // Entered via `ctx setup`: call the decisions endpoint directly.
+                    Some(credentials) => ctx_bar::direct::Direct::new(credentials, timeout)
+                        .and_then(|direct| direct.suggest(&request, &catalog)),
+                    None => path
+                        .and_then(|path| Proxy::new(&path, timeout)?.suggest(&request, &catalog)),
+                };
+                result.map_err(|error| (ctx_bar::proxy::is_offline(&error), error.to_string()))
             });
             let result = task.await;
             let _ = this.update(cx, |this, cx| {
@@ -360,6 +400,71 @@ impl Bar {
     /// Instant fuzzy matches over the offered scope. `offline` reports the
     /// transport as down instead of leaving a pending spinner. Pure and cheap;
     /// never arms timers and never touches execution.
+    /// Mirror the setup step onto the input: placeholder, masking, empty text.
+    fn sync_setup_field(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let (placeholder, masked) = match &self.setup {
+            Some(setup) => (setup.placeholder(), setup.masked()),
+            None => ("Type...", false),
+        };
+        self.input.update(cx, |input, cx| {
+            input.set_masked(masked, window, cx);
+            input.set_placeholder(placeholder, window, cx);
+            input.set_value("", window, cx);
+            input.focus(window, cx);
+        });
+        cx.notify();
+    }
+    /// Enter during setup: advance, or run the one synthetic probe. Credentials
+    /// are saved only after the endpoint answered with a valid decision.
+    fn setup_submit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        use ctx_bar::setup::Outcome;
+        let text = self.input.read(cx).value().to_string();
+        let Some(setup) = &mut self.setup else { return };
+        match setup.submit(&text) {
+            Outcome::Next => self.sync_setup_field(window, cx),
+            Outcome::Invalid => cx.notify(),
+            Outcome::Test(credentials) => {
+                self.sync_setup_field(window, cx);
+                let catalog = ctx_bar::model::embedded_catalog().unwrap_or_default();
+                let path = self.credentials_path.clone();
+                cx.spawn(async move |this, cx| {
+                    let probe = credentials.clone();
+                    let result = cx
+                        .background_executor()
+                        .spawn(async move { ctx_bar::direct::probe(&probe, &catalog) })
+                        .await
+                        .and_then(|outcome| {
+                            let path =
+                                path.ok_or_else(|| anyhow::anyhow!("No config directory"))?;
+                            ctx_bar::direct::save(&path, &credentials)?;
+                            Ok(outcome)
+                        });
+                    let _ = this.update_in(cx, |this, window, cx| {
+                        match result {
+                            Ok((top, ms)) => {
+                                this.credentials = Some(credentials);
+                                this.catalog_ready = true;
+                                this.offline_until = None;
+                                this.setup = None;
+                                this.sync_setup_field(window, cx);
+                                this.execution = Some(format!(
+                                    "Jev connected · answered \"{top}\" in {ms:.0} ms · saved"
+                                ));
+                            }
+                            Err(error) => {
+                                if let Some(setup) = &mut this.setup {
+                                    setup.failed(&error.to_string());
+                                }
+                                this.sync_setup_field(window, cx);
+                            }
+                        }
+                        cx.notify();
+                    });
+                })
+                .detach();
+            }
+        }
+    }
     fn offline(&self) -> bool {
         self.offline_until
             .is_some_and(|until| Instant::now() < until)
@@ -493,6 +598,14 @@ impl Bar {
                 self.config.auto_select_first = enabled;
                 self.state.set_timeout(enabled);
             }
+            Action::Setup => {
+                self.state.escape();
+                self.local_choices = None;
+                self.setup = Some(ctx_bar::setup::Setup::new());
+                self.sync_setup_field(window, cx);
+                cx.notify();
+                return;
+            }
         }
         self.state.escape();
         self.local_choices = None;
@@ -625,6 +738,11 @@ impl Bar {
         cx.notify();
     }
     fn escape_key(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.setup.is_some() {
+            self.setup = None;
+            self.sync_setup_field(window, cx);
+            return;
+        }
         if self.tree_active() {
             self.state.pause_dwell();
             self.input.update(cx, |input, cx| input.focus(window, cx));
@@ -688,6 +806,9 @@ impl Bar {
     }
 
     fn status_text(&self) -> String {
+        if let Some(setup) = &self.setup {
+            return setup.prompt();
+        }
         if let Some(choices) = &self.local_choices {
             return if choices.is_empty() {
                 "No local choice matches. Use ctx theme, ctx view, ctx tree or ctx dwell.".into()
@@ -783,6 +904,14 @@ impl Bar {
         Some(self.input.clone())
     }
 
+    /// Hidden-native review only: save setup credentials to a scratch path.
+    #[cfg(feature = "native-review")]
+    #[allow(dead_code)] // called by the separately compiled hidden harness
+    pub fn review_credentials_path(&mut self, path: std::path::PathBuf) {
+        self.credentials_path = Some(path);
+        self.credentials = None;
+    }
+
     /// Hidden-native review only: select an offered index without key events.
     #[cfg(feature = "native-review")]
     #[allow(dead_code)] // called by the separately compiled hidden harness
@@ -813,6 +942,10 @@ impl Bar {
             "chosen_label": self.state.items.get(self.state.selected).map(|item| &item.label),
             "selected": self.state.selected, "node": self.state.node, "presentation": self.state.presentation,
             "execution": self.execution,
+            "setup_step": self.setup.as_ref().map(|setup| format!("{:?}", setup.step())),
+            "setup_masked": self.setup.as_ref().is_some_and(ctx_bar::setup::Setup::masked),
+            "direct": self.credentials.as_ref().map(|c| c.endpoint.clone()),
+            "status_text": self.status_text(),
             "runnable": self.preview_action().is_some(),
             "receipt": self.state.receipt.as_ref().map(|receipt| serde_json::json!({"item":receipt.item,"request":receipt.request,"source":receipt.source})),
             "routable": self.state.remote_request().is_some(),
