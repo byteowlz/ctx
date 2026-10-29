@@ -96,6 +96,27 @@ enum Command {
     Browser(browser::BrowserCli),
     /// Manage context bundles for Agent Handoff
     Bundle(bundle::BundleCli),
+    /// Resolve an utterance to a fixed action: preview by default, run with --yes
+    #[command(name = "command")]
+    Route {
+        /// What was said or typed, e.g. "geh zu Twitter"
+        utterance: Vec<String>,
+        /// Emit the resolution as JSON
+        #[arg(long)]
+        json: bool,
+        /// Run the resolved whitelisted action (explicit human confirmation)
+        #[arg(long)]
+        yes: bool,
+        /// Skip the decision-model fallback (alias matching only)
+        #[arg(long)]
+        no_model: bool,
+    },
+    /// Read-only focus signals for the dictation-vs-command gate (no text read)
+    Focus {
+        /// Emit the report as JSON
+        #[arg(long)]
+        json: bool,
+    },
     /// Watch screenshot sources (clipboard + screenshot dirs) and emit JSONL detection events
     Watch {
         /// Directory to watch (repeatable; defaults to platform screenshot dirs)
@@ -241,6 +262,93 @@ fn main() -> anyhow::Result<()> {
         }
         Some(Command::Current { json, action }) => {
             cmd_current(&cli, *json, action.as_ref())?;
+        }
+        Some(Command::Route {
+            utterance,
+            json,
+            yes,
+            no_model,
+        }) => {
+            let utterance = utterance.join(" ");
+            let mut resolution = ctx_core::actions::resolve(&utterance);
+            // Fallback: let the decision model route among the same fixed ids.
+            if resolution.action.is_none() && !*no_model {
+                let credentials = ctx_core::decisions::credentials_path()
+                    .and_then(|path| ctx_core::decisions::load(&path));
+                if let Ok(Some(credentials)) = credentials {
+                    match ctx_core::decisions::route(&credentials, &utterance, 15) {
+                        Ok((action, probability, _ms)) if probability >= 0.5 => {
+                            resolution = ctx_core::actions::Resolution {
+                                utterance: utterance.clone(),
+                                action: Some(action.preview()),
+                                method: "model",
+                                probability: Some(probability),
+                                note: None,
+                            };
+                        }
+                        Ok((_, probability, _)) => {
+                            resolution.note = Some(format!(
+                                "model declined (p={probability:.2}); nothing to run"
+                            ));
+                        }
+                        Err(error) => resolution.note = Some(format!("model unavailable: {error}")),
+                    }
+                }
+            }
+            if *json {
+                println!("{}", serde_json::to_string_pretty(&resolution)?);
+            } else if let Some(action) = &resolution.action {
+                println!("resolved: {} ({})", action.label, action.id);
+                println!("  runs: {}", action.argv.join(" "));
+                if !*yes {
+                    println!("  preview only; add --yes to run it");
+                }
+            } else {
+                println!(
+                    "no action for {utterance:?}: {}",
+                    resolution.note.as_deref().unwrap_or("no match")
+                );
+            }
+            if *yes {
+                let Some(action) = resolution.action.as_ref() else {
+                    anyhow::bail!("Nothing to run");
+                };
+                let argv = ctx_core::actions::Action::by_id(action.id)
+                    .expect("resolved actions come from the catalog")
+                    .argv;
+                let status = std::process::Command::new(argv[0])
+                    .args(&argv[1..])
+                    .status()?;
+                anyhow::ensure!(status.success(), "action failed: {status}");
+            }
+        }
+        Some(Command::Focus { json }) => {
+            let report = ctx_core::focus::report();
+            if *json {
+                println!("{}", serde_json::to_string_pretty(&report)?);
+            } else {
+                println!(
+                    "focus: {} ({}) -> {:?} — {}",
+                    report.app.as_deref().unwrap_or("unknown"),
+                    report.pid.map_or_else(|| "?".into(), |pid| pid.to_string()),
+                    report.decision,
+                    report.reason
+                );
+                if let Some(element) = &report.element {
+                    println!(
+                        "  element: {} settable={} terminal={}",
+                        element.role, element.value_settable, element.terminal_marker
+                    );
+                }
+                if let Some(pane) = &report.herdr {
+                    println!(
+                        "  herdr: {} agent={} status={}",
+                        pane.pane_id,
+                        pane.agent.as_deref().unwrap_or("shell"),
+                        pane.agent_status.as_deref().unwrap_or("-")
+                    );
+                }
+            }
         }
         Some(Command::Watch {
             dirs,
