@@ -1,0 +1,45 @@
+rows=102 errors=0  commands=45 dictation=57
+
+method           all             short           long            hard            quoted          en              de              
+length<=4         58.8% (60/102)  52.2% (24/46)   50.0% (14/28)   71.4% (15/21)  100.0% (7/7)     58.6% (34/58)   59.1% (26/44)  
+lexical           87.3% (89/102) 100.0% (46/46)   78.6% (22/28)   66.7% (14/21)  100.0% (7/7)     86.2% (50/58)   88.6% (39/44)  
+jev/none          92.2% (94/102)  95.7% (44/46)   92.9% (26/28)   81.0% (17/21)  100.0% (7/7)     93.1% (54/58)   90.9% (40/44)  
+jev/editor        69.6% (71/102)  67.4% (31/46)   67.9% (19/28)   66.7% (14/21)  100.0% (7/7)     72.4% (42/58)   65.9% (29/44)  
+d3-lite/none      80.4% (82/102)  89.1% (41/46)   92.9% (26/28)   52.4% (11/21)   57.1% (4/7)     82.8% (48/58)   77.3% (34/44)  
+d3-lite/editor    80.4% (82/102)  84.8% (39/46)   92.9% (26/28)   57.1% (12/21)   71.4% (5/7)     84.5% (49/58)   75.0% (33/44)  
+
+latency ms (sequential, HTTPS via gateway):
+  jev      p50=   168  p90=   245  p99=   311  min=  141
+  d3-lite  p50=   119  p90=   189  p99=   201  min=  114
+
+selective (abstain band: decide only if p>=hi or p<=1-hi; abstain -> dictation):
+  jev      hi=0.80 coverage= 84.3%  errors_when_decided=3  dictation_taken_as_command=2
+  jev      hi=0.90 coverage= 69.6%  errors_when_decided=0  dictation_taken_as_command=0
+  jev      hi=0.97 coverage= 54.9%  errors_when_decided=0  dictation_taken_as_command=0
+  d3-lite  hi=0.80 coverage= 79.4%  errors_when_decided=13  dictation_taken_as_command=10
+  d3-lite  hi=0.90 coverage= 66.7%  errors_when_decided=10  dictation_taken_as_command=8
+  d3-lite  hi=0.97 coverage= 42.2%  errors_when_decided=3  dictation_taken_as_command=3
+
+misclassified by jev/none and d3-lite/none:
+  [com short  en] jev=0.15 d3=0.05 jev+ed=0.01  copper whale
+  [dic short  en] jev=0.14 d3=0.65 jev+ed=0.00  what time works for you
+  [dic long   en] jev=0.65 d3=0.93 jev+ed=0.01  Could we move the review to Thursday afternoon instead of Wednesday?
+  [dic hard   en] jev=0.55 d3=0.36 jev+ed=0.01  Turn left at the second traffic light and park behind the building.
+  [dic hard   en] jev=0.29 d3=0.99 jev+ed=0.01  Open the window if it gets too warm in the lab.
+  [dic hard   en] jev=0.32 d3=0.98 jev+ed=0.01  Restart the server before the demo, otherwise it will be slow.
+  [dic hard   en] jev=0.43 d3=0.95 jev+ed=0.01  Switch off the lights in the meeting room after you are done.
+  [dic hard   en] jev=0.81 d3=0.73 jev+ed=0.30  Delete the old drafts, we do not need them anymore.
+  [dic hard   en] jev=0.25 d3=0.93 jev+ed=0.02  Mute your microphone when you are not speaking.
+  [com hard   en] jev=0.89 d3=0.33 jev+ed=0.13  I can barely hear anything
+  [dic quoted en] jev=0.01 d3=0.61 jev+ed=0.00  The manual says to restart the computer after the update.
+  [com short  de] jev=0.38 d3=0.10 jev+ed=0.04  lauter
+  [com short  de] jev=0.96 d3=0.44 jev+ed=0.33  abbrechen
+  [dic short  de] jev=0.02 d3=0.77 jev+ed=0.00  bin gleich da
+  [dic long   de] jev=0.54 d3=0.95 jev+ed=0.01  Können wir das Review auf Donnerstagnachmittag verschieben?
+  [dic hard   de] jev=0.45 d3=0.95 jev+ed=0.02  Mach das Fenster auf, wenn es im Labor zu warm wird.
+  [dic hard   de] jev=0.32 d3=0.99 jev+ed=0.01  Starte den Server vor der Demo neu, sonst ist er langsam.
+  [dic hard   de] jev=0.89 d3=0.42 jev+ed=0.28  Lösch die alten Entwürfe, die brauchen wir nicht mehr.
+  [dic hard   de] jev=0.60 d3=0.89 jev+ed=0.04  Schalte dein Mikrofon stumm, wenn du nicht sprichst.
+  [com hard   de] jev=0.85 d3=0.11 jev+ed=0.05  ich höre kaum etwas
+  [dic quoted de] jev=0.02 d3=0.82 jev+ed=0.00  Im Handbuch steht, man soll den Rechner nach dem Update neu starten.
+  [dic quoted de] jev=0.19 d3=0.65 jev+ed=0.03  Sag Paul, dass die Lautstärketaste wieder kaputt ist.
