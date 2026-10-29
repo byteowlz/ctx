@@ -224,6 +224,117 @@ pub struct Resolution {
     pub note: Option<String>,
 }
 
+/// Remove a leading wake phrase ("hey oqto, ...") so the rest can be routed.
+/// Returns the remainder and whether a wake phrase was found.
+pub fn strip_wake(utterance: &str, wake: &[&str]) -> (String, bool) {
+    let normalized = normalize(utterance);
+    for phrase in wake {
+        let phrase = normalize(phrase);
+        if normalized == phrase {
+            return (String::new(), true);
+        }
+        if normalized.starts_with(&format!("{phrase} ")) {
+            let rest = normalized[phrase.len()..].trim().to_string();
+            return (rest, true);
+        }
+    }
+    (normalized, false)
+}
+
+/// Words that may appear in a spoken command without changing its meaning.
+const FILLER: &[&str] = &[
+    "please",
+    "can",
+    "could",
+    "would",
+    "you",
+    "the",
+    "a",
+    "an",
+    "my",
+    "to",
+    "on",
+    "off",
+    "up",
+    "down",
+    "turn",
+    "set",
+    "switch",
+    "open",
+    "go",
+    "show",
+    "make",
+    "it",
+    "and",
+    "bitte",
+    "kannst",
+    "du",
+    "den",
+    "die",
+    "das",
+    "dem",
+    "mein",
+    "auf",
+    "um",
+    "zu",
+    "zum",
+    "zur",
+    "mach",
+    "oeffne",
+    "öffne",
+    "einschalten",
+    "ausschalten",
+    "geh",
+    "wechsle",
+    "wechsel",
+    "an",
+    "aus",
+    "hoch",
+    "runter",
+    "mal",
+    "schnell",
+    "jetzt",
+    "mode",
+    "settings",
+    "einstellungen",
+];
+/// Clause and reported-speech markers: anything conditional or quoted is
+/// prose, not a command, however many keywords it contains.
+const CLAUSE: &[&str] = &[
+    "when", "if", "that", "because", "while", "before", "after", "said", "says", "told", "tell",
+    "should", "wenn", "falls", "dass", "weil", "bevor", "nachdem", "ob", "sagte", "gesagt", "soll",
+    "sollte", "sage",
+];
+
+/// A spoken command is short and made only of catalog words, filler and
+/// optional courtesy. Long sentences, conditionals and reported speech are
+/// never commands, no matter which keyword they contain.
+pub fn command_shaped(normalized: &str) -> bool {
+    let tokens: Vec<&str> = normalized.split_whitespace().collect();
+    if tokens.is_empty() || tokens.len() > 10 {
+        return false;
+    }
+    if tokens.iter().any(|token| CLAUSE.contains(token)) {
+        return false;
+    }
+    // Aliases are compared in the same normalized form as the utterance, so
+    // "x.com" contributes the words "x" and "com".
+    let normalized_aliases: Vec<String> = ACTIONS
+        .iter()
+        .flat_map(|action| action.aliases.iter())
+        .map(|alias| normalize(alias))
+        .collect();
+    let alias_words: std::collections::HashSet<&str> = normalized_aliases
+        .iter()
+        .flat_map(|alias| alias.split_whitespace())
+        .collect();
+    tokens.iter().all(|token| {
+        FILLER.contains(token)
+            || alias_words.contains(token)
+            || token.chars().all(|c| c.is_ascii_digit())
+    })
+}
+
 /// Deterministic resolution against the fixed catalog. The longest matching
 /// alias wins, so "dark mode" beats "mode" and "display settings" beats
 /// "display".
@@ -238,8 +349,10 @@ pub fn resolve(utterance: &str) -> Resolution {
             note: Some("empty utterance".into()),
         };
     }
+    let shaped = command_shaped(&normalized);
     let best = ACTIONS
         .iter()
+        .filter(|_| shaped)
         .filter_map(|action| {
             action
                 .matches_alias(&normalized)
@@ -259,7 +372,11 @@ pub fn resolve(utterance: &str) -> Resolution {
             action: None,
             method: "alias",
             probability: None,
-            note: Some("no fixed action matches; a decision model may route it".into()),
+            note: Some(if shaped {
+                "no fixed action matches; a decision model may route it".into()
+            } else {
+                "not a command-shaped utterance (prose, conditional or reported speech)".into()
+            }),
         },
     }
 }
@@ -301,6 +418,21 @@ mod tests {
     }
 
     #[test]
+    fn conditionals_and_reported_speech_are_never_commands() {
+        for prose in [
+            "Mute your microphone when you are not speaking.",
+            "She said turn on dark mode, it is easier on the eyes.",
+            "Tell Paul that the volume button is broken again.",
+            "Turn left at the second traffic light and park behind the building.",
+            "Schalte dein Mikrofon stumm, wenn du nicht sprichst.",
+            "Er hat gesagt, ich soll den Bildschirm sperren, wenn ich weggehe.",
+            "Denk daran, die Tür abzuschließen, wenn du gehst.",
+        ] {
+            assert!(resolve(prose).action.is_none(), "{prose}");
+        }
+    }
+
+    #[test]
     fn ordinary_prose_does_not_become_a_command() {
         for prose in [
             "please send me the report by Friday",
@@ -312,6 +444,21 @@ mod tests {
             assert!(resolved.action.is_none(), "{prose}");
             assert!(resolved.note.is_some());
         }
+    }
+
+    #[test]
+    fn wake_phrases_are_stripped_before_routing() {
+        let (rest, found) = strip_wake("Hey oqto, geh zu Twitter", &["hey oqto"]);
+        assert!(found);
+        assert_eq!(rest, "geh zu twitter");
+        assert_eq!(resolve(&rest).action.unwrap().id, "open.x");
+        let (rest, found) = strip_wake("hey oqto", &["hey oqto"]);
+        assert!(found && rest.is_empty());
+        let (rest, found) = strip_wake("geh zu twitter", &["hey oqto"]);
+        assert!(!found && rest == "geh zu twitter");
+        // A near phrase must not be swallowed.
+        let (_, found) = strip_wake("hey oqtos cousin", &["hey oqto"]);
+        assert!(!found);
     }
 
     #[test]

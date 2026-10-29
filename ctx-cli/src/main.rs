@@ -110,6 +110,18 @@ enum Command {
         /// Skip the decision-model fallback (alias matching only)
         #[arg(long)]
         no_model: bool,
+        /// Wake phrase to strip first (repeatable)
+        #[arg(long = "wake", default_value = "hey oqto,hey ctx")]
+        wake: Vec<String>,
+        /// Correlate this resolution with the producer's utterance id
+        #[arg(long)]
+        utterance_id: Option<String>,
+        /// Append the receipt to a private JSONL file (created 0600)
+        #[arg(long)]
+        log: Option<std::path::PathBuf>,
+        /// List the fixed action catalog and exit
+        #[arg(long)]
+        list: bool,
     },
     /// Read-only focus signals for the dictation-vs-command gate (no text read)
     Focus {
@@ -268,8 +280,31 @@ fn main() -> anyhow::Result<()> {
             json,
             yes,
             no_model,
+            wake,
+            utterance_id,
+            log,
+            list,
         }) => {
-            let utterance = utterance.join(" ");
+            if *list {
+                for action in ctx_core::actions::ACTIONS {
+                    println!(
+                        "{:<20} {:<30} {}",
+                        action.id,
+                        action.label,
+                        action.argv.join(" ")
+                    );
+                }
+                return Ok(());
+            }
+            let raw = utterance.join(" ");
+            let phrases: Vec<String> = wake
+                .iter()
+                .flat_map(|value| value.split(','))
+                .map(|phrase| phrase.trim().to_string())
+                .filter(|phrase| !phrase.is_empty())
+                .collect();
+            let wake: Vec<&str> = phrases.iter().map(String::as_str).collect();
+            let (utterance, woke) = ctx_core::actions::strip_wake(&raw, &wake);
             let mut resolution = ctx_core::actions::resolve(&utterance);
             // Fallback: let the decision model route among the same fixed ids.
             if resolution.action.is_none() && !*no_model {
@@ -309,6 +344,8 @@ fn main() -> anyhow::Result<()> {
                     resolution.note.as_deref().unwrap_or("no match")
                 );
             }
+            let mut executed = false;
+            let mut exit_ok = None;
             if *yes {
                 let Some(action) = resolution.action.as_ref() else {
                     anyhow::bail!("Nothing to run");
@@ -319,7 +356,38 @@ fn main() -> anyhow::Result<()> {
                 let status = std::process::Command::new(argv[0])
                     .args(&argv[1..])
                     .status()?;
+                executed = true;
+                exit_ok = Some(status.success());
                 anyhow::ensure!(status.success(), "action failed: {status}");
+            }
+            if let Some(path) = log {
+                use std::io::Write as _;
+                let receipt = serde_json::json!({
+                    "utterance": raw,
+                    "routed_utterance": utterance,
+                    "wake": woke,
+                    "utterance_id": utterance_id,
+                    "method": resolution.method,
+                    "probability": resolution.probability,
+                    "action": resolution.action.as_ref().map(|a| a.id),
+                    "executed": executed,
+                    "exit_ok": exit_ok,
+                    "at": time::OffsetDateTime::now_utc().to_string(),
+                });
+                if let Some(parent) = path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+                let mut file = {
+                    let mut options = std::fs::OpenOptions::new();
+                    options.create(true).append(true);
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::OpenOptionsExt as _;
+                        options.mode(0o600);
+                    }
+                    options.open(path)?
+                };
+                writeln!(file, "{receipt}")?;
             }
         }
         Some(Command::Focus { json }) => {

@@ -52,3 +52,20 @@ Selective use (decide only when confident, otherwise treat as dictation):
    dictated imperatives. Not usable without a larger model or fine-tuning.
 5. Small set (n=102), synthetic, one sitting, no audio/ASR errors. Treat as a
    direction, not a production threshold.
+
+## Alias fast path (r1, same 102 utterances)
+
+`ctx command` first tries the fixed catalog's EN/DE aliases, with a
+command-shape check: at most 10 words, only catalog words plus filler, and no
+conditional or reported-speech markers ("when", "if", "that", "wenn", "dass",
+"gesagt", ...). Otherwise the utterance is prose and only the model may route it.
+
+| rule | commands matched | dictation wrongly matched |
+|---|---|---|
+| contains-a-keyword (first attempt) | 17/45 (38%) | **6/57 (11%)** |
+| command-shaped (shipped) | 7/45 (16%) | **0/57 (0%)** |
+
+The false commands were conditional and quoted prose ("Mute your microphone
+*when* you are not speaking", "She said turn on dark mode"). Recall is low
+because the catalog is still small (no lock screen, screenshot, tree or agent
+actions); growing the catalog, not loosening the shape rule, is the lever.
