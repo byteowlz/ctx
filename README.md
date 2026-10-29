@@ -24,6 +24,8 @@ just check-all  # Compile, stable fmt check, strict Clippy, tests, schema/exampl
 retrieval experiment; [results and limits](docs/retrieval-benchmark.md). It does
 not change native routing or execute capabilities.
 
+[Focus signals](docs/focus-signals.md) records the measured macOS accessibility, herdr and OSC 7501 context available to the voice command gate.
+
 [Thud evaluation](docs/thud-evaluation.md) records the audio-routing access gate
 and preview-only benchmark protocol; no Thud inference has been measured.
 
