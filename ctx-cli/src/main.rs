@@ -123,6 +123,22 @@ enum Command {
         #[arg(long)]
         list: bool,
     },
+    /// Show or set the current file selection (set by yazi, Finder, an agent)
+    Selection {
+        #[command(subcommand)]
+        action: Option<SelectionAction>,
+        /// Emit as JSON
+        #[arg(long)]
+        json: bool,
+    },
+    /// Build a typed command plan (files + recipient + channel) without acting
+    Plan {
+        /// What was said, e.g. "send this to Anna"
+        utterance: Vec<String>,
+        /// Emit as JSON
+        #[arg(long)]
+        json: bool,
+    },
     /// Read-only focus signals for the dictation-vs-command gate (no text read)
     Focus {
         /// Emit the report as JSON
@@ -147,6 +163,21 @@ enum Command {
         #[arg(long)]
         once: bool,
     },
+}
+
+#[derive(Debug, Subcommand)]
+enum SelectionAction {
+    /// Replace the selection with these files
+    Set {
+        /// Absolute file path (repeatable)
+        #[arg(long = "file", required = true)]
+        files: Vec<std::path::PathBuf>,
+        /// Producer name, e.g. yazi or finder
+        #[arg(long, default_value = "unknown")]
+        source: String,
+    },
+    /// Forget the current selection
+    Clear,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, ValueEnum)]
@@ -388,6 +419,98 @@ fn main() -> anyhow::Result<()> {
                     options.open(path)?
                 };
                 writeln!(file, "{receipt}")?;
+            }
+        }
+        Some(Command::Selection { action, json }) => {
+            let path = ctx_core::selection::path()?;
+            match action {
+                Some(SelectionAction::Set { files, source }) => {
+                    let selection = ctx_core::selection::set(&path, files.clone(), source)?;
+                    if *json {
+                        println!("{}", serde_json::to_string_pretty(&selection)?);
+                    } else {
+                        println!(
+                            "selection: {} file(s) from {}",
+                            selection.files.len(),
+                            selection.source
+                        );
+                    }
+                }
+                Some(SelectionAction::Clear) => {
+                    ctx_core::selection::clear(&path)?;
+                    println!("selection cleared");
+                }
+                None => {
+                    let selection = ctx_core::selection::read(&path)?;
+                    if *json {
+                        println!("{}", serde_json::to_string_pretty(&selection)?);
+                    } else if selection.is_empty() {
+                        println!("selection: empty");
+                    } else {
+                        println!(
+                            "selection: {} file(s) from {}",
+                            selection.files.len(),
+                            selection.source
+                        );
+                        for file in &selection.files {
+                            println!("  {}", file.display());
+                        }
+                        for missing in selection.missing() {
+                            println!("  missing: {}", missing.display());
+                        }
+                    }
+                }
+            }
+        }
+        Some(Command::Plan { utterance, json }) => {
+            let utterance = utterance.join(" ");
+            let selection = ctx_core::selection::read(&ctx_core::selection::path()?)?;
+            let contacts = ctx_core::contacts::load(&ctx_core::contacts::path()?)?;
+            ctx_core::contacts::validate(&contacts)?;
+            let plan = if ctx_core::plan::is_send_request(&utterance) {
+                ctx_core::plan::send_files(&utterance, &selection, &contacts)
+            } else if let Some(action) = ctx_core::actions::resolve(&utterance).action {
+                ctx_core::plan::Plan {
+                    kind: ctx_core::plan::Kind::Fixed,
+                    utterance: utterance.clone(),
+                    files: vec![],
+                    recipient: None,
+                    missing: vec![],
+                    ready: true,
+                    summary: format!("run fixed action {}", action.id),
+                }
+            } else {
+                ctx_core::plan::Plan {
+                    kind: ctx_core::plan::Kind::Unsupported,
+                    utterance: utterance.clone(),
+                    files: vec![],
+                    recipient: None,
+                    missing: vec!["no plan for this utterance yet".into()],
+                    ready: false,
+                    summary: "nothing planned".into(),
+                }
+            };
+            if *json {
+                println!("{}", serde_json::to_string_pretty(&plan)?);
+            } else {
+                println!("plan: {}", plan.summary);
+                for file in &plan.files {
+                    println!("  file: {file}");
+                }
+                if let Some(recipient) = &plan.recipient {
+                    println!(
+                        "  to: {} ({} {})",
+                        recipient.name,
+                        recipient.channel.as_deref().unwrap_or("-"),
+                        recipient.handle.as_deref().unwrap_or("-")
+                    );
+                }
+                for missing in &plan.missing {
+                    println!("  missing: {missing}");
+                }
+                if plan.ready {
+                    println!("  ready (sending is still a separate explicit step)");
+                }
             }
         }
         Some(Command::Focus { json }) => {

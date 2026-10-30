@@ -56,6 +56,41 @@ pub const ACTIONS: &[Action] = &[
         argv: &["open", "-a", "Mail"],
     },
     Action {
+        id: "open.finder",
+        label: "Open Finder",
+        label_de: "Finder öffnen",
+        aliases: &["finder", "geh zu finder", "open finder", "dateien"],
+        argv: &["open", "-a", "Finder"],
+    },
+    Action {
+        id: "open.terminal",
+        label: "Open the terminal",
+        label_de: "Terminal öffnen",
+        aliases: &["terminal", "ghostty", "konsole"],
+        argv: &["open", "-a", "Ghostty"],
+    },
+    Action {
+        id: "open.system_settings",
+        label: "Open System Settings",
+        label_de: "Systemeinstellungen öffnen",
+        aliases: &["system settings", "systemeinstellungen", "einstellungen"],
+        argv: &["open", "-b", "com.apple.systempreferences"],
+    },
+    Action {
+        id: "open.studio",
+        label: "Open Design Studio",
+        label_de: "Design Studio öffnen",
+        aliases: &["studio", "design studio"],
+        argv: &["open", "http://100.64.0.12:4782/"],
+    },
+    Action {
+        id: "lock.screen",
+        label: "Lock the screen (sleep the display)",
+        label_de: "Bildschirm sperren",
+        aliases: &["lock", "lock screen", "sperren", "bildschirm sperren"],
+        argv: &["pmset", "displaysleepnow"],
+    },
+    Action {
         id: "appearance.dark",
         label: "Switch to dark mode",
         label_de: "Dunkelmodus einschalten",
@@ -396,6 +431,9 @@ mod tests {
             ("mach den Dunkelmodus an", "appearance.dark"),
             ("Lautstärke hoch", "sound.volume"),
             ("stummschalten", "sound.mute"),
+            ("Bildschirm sperren", "lock.screen"),
+            ("lock the screen", "lock.screen"),
+            ("open finder", "open.finder"),
         ] {
             assert_eq!(
                 resolve(utterance).action.map(|a| a.id),

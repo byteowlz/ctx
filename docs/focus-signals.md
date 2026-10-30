@@ -91,3 +91,24 @@ Structure (the signals above) is the context worth having, not OCR prose.
 | terminal, shell or unknown | dictation, plus a "run as command?" chip; never auto-Enter |
 | no text target | command, resolved by ctx |
 | unresolvable (Electron, locked, unknown) | dictation |
+
+## Argument-taking commands (selection + contacts)
+
+"Send these to Anna" cannot be a fixed argv template; it needs arguments. The
+split stays the same: ctx builds the proposal, the user confirms, a channel
+adapter sends.
+
+- **Selection** (`ctx selection`): what the user currently has highlighted, set
+  by whoever owns it. Producers call `ctx selection set --file … --source yazi`
+  (or `finder`, `agent`); ctx never guesses from screen or clipboard. Stored
+  owner-only in the ctx state dir, absolute paths, deduplicated, ≤256 files;
+  deleted files are reported, not silently dropped.
+- **Contacts** (`~/.config/ctx/contacts.toml`, private): name, aliases, channel
+  handles and a preferred channel, with `[commands] default_channel` and
+  `allow_send` (default false). A name that matches two people is reported
+  ambiguous and never guessed.
+- **Plans** (`ctx plan "<utterance>"`): `send_files` (EN/DE "send/schick … to/an
+  …") with files, resolved recipient, channel and an explicit `missing` list.
+  `ready` requires a non-empty existing selection, a unique recipient, a usable
+  channel and `allow_send = true`. Even then, sending is a separate explicit
+  step; there is no channel adapter yet.
